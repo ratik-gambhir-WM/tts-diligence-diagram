@@ -2,6 +2,7 @@ import OpenAI from 'openai'
 import type { ResponseInput, ResponseInputContent } from 'openai/resources/responses/responses'
 
 import diagramInstructions from '../prompts/JsonDiagramPrompt.md?raw'
+import style from '..prompts/context/WMStyleGuide.md'
 import { PROMPT_OUTPUT_FORMAT } from '../types/PromptOutput'
 import type { PromptOutput } from '../types/PromptOutput'
 import { getExtension } from '../utils/files'
@@ -137,10 +138,13 @@ export async function generateDiagramOutput({
   attachments = [],
   prompt,
 }: GenerateDiagramOutputParams): Promise<PromptOutput> {
+
+  const diagramPrompt = await loadPrompt()
+
   const response = await getClient().responses.parse({
     model: DEFAULT_MODEL,
     instructions: diagramInstructions,
-    input: await buildResponseInput(prompt, attachments),
+    input: await buildResponseInput(diagramPrompt, attachments),
     text: {
       format: PROMPT_OUTPUT_FORMAT,
     },
@@ -155,4 +159,12 @@ export async function generateDiagramOutput({
   }
 
   throw new Error('OpenAI did not return a structured diagram payload.')
+}
+
+
+async function loadPrompt() {
+   //loads in style guides and context into prompt if files are available
+  let prompt = diagramInstructions;
+  const guide = fs.existsSync('./WMStyleGuide.md') ? fs.readFileSync('./WMStyleGuide.md', 'utf8').trim() : '';
+  return prompt.replace('$SELECTION_PLACEHOLDER$', guide || '');
 }

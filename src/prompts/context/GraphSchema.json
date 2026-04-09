@@ -1,0 +1,86 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "WestMonroeDiagram",
+  "type": "object",
+  "required": [
+    "nodes",
+    "edges"
+  ],
+  "properties": {
+    "nodes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "label",
+          "type"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "core",
+              "process",
+              "highlight",
+              "critical",
+              "neutral"
+            ]
+          }
+        }
+      }
+    },
+    "edges": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "from",
+          "to"
+        ],
+        "properties": {
+          "from": {
+            "type": "string"
+          },
+          "to": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  "styleMap": {
+    "core": {
+      "fill": "#070154",
+      "text": "#FFFFFF",
+      "border": "#070154"
+    },
+    "process": {
+      "fill": "#0047FF",
+      "text": "#FFFFFF",
+      "border": "#0047FF"
+    },
+    "highlight": {
+      "fill": "#F6EB20",
+      "text": "#000000",
+      "border": "#F6EB20"
+    },
+    "critical": {
+      "fill": "#F900D3",
+      "text": "#FFFFFF",
+      "border": "#F900D3"
+    },
+    "neutral": {
+      "fill": "#E8EEF8",
+      "text": "#000000",
+      "border": "#CED7E6"
+    }
+  }
+}

@@ -1,0 +1,22 @@
+%%{init: {'theme':'base'}}%%
+graph TD
+
+%% Nodes
+A["User"]
+B["API"]
+C["LLM"]
+
+%% Connections
+A --> B --> C
+
+%% Styling
+classDef core fill:#070154,color:#FFFFFF,stroke:#070154;
+classDef process fill:#0047FF,color:#FFFFFF,stroke:#0047FF;
+classDef highlight fill:#F6EB20,color:#000000,stroke:#F6EB20;
+classDef critical fill:#F900D3,color:#FFFFFF,stroke:#F900D3;
+classDef neutral fill:#E8EEF8,color:#000000,stroke:#CED7E6;
+
+%% Apply classes
+class A core;
+class B process;
+class C highlight;
