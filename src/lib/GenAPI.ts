@@ -2,7 +2,7 @@ import OpenAI from 'openai'
 import type { ResponseInput, ResponseInputContent } from 'openai/resources/responses/responses'
 
 import diagramInstructions from '../prompts/JsonDiagramPrompt.md?raw'
-import style from '..prompts/context/WMStyleGuide.md'
+import style from '..prompts/context/WMStyleGuide.md?raw'
 import { PROMPT_OUTPUT_FORMAT } from '../types/PromptOutput'
 import type { PromptOutput } from '../types/PromptOutput'
 import { getExtension } from '../utils/files'
@@ -165,6 +165,6 @@ export async function generateDiagramOutput({
 async function loadPrompt() {
    //loads in style guides and context into prompt if files are available
   let prompt = diagramInstructions;
-  const guide = fs.existsSync('./WMStyleGuide.md') ? fs.readFileSync('./WMStyleGuide.md', 'utf8').trim() : '';
+  let guide = style
   return prompt.replace('$SELECTION_PLACEHOLDER$', guide || '');
 }

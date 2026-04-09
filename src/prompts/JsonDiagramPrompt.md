@@ -355,37 +355,6 @@ Ensure internal consistency:
 
 ### 5. Modeling guidelines
 
-I can help you with that. Here's a solution that injects `WMStyleGuide.md` content at the placeholder:
-
-**Option 1: Build-time injection (recommended)**
-Use a Node.js build script to read `WMStyleGuide.md` and replace `$SELECTION_PLACEHOLDER$`:
-
-```javascript
-const fs = require('fs');
-const path = require('path');
-
-const guidePath = path.join(__dirname, 'WMStyleGuide.md');
-const content = fs.existsSync(guidePath) && fs.readFileSync(guidePath, 'utf8').trim() ? fs.readFileSync(guidePath, 'utf8').trim() : '';
-
-const promptPath = path.join(__dirname, 'src/prompts/JsonDiagramPrompt.md');
-let markdown = fs.readFileSync(promptPath, 'utf8');
-markdown = markdown.replace('$SELECTION_PLACEHOLDER$', content);
-
-fs.writeFileSync(promptPath, markdown);
-```
-
-**Option 2: Runtime injection**
-Load dynamically when the prompt is needed:
-
-```javascript
-async function loadPrompt() {
-  let prompt = fs.readFileSync('./src/prompts/JsonDiagramPrompt.md', 'utf8');
-  const guide = fs.existsSync('./WMStyleGuide.md') ? fs.readFileSync('./WMStyleGuide.md', 'utf8').trim() : '';
-  return prompt.replace('$SELECTION_PLACEHOLDER$', guide || '');
-}
-```
-
-The second option is more flexible since it keeps the original file unchanged and only injects content when needed.
 
 
 ---
