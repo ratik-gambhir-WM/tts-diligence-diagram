@@ -1,0 +1,176 @@
+%% C4Container
+%% title Application Architecture
+
+
+%% System_Boundary(onprem, "On-Premises (Customer)") {
+
+%%         Container(admin_ui, "Admin UI", "XSLT, React 19")
+%%         Container(server_services, "Server Services", "Java")
+%%         Container(audit, "Audit & Reporting")
+%%         Container(directory, "Directory & Sync", "AD / LDAP")
+%%         Container(prove_id_web_api, "Prove ID Web API", "Java")
+%%         ContainerDb(db, "Database")
+
+%% }
+
+
+
+%%     Boundary(win, "Windows Endpoint") {
+%%         Container(win, "Agent Service", "C/C++ [Windows]")
+%%     }
+%%     Boundary(mac, "Mac Endpoint") {
+%%         Container(mac, "Agent Service", "C/C++ [MacOS]")
+%%     }
+%%     Boundary(embedded, "Embedded Device") {
+%%         Container(embedded, "Embedded Device", "C/C++ Client")
+%%     }
+%%     Boundary(web, "Web Browser") {
+%%         Container(web, "Web Browser", "Third-party apps")
+%%     }
+%%     Boundary(enterprise, "Enterprise Systems") {
+%%         Container(win_apps, "Windows Apps", "SSO Targets")
+%%         Container(clinical, "Clinical Apps", "SSO Targets")
+%%         Container(workflows, "Workflows", "SSO Targets")
+%%         Container(web_vdi, "Web Apps + VDI", "SSO Targets")
+%%         Container(ms_Act_Dir, "Microsoft Active Directory", "Kerberos/LDAP")
+%%         Container(radius_mfa, "RADIUS MFA")
+%%     }
+
+
+
+%% Rel(win, server_services, "Communicates")
+%% Rel(mac, server_services, "Communicates")
+%% Rel(embedded, server_services, "Communicates")
+%% Rel(web, server_services, "API calls")
+
+%% Rel(admin_ui, server_services, "Manages")
+%% Rel(server_services, db, "Reads/Writes")
+
+%% Rel(server_services, audit, "Logs")
+%% Rel(server_services, directory, "Syncs")
+
+%% Rel(server_services, win_apps, "SSO")
+%% Rel(server_services, clinical, "SSO")
+%% Rel(server_services, workflows, "Triggers")
+%% Rel(server_services, web_vdi, "Access")
+
+
+flowchart TB
+
+%% subgraph personalBankingCustomer[Personal Banking Customer]
+%%     h1[-Person-]:::type
+%%     d1[A customer of the bank, with \n personal bank accounts]:::description
+%% end
+
+subgraph internetBankingSystem[Internet Banking System]
+    subgraph webApplication[Web Application]
+        direction LR
+        h2[Container: Java and Spring MVC]:::type
+    end
+    webApplication:::internalContainer
+
+    subgraph singlePageApplication[Single Page Application]
+        direction LR
+        h3[Container: JavaScript and Angular]:::type
+    end
+    singlePageApplication:::internalContainer
+
+    subgraph mobileApp[Mobile App]
+        direction LR
+        h4[Container: Xamarin]:::type
+    end
+    mobileApp:::internalContainer
+
+    subgraph apiApplication[API Application]
+        direction LR
+        h5[Container: Java and Spring MVC]:::type
+        d5[JSON/HTTP API]:::description
+    end
+    apiApplication:::internalContainer
+
+
+    webApplication-->singlePageApplication
+    singlePageApplication-->apiApplication
+    mobileApp--REST/HTTP API-->apiApplication
+ 
+
+    subgraph test2[Appliance]
+        subgraph z1[Admin UI]
+            desc1[XSLT, React 19]
+            style desc1 fill:transparent,color:#fff,stroke:none, font-weight:regular
+            style z1 font-weight:bold, fill:#1168bd, color:#fff
+        end
+
+        subgraph z2[Audit and Reporting]
+            style z2 font-weight:bold, fill:#1168bd, color:#fff
+        end
+
+
+        subgraph z3[ProveID WebAPI]
+            desc3[Java]
+            style desc3 fill:transparent,color:#fff,stroke:none, font-weight:regular
+            style z3 font-weight:bold, fill:#1168bd, color:#fff
+        end
+
+        subgraph z4[Directory & Sync]
+               desc4[Java]
+            style desc4 fill:transparent,color:#fff,stroke:none, font-weight:regular
+            style z4 font-weight:bold, fill:#1168bd, color:#fff
+        end
+
+        subgraph z5[Server Services]
+               desc5[Java]
+            style desc5 fill:transparent,color:#fff,stroke:none, font-weight:regular
+            style z5 font-weight:bold, fill:#1168bd, color:#fff
+        end
+
+        z6[(Db<br/>Oracle 19c)]
+            style z6 font-weight:bold, fill:#1168bd, color:#fff
+    end
+    test2:::externalSystem
+
+    subgraph test3[Enterprise Systems]
+        subgraph y1[MS Active Directory]
+            ydesc1[Kerberos/LDAP]
+            style ydesc1 fill:transparent,color:#fff,stroke:none, font-weight:regular
+            style y1 font-weight:bold, fill:#1168bd, color:#fff
+        end
+        subgraph y2[RADIUS MFA]
+            style y2 font-weight:bold, fill:#1168bd, color:#fff
+        end
+        subgraph y3[Windows Apps]
+            ydesc3[SSO Targets]
+            style ydesc3 fill:transparent,color:#fff,stroke:none, font-weight:regular
+            style y3 font-weight:bold, fill:#1168bd, color:#fff
+        end
+        subgraph y4[Clinical Apps]
+            ydesc4[EHR, eMAR, CPOE]
+            style ydesc4 fill:transparent,color:#fff,stroke:none, font-weight:regular
+            style y4 font-weight:bold, fill:#1168bd, color:#fff 
+        end
+        subgraph y5[Workflows]
+        ydesc5[Controlled Substances]
+            style ydesc5 fill:transparent,color:#fff,stroke:none, font-weight:regular
+            style y5 font-weight:bold, fill:#1168bd, color:#fff
+        end
+        subgraph y6[Web Apps + VDI]
+            ydesc6[Citrix / RDS / Horizon]
+            style ydesc6 fill:transparent,color:#fff,stroke:none, font-weight:regular
+            style y6 font-weight:bold, fill:#1168bd, color:#fff 
+        end
+
+
+    end
+    test3:::externalSystem
+end
+
+
+
+
+%% Element type definitions
+
+classDef internalContainer fill:#1168bd
+classDef externalSystem fill:#999999
+
+classDef type stroke-width:0px, color:#fff, fill:transparent, font-size:12px
+classDef description stroke-width:0px, color:#fff, fill:transparent, font-size:13px
