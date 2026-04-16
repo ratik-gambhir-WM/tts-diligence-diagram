@@ -2,7 +2,7 @@ import OpenAI from 'openai'
 import type { ResponseInput, ResponseInputContent } from 'openai/resources/responses/responses'
 
 import diagramInstructions from '../prompts/JsonDiagramPrompt.md?raw'
-import style from '..prompts/context/WMStyleGuide.md?raw'
+import style from '../prompts/context/WMStyleGuide.md?raw'
 import { PROMPT_OUTPUT_FORMAT } from '../types/PromptOutput'
 import type { PromptOutput } from '../types/PromptOutput'
 import { getExtension } from '../utils/files'
