@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import type { ReactNode } from 'react'
-import { Background, Controls, MiniMap, ReactFlow } from '@xyflow/react'
+import { Background, ConnectionLineType, Controls, MiniMap, ReactFlow } from '@xyflow/react'
 
 import { JsonEditorPanel } from './JsonEditorPanel'
 import { MetadataPanel } from './MetadataPanel'
+import { DEFAULT_EDGE_OPTIONS } from '../constants/diagram'
 import { useDiagramFlow } from '../hooks/useDiagramFlow'
 import type { PromptOutput } from '../types/PromptOutput'
 
@@ -25,17 +26,15 @@ type DockButtonProps = {
 }
 
 function DockButton({ active = false, children, disabled, label, onClick }: DockButtonProps) {
-  const className = [
-    'grid h-[3.25rem] w-[3.25rem] cursor-pointer place-items-center rounded-full border border-[#171717]/8 bg-gradient-to-br from-[#f26f21] to-[#c95518] p-0 text-white shadow-[0_14px_28px_rgba(242,111,33,0.28)] transition duration-150 ease-out hover:-translate-y-px disabled:cursor-not-allowed disabled:border-[#171717]/6 disabled:from-[#bdbdbd] disabled:to-[#8f8f8f] disabled:shadow-none disabled:transform-none',
-    active && 'ring-2 ring-[#171717]/12 ring-offset-2 ring-offset-white',
-  ]
-    .filter(Boolean)
-    .join(' ')
-
   return (
     <button
       type="button"
-      className={className}
+      className={[
+        'grid h-[3.25rem] w-[3.25rem] cursor-pointer place-items-center rounded-full border border-[#171717]/8 bg-gradient-to-br from-[#f26f21] to-[#c95518] p-0 text-white shadow-[0_14px_28px_rgba(242,111,33,0.28)] transition duration-150 ease-out hover:-translate-y-px disabled:cursor-not-allowed disabled:border-[#171717]/6 disabled:from-[#bdbdbd] disabled:to-[#8f8f8f] disabled:shadow-none disabled:transform-none',
+        active && 'ring-2 ring-[#171717]/12 ring-offset-2 ring-offset-white',
+      ]
+        .filter(Boolean)
+        .join(' ')}
       onClick={onClick}
       disabled={disabled}
       aria-label={label}
@@ -49,31 +48,33 @@ function DockButton({ active = false, children, disabled, label, onClick }: Dock
   )
 }
 
-export function DiagramCanvas({ message, onBack, onUpdateMessage, promptOutput }: DiagramCanvasProps) {
+export function DiagramCanvas({
+  message,
+  onBack,
+  onUpdateMessage,
+  promptOutput,
+}: DiagramCanvasProps) {
   const [activePanel, setActivePanel] = useState<PanelMode>(null)
-  const { nodes, edges, onNodesChange, onEdgesChange, onConnect, selectedNodes } = useDiagramFlow(
-    message,
+  const { nodes, edges, onNodesChange, onEdgesChange, onConnect, selectedNodes } = useDiagramFlow({
     promptOutput,
-  )
+  })
 
   const closePanel = () => setActivePanel(null)
   const openMetadataPanel = () => setActivePanel('metadata')
   const openPromptPanel = () => setActivePanel('prompt')
   const isPanelVisible = activePanel !== null
 
-  const workspaceClassName = [
-    'grid min-h-screen h-screen grid-cols-1',
-    isPanelVisible ? 'min-[881px]:grid-cols-[minmax(0,1fr)_380px]' : '',
-  ]
-    .filter(Boolean)
-    .join(' ')
-  const canvasClassName =
-    'min-h-0 h-full overflow-hidden [&_.react-flow]:bg-[radial-gradient(circle_at_top_left,rgba(242,111,33,0.12),transparent_20%),linear-gradient(180deg,#ffffff_0%,#f6f6f6_100%)] [&_.react-flow__node.selected]:shadow-[0_0_0_3px_rgba(242,111,33,0.26)] [&_.react-flow__controls-button]:border-[#171717]/10 [&_.react-flow__controls-button]:bg-white/96 [&_.react-flow__controls-button]:text-[#171717] [&_.react-flow__minimap]:rounded-2xl [&_.react-flow__minimap]:border [&_.react-flow__minimap]:border-[#171717]/10 [&_.react-flow__minimap]:bg-white/92'
-
   return (
     <main className="h-screen min-h-screen overflow-hidden p-0">
-      <div className={workspaceClassName}>
-        <section className={canvasClassName}>
+      <div
+        className={[
+          'grid min-h-screen h-screen grid-cols-1',
+          isPanelVisible ? 'min-[881px]:grid-cols-[minmax(0,1fr)_380px]' : '',
+        ]
+          .filter(Boolean)
+          .join(' ')}
+      >
+        <section className="min-h-0 h-full overflow-hidden [&_.react-flow]:bg-[radial-gradient(circle_at_top_left,rgba(242,111,33,0.12),transparent_20%),linear-gradient(180deg,#ffffff_0%,#f6f6f6_100%)] [&_.react-flow__node.selected]:shadow-[0_0_0_3px_rgba(242,111,33,0.26)] [&_.react-flow__controls-button]:border-[#171717]/10 [&_.react-flow__controls-button]:bg-white/96 [&_.react-flow__controls-button]:text-[#171717] [&_.react-flow__minimap]:rounded-2xl [&_.react-flow__minimap]:border [&_.react-flow__minimap]:border-[#171717]/10 [&_.react-flow__minimap]:bg-white/92">
           <ReactFlow
             nodes={nodes}
             edges={edges}
@@ -82,6 +83,8 @@ export function DiagramCanvas({ message, onBack, onUpdateMessage, promptOutput }
             onConnect={onConnect}
             fitView
             fitViewOptions={{ padding: 0.2 }}
+            defaultEdgeOptions={DEFAULT_EDGE_OPTIONS}
+            connectionLineType={ConnectionLineType.Step}
             proOptions={{ hideAttribution: true }}
           >
             <MiniMap pannable zoomable />

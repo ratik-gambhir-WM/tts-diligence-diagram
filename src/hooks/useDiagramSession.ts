@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { ChangeEvent, FormEvent } from 'react'
 
-import { ALLOWED_EXTENSIONS } from '../constants/diagram'
+import { ALLOWED_EXTENSIONS, buildInitialGraph } from '../constants/diagram'
 import { generateDiagramOutput } from '../lib/GenAPI'
 import type { PromptOutput } from '../types/PromptOutput'
 import { getExtension } from '../utils/files'
@@ -150,6 +150,15 @@ export function useDiagramSession({ onGenerated }: UseDiagramSessionParams) {
     )
   }
 
+  function handleGraphBuildError(errorMessage: string) {
+    setSession((currentSession) => ({
+      ...currentSession,
+      promptOutput: null,
+      submittedMessage: '',
+    }))
+    setError(errorMessage)
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
@@ -168,6 +177,7 @@ export function useDiagramSession({ onGenerated }: UseDiagramSessionParams) {
         prompt: trimmedMessage,
         attachments,
       })
+      buildInitialGraph(generatedOutput)
 
       setSession((currentSession) => ({
         ...currentSession,
@@ -191,6 +201,7 @@ export function useDiagramSession({ onGenerated }: UseDiagramSessionParams) {
     attachmentCountLabel,
     attachments,
     error,
+    handleGraphBuildError,
     handleFiles,
     handleMessageChange,
     handleSubmit,

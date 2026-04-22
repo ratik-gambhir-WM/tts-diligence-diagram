@@ -33,17 +33,9 @@ export function PromptPage({
     return <SnailLoader />
   }
 
-  const shellClassName =
-    'w-full max-w-[780px] rounded-[28px] border border-[#171717]/10 bg-white/95 p-6 shadow-[0_28px_90px_rgba(23,23,23,0.12)] backdrop-blur-xl max-[640px]:p-4'
-  const buttonBaseClassName =
-    'cursor-pointer rounded-full border-0 px-4 py-2.5 text-[0.95rem] font-bold transition duration-150 ease-out'
-  const secondaryButtonClassName = `${buttonBaseClassName} bg-[#171717] text-white hover:bg-[#2a2a2a]`
-  const primaryButtonClassName =
-    `${buttonBaseClassName} ml-auto bg-gradient-to-br from-[#f26f21] to-[#c95518] text-white shadow-[0_12px_24px_rgba(242,111,33,0.28)] hover:-translate-y-px max-[640px]:ml-0`
-
   return (
     <main className="grid min-h-screen place-items-center p-8 max-[640px]:p-4">
-      <section className={shellClassName}>
+      <section className="w-full max-w-[780px] rounded-[28px] border border-[#171717]/10 bg-white/95 p-6 shadow-[0_28px_90px_rgba(23,23,23,0.12)] backdrop-blur-xl max-[640px]:p-4">
         <header>
           <p className="mb-2 text-[0.78rem] font-bold uppercase tracking-[0.12em] text-[#c95518]">Diagram Prompt</p>
           <h1 className="m-0 text-[clamp(1.8rem,4vw,3rem)] leading-[1.05]">Architecture Input</h1>
@@ -65,11 +57,14 @@ export function PromptPage({
             placeholder="Sketch a payment platform with an API gateway, worker queue, and reporting database."
             rows={4}
             spellCheck={false}
-            className="min-h-[130px] w-full resize-y rounded-[20px] border border-[#171717]/12 bg-[#ffffff] px-[1.1rem] py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] outline-none transition focus:border-[#f26f21] focus:outline-[3px] focus:outline-[#f26f21]/20"
+            className="min-h-[130px] w-full resize-y rounded-[20px] border border-[#171717]/12 bg-white px-[1.1rem] py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] outline-none transition focus:border-[#f26f21] focus:outline-[3px] focus:outline-[#f26f21]/20"
           />
 
           <div className="mt-4 flex flex-wrap items-center gap-3">
-            <label className={secondaryButtonClassName} htmlFor="attachments">
+            <label
+              className="cursor-pointer rounded-full border-0 bg-[#171717] px-4 py-2.5 text-[0.95rem] font-bold text-white transition duration-150 ease-out hover:bg-[#2a2a2a]"
+              htmlFor="attachments"
+            >
               Attach files
             </label>
             <input
@@ -82,8 +77,12 @@ export function PromptPage({
               disabled={isSubmitting}
               className="sr-only"
             />
-            <span className="text-[0.92rem] text-[#595959]">{attachmentCountLabel}</span>
-            <button type="submit" className={primaryButtonClassName} disabled={isSubmitting}>
+            <span className="text-[0.92rem] text-[#5c5c5c]">{attachmentCountLabel}</span>
+            <button
+              type="submit"
+              className="ml-auto cursor-pointer rounded-full border-0 bg-gradient-to-br from-[#f26f21] to-[#c95518] px-4 py-2.5 text-[0.95rem] font-bold text-white shadow-[0_12px_24px_rgba(242,111,33,0.28)] transition duration-150 ease-out hover:-translate-y-px disabled:cursor-not-allowed max-[640px]:ml-0"
+              disabled={isSubmitting}
+            >
               {isSubmitting ? 'Generating...' : 'Open canvas'}
             </button>
           </div>

@@ -8,12 +8,6 @@ type JsonEditorPanelProps = {
 
 export function JsonEditorPanel({ onClose, onSave, value }: JsonEditorPanelProps) {
   const [draft, setDraft] = useState(value)
-  const panelClassName =
-    'min-h-0 h-full overflow-auto border-l border-[#171717]/10 bg-white/94 p-4 shadow-[-16px_0_40px_rgba(23,23,23,0.08)] backdrop-blur-xl'
-  const ghostButtonClassName =
-    'cursor-pointer rounded-full border-0 bg-[#171717] px-4 py-2.5 text-[0.95rem] font-bold text-white transition duration-150 ease-out hover:bg-[#2a2a2a]'
-  const primaryButtonClassName =
-    'cursor-pointer rounded-full border-0 bg-gradient-to-br from-[#f26f21] to-[#c95518] px-4 py-2.5 text-[0.95rem] font-bold text-white shadow-[0_12px_24px_rgba(242,111,33,0.24)] transition duration-150 ease-out hover:-translate-y-px'
 
   useEffect(() => {
     setDraft(value)
@@ -28,13 +22,20 @@ export function JsonEditorPanel({ onClose, onSave, value }: JsonEditorPanelProps
   }
 
   return (
-    <aside className={panelClassName} aria-label="Submitted prompt editor">
+    <aside
+      className="min-h-0 h-full overflow-auto border-l border-[#171717]/10 bg-white/94 p-4 shadow-[-16px_0_40px_rgba(23,23,23,0.08)] backdrop-blur-xl"
+      aria-label="Submitted prompt editor"
+    >
       <div className="flex items-start justify-between gap-4 max-[640px]:flex-col">
         <div>
           <p className="mb-2 text-[0.78rem] font-bold uppercase tracking-[0.12em] text-[#c95518]">Prompt Document</p>
           <h2 className="m-0 text-[1.2rem]">Submitted prompt</h2>
         </div>
-        <button type="button" className={ghostButtonClassName} onClick={onClose}>
+        <button
+          type="button"
+          className="cursor-pointer rounded-full border-0 bg-[#171717] px-4 py-2.5 text-[0.95rem] font-bold text-white transition duration-150 ease-out hover:bg-[#2a2a2a]"
+          onClick={onClose}
+        >
           Close
         </button>
       </div>
@@ -53,10 +54,18 @@ export function JsonEditorPanel({ onClose, onSave, value }: JsonEditorPanelProps
       />
 
       <div className="mt-4 flex flex-wrap items-center justify-end gap-3">
-        <button type="button" className={ghostButtonClassName} onClick={() => setDraft(value)}>
+        <button
+          type="button"
+          className="cursor-pointer rounded-full border-0 bg-[#171717] px-4 py-2.5 text-[0.95rem] font-bold text-white transition duration-150 ease-out hover:bg-[#2a2a2a]"
+          onClick={() => setDraft(value)}
+        >
           Reset
         </button>
-        <button type="button" className={primaryButtonClassName} onClick={handleSave}>
+        <button
+          type="button"
+          className="cursor-pointer rounded-full border-0 bg-gradient-to-br from-[#f26f21] to-[#c95518] px-4 py-2.5 text-[0.95rem] font-bold text-white shadow-[0_12px_24px_rgba(242,111,33,0.24)] transition duration-150 ease-out hover:-translate-y-px"
+          onClick={handleSave}
+        >
           Save Prompt
         </button>
       </div>
