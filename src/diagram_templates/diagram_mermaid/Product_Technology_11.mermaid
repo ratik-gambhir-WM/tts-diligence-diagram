@@ -1,176 +1,115 @@
-%% C4Container
-%% title Application Architecture
-
-
-%% System_Boundary(onprem, "On-Premises (Customer)") {
-
-%%         Container(admin_ui, "Admin UI", "XSLT, React 19")
-%%         Container(server_services, "Server Services", "Java")
-%%         Container(audit, "Audit & Reporting")
-%%         Container(directory, "Directory & Sync", "AD / LDAP")
-%%         Container(prove_id_web_api, "Prove ID Web API", "Java")
-%%         ContainerDb(db, "Database")
-
-%% }
-
-
-
-%%     Boundary(win, "Windows Endpoint") {
-%%         Container(win, "Agent Service", "C/C++ [Windows]")
-%%     }
-%%     Boundary(mac, "Mac Endpoint") {
-%%         Container(mac, "Agent Service", "C/C++ [MacOS]")
-%%     }
-%%     Boundary(embedded, "Embedded Device") {
-%%         Container(embedded, "Embedded Device", "C/C++ Client")
-%%     }
-%%     Boundary(web, "Web Browser") {
-%%         Container(web, "Web Browser", "Third-party apps")
-%%     }
-%%     Boundary(enterprise, "Enterprise Systems") {
-%%         Container(win_apps, "Windows Apps", "SSO Targets")
-%%         Container(clinical, "Clinical Apps", "SSO Targets")
-%%         Container(workflows, "Workflows", "SSO Targets")
-%%         Container(web_vdi, "Web Apps + VDI", "SSO Targets")
-%%         Container(ms_Act_Dir, "Microsoft Active Directory", "Kerberos/LDAP")
-%%         Container(radius_mfa, "RADIUS MFA")
-%%     }
-
-
-
-%% Rel(win, server_services, "Communicates")
-%% Rel(mac, server_services, "Communicates")
-%% Rel(embedded, server_services, "Communicates")
-%% Rel(web, server_services, "API calls")
-
-%% Rel(admin_ui, server_services, "Manages")
-%% Rel(server_services, db, "Reads/Writes")
-
-%% Rel(server_services, audit, "Logs")
-%% Rel(server_services, directory, "Syncs")
-
-%% Rel(server_services, win_apps, "SSO")
-%% Rel(server_services, clinical, "SSO")
-%% Rel(server_services, workflows, "Triggers")
-%% Rel(server_services, web_vdi, "Access")
-
-
 flowchart TB
 
-%% subgraph personalBankingCustomer[Personal Banking Customer]
-%%     h1[-Person-]:::type
-%%     d1[A customer of the bank, with \n personal bank accounts]:::description
-%% end
+subgraph applicationArchitecture[APPLICATION ARCHITECTURE]
+subgraph onPremisesCustomer[On-Premises Customer]
 
-subgraph internetBankingSystem[Internet Banking System]
-    subgraph webApplication[Web Application]
-        direction LR
-        h2[Container: Java and Spring MVC]:::type
+    serverServices --> enterpriseSystems
+    serverServices --> directorySync
+    serverServices --> proveIdWebApi
+    serverServices --> auditReporting
+    serverServices --> adminUi
+    serverServices --> databaseOracle19c
+
+    windowsEndpoint --> proveIdWebApi
+    windowsEndpoint --> serverServices
+    macEndpoint --> proveIdWebApi
+    macEndpoint --> serverServices
+    embeddedEndpoint --> proveIdWebApi
+    embeddedEndpoint --> serverServices
+    webEndpoint --> proveIdWebApi
+    webEndpoint --> serverServices
+
+    subgraph appliance[Appliance]
+        subgraph adminUi[Admin UI]
+            adminUiTech[XSLT, React 19]
+        end
+
+        subgraph auditReporting[Audit and Reporting]
+        end
+
+        subgraph proveIdWebApi[ProveID WebAPI]
+            proveIdWebApiTech[Java]
+        end
+
+        subgraph directorySync[Directory & Sync]
+            directorySyncTech[Java]
+        end
+
+        subgraph serverServices[Server Services]
+            serverServicesTech[Java]
+        end
+
+        databaseOracle19c[(Db<br/>Oracle 19c)]
     end
-    webApplication:::internalContainer
+    appliance:::externalSystem
 
-    subgraph singlePageApplication[Single Page Application]
-        direction LR
-        h3[Container: JavaScript and Angular]:::type
+    subgraph enterpriseSystems[Enterprise Systems]
+        subgraph msActiveDirectory[MS Active Directory]
+            msActiveDirectoryProtocol[Kerberos/LDAP]
+        end
+        subgraph radiusMfa[RADIUS MFA]
+        end
+        subgraph windowsApps[Windows Apps]
+            windowsAppsTargets[SSO Targets]
+        end
+        subgraph clinicalApps[Clinical Apps]
+            clinicalAppsExamples[EHR, eMAR, CPOE]
+        end
+        subgraph workflows[Workflows]
+            workflowsScope[Controlled Substances]
+        end
+        subgraph webAppsVdi[Web Apps + VDI]
+            webAppsVdiStack[Citrix / RDS / Horizon]
+        end
     end
-    singlePageApplication:::internalContainer
+    enterpriseSystems:::externalSystem
 
-    subgraph mobileApp[Mobile App]
-        direction LR
-        h4[Container: Xamarin]:::type
+    subgraph windowsEndpoint[Windows Endpoint]
+        subgraph windowsAgentService[Agent Service]
+            windowsAgentServiceTech[C/C++, Windows]
+        end
+        subgraph windowsCredentialProvider[Credential Provider]
+            windowsCredentialProviderScope[Device Integrations]
+        end
+        subgraph windowsDeviceIntegrations[Device Integrations]
+            windowsDeviceIntegrationsTypes[Prox, Bio, MFA]
+        end
     end
-    mobileApp:::internalContainer
+    windowsEndpoint:::externalSystem
 
-    subgraph apiApplication[API Application]
-        direction LR
-        h5[Container: Java and Spring MVC]:::type
-        d5[JSON/HTTP API]:::description
+    subgraph macEndpoint[Mac Endpoint]
+        subgraph macAgentService[Agent Service]
+            macAgentServiceTech[C++/C, MacOS]
+        end
     end
-    apiApplication:::internalContainer
+    macEndpoint:::externalSystem
 
-
-    webApplication-->singlePageApplication
-    singlePageApplication-->apiApplication
-    mobileApp--REST/HTTP API-->apiApplication
- 
-
-    subgraph test2[Appliance]
-        subgraph z1[Admin UI]
-            desc1[XSLT, React 19]
-            style desc1 fill:transparent,color:#fff,stroke:none, font-weight:regular
-            style z1 font-weight:bold, fill:#1168bd, color:#fff
+    subgraph embeddedEndpoint[Embedded]
+        subgraph embeddedClient[Client]
+            embeddedClientTech[C++/C, ProveID]
         end
-
-        subgraph z2[Audit and Reporting]
-            style z2 font-weight:bold, fill:#1168bd, color:#fff
-        end
-
-
-        subgraph z3[ProveID WebAPI]
-            desc3[Java]
-            style desc3 fill:transparent,color:#fff,stroke:none, font-weight:regular
-            style z3 font-weight:bold, fill:#1168bd, color:#fff
-        end
-
-        subgraph z4[Directory & Sync]
-               desc4[Java]
-            style desc4 fill:transparent,color:#fff,stroke:none, font-weight:regular
-            style z4 font-weight:bold, fill:#1168bd, color:#fff
-        end
-
-        subgraph z5[Server Services]
-               desc5[Java]
-            style desc5 fill:transparent,color:#fff,stroke:none, font-weight:regular
-            style z5 font-weight:bold, fill:#1168bd, color:#fff
-        end
-
-        z6[(Db<br/>Oracle 19c)]
-            style z6 font-weight:bold, fill:#1168bd, color:#fff
     end
-    test2:::externalSystem
+    embeddedEndpoint:::externalSystem
 
-    subgraph test3[Enterprise Systems]
-        subgraph y1[MS Active Directory]
-            ydesc1[Kerberos/LDAP]
-            style ydesc1 fill:transparent,color:#fff,stroke:none, font-weight:regular
-            style y1 font-weight:bold, fill:#1168bd, color:#fff
+    subgraph webEndpoint[Web]
+        subgraph webWorkflows[Workflows]
+            webWorkflowsScope[Controlled Substances]
         end
-        subgraph y2[RADIUS MFA]
-            style y2 font-weight:bold, fill:#1168bd, color:#fff
-        end
-        subgraph y3[Windows Apps]
-            ydesc3[SSO Targets]
-            style ydesc3 fill:transparent,color:#fff,stroke:none, font-weight:regular
-            style y3 font-weight:bold, fill:#1168bd, color:#fff
-        end
-        subgraph y4[Clinical Apps]
-            ydesc4[EHR, eMAR, CPOE]
-            style ydesc4 fill:transparent,color:#fff,stroke:none, font-weight:regular
-            style y4 font-weight:bold, fill:#1168bd, color:#fff 
-        end
-        subgraph y5[Workflows]
-        ydesc5[Controlled Substances]
-            style ydesc5 fill:transparent,color:#fff,stroke:none, font-weight:regular
-            style y5 font-weight:bold, fill:#1168bd, color:#fff
-        end
-        subgraph y6[Web Apps + VDI]
-            ydesc6[Citrix / RDS / Horizon]
-            style ydesc6 fill:transparent,color:#fff,stroke:none, font-weight:regular
-            style y6 font-weight:bold, fill:#1168bd, color:#fff 
-        end
-
-
     end
-    test3:::externalSystem
+    webEndpoint:::externalSystem
+
+end
 end
 
+%% Reusable style definitions
+classDef wmTitle fill:transparent,stroke:transparent,color:#070154,font-size:34px,font-weight:bold,font-family:Arial,padding:100px,margin:100px,white-space:nowrap
+classDef wmDarkContainer fill:#070154,color:#FFFFFF,stroke:#070154,stroke-width:1px,font-family:Arial,font-weight:bold
+classDef wmDescriptionLight fill:transparent,color:#FFFFFF,stroke:none,font-family:Arial,font-size:13px,font-weight:regular
+classDef externalSystem fill:#CED7E6,color:#070154,stroke:#50658E,stroke-width:1px,font-family:Arial
+classDef internalContainer fill:#FFFFFF,color:#070154,stroke:#50658E,stroke-width:1px,font-family:Arial
+linkStyle default stroke:#50658E,stroke-width:1.5px,color:#50658E
 
-
-
-%% Element type definitions
-
-classDef internalContainer fill:#1168bd
-classDef externalSystem fill:#999999
-
-classDef type stroke-width:0px, color:#fff, fill:transparent, font-size:12px
-classDef description stroke-width:0px, color:#fff, fill:transparent, font-size:13px
+%% Class assignments
+class applicationArchitecture,onPremisesCustomer wmTitle
+class adminUi,auditReporting,proveIdWebApi,directorySync,serverServices,databaseOracle19c,msActiveDirectory,radiusMfa,windowsApps,clinicalApps,workflows,webAppsVdi,windowsAgentService,windowsCredentialProvider,windowsDeviceIntegrations,macAgentService,embeddedClient,webWorkflows wmDarkContainer
+class adminUiTech,proveIdWebApiTech,directorySyncTech,serverServicesTech,msActiveDirectoryProtocol,windowsAppsTargets,clinicalAppsExamples,workflowsScope,webAppsVdiStack,windowsAgentServiceTech,windowsCredentialProviderScope,windowsDeviceIntegrationsTypes,macAgentServiceTech,embeddedClientTech,webWorkflowsScope wmDescriptionLight
