@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo } from 'react'
+import { useCallback, useMemo } from 'react'
 import {
   addEdge,
   useEdgesState,
@@ -7,30 +7,21 @@ import {
 import type { Connection, Edge, OnConnect } from '@xyflow/react'
 
 import {
-  buildInitialEdges,
-  buildInitialNodes,
+  buildInitialGraph,
   DEFAULT_EDGE_OPTIONS,
 } from '../constants/diagram'
 import type { DiagramNode } from '../constants/diagram'
 import type { PromptOutput } from '../types/PromptOutput'
 
-export function useDiagramFlow(message: string, promptOutput: PromptOutput | null) {
-  const initialNodes = useMemo(
-    () => buildInitialNodes(message, promptOutput),
-    [message, promptOutput],
-  )
-  const initialEdges = useMemo(() => buildInitialEdges(promptOutput), [promptOutput])
+type UseDiagramFlowParams = {
+  promptOutput: PromptOutput
+}
 
-  const [nodes, setNodes, onNodesChange] = useNodesState<DiagramNode>(initialNodes)
-  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>(initialEdges)
+export function useDiagramFlow({ promptOutput }: UseDiagramFlowParams) {
+  const diagramGraph = useMemo(() => buildInitialGraph(promptOutput), [promptOutput])
 
-  useEffect(() => {
-    setNodes(initialNodes)
-  }, [initialNodes, setNodes])
-
-  useEffect(() => {
-    setEdges(initialEdges)
-  }, [initialEdges, setEdges])
+  const [nodes, , onNodesChange] = useNodesState<DiagramNode>(diagramGraph.nodes)
+  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>(diagramGraph.edges)
 
   const onConnect: OnConnect = useCallback((connection: Connection) => {
     setEdges((currentEdges) => addEdge({ ...DEFAULT_EDGE_OPTIONS, ...connection }, currentEdges))

@@ -1,8 +1,11 @@
 import OpenAI from 'openai'
-import type { ResponseInput, ResponseInputContent } from 'openai/resources/responses/responses'
+import type {
+  ResponseCreateParamsNonStreaming,
+  ResponseInput,
+  ResponseInputContent,
+} from 'openai/resources/responses/responses'
 
-import diagramInstructions from '../prompts/JsonDiagramPrompt.md?raw'
-import style from '../prompts/context/WMStyleGuide.md?raw'
+import diagramInstructions from '../prompts/RevisedPrompt.md?raw'
 import { PROMPT_OUTPUT_FORMAT } from '../types/PromptOutput'
 import type { PromptOutput } from '../types/PromptOutput'
 import { getExtension } from '../utils/files'
@@ -20,13 +23,13 @@ function getApiKey() {
   const apiKey =
     import.meta.env.VITE_OPENAI_API_KEY?.trim() || import.meta.env.VITE_OPENAI_SECRET_KEY?.trim()
 
-  // if (!apiKey) {
-  //   throw new Error(
-  //     'Missing `VITE_OPENAI_API_KEY`. Add it to your Vite environment before generating a diagram.',
-  //   )
-  // }
+  if (!apiKey) {
+    throw new Error(
+      'Missing `VITE_OPENAI_API_KEY`. Add it to your Vite environment before generating a diagram.',
+    )
+  }
 
-  return apiKey ?? "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"
+  return apiKey
 }
 
 function getClient() {
@@ -42,7 +45,9 @@ function buildUserInput(prompt: string, attachments: File[]) {
   const sections = [`Architecture prompt:\n${prompt.trim()}`]
 
   if (attachments.length > 0) {
-    sections.push(`Attached assets: ${attachments.length}. Use the attached file/image contents as part of the analysis.`)
+    sections.push(
+      `Attached assets: ${attachments.length}. Use attached file/image contents when extracting architecture components and relationships.`,
+    )
   }
 
   return sections.join('\n\n')
@@ -116,21 +121,13 @@ async function buildAttachmentContent(file: File): Promise<ResponseInputContent>
   }
 }
 
-async function buildResponseInput(prompt: string, attachments: File[]): Promise<ResponseInput> {
-  const content: ResponseInputContent[] = [
+async function buildResponseInput(prompt: string, attachments: File[]): Promise<ResponseInputContent[]> {
+  return [
     {
       type: 'input_text',
       text: buildUserInput(prompt, attachments),
     },
     ...(await Promise.all(attachments.map(buildAttachmentContent))),
-  ]
-
-  return [
-    {
-      type: 'message',
-      role: 'user',
-      content,
-    },
   ]
 }
 
@@ -138,33 +135,43 @@ export async function generateDiagramOutput({
   attachments = [],
   prompt,
 }: GenerateDiagramOutputParams): Promise<PromptOutput> {
-
-  const diagramPrompt = await loadPrompt()
-
-  const response = await getClient().responses.parse({
-    model: DEFAULT_MODEL,
-    instructions: diagramInstructions,
-    input: await buildResponseInput(diagramPrompt, attachments),
-    text: {
-      format: PROMPT_OUTPUT_FORMAT,
+  const diagramPrompt = prompt.trim()
+  const input: ResponseInput = [
+    {
+      role: 'system',
+      content: diagramInstructions,
     },
-  })
+    {
+      role: 'user',
+      content: await buildResponseInput(diagramPrompt, attachments),
+    },
+  ]
 
-  if (response.output_parsed) {
-    return response.output_parsed as PromptOutput
+  const request: ResponseCreateParamsNonStreaming = {
+    model: DEFAULT_MODEL,
+    input,
+    text: {
+      format: {
+        type: 'json_schema',
+        ...PROMPT_OUTPUT_FORMAT,
+      },
+    },
+  }
+
+  const response = await getClient().responses.parse(request)
+
+  console.log("RESPONSE", response)
+
+  const promptOutput = response.output_parsed as PromptOutput | null
+
+  if (promptOutput) {
+    return promptOutput
   }
 
   if (response.output_text) {
-    return JSON.parse(response.output_text) as PromptOutput
+    const parsedPromptOutput = JSON.parse(response.output_text) as PromptOutput
+    return parsedPromptOutput
   }
 
   throw new Error('OpenAI did not return a structured diagram payload.')
-}
-
-
-async function loadPrompt() {
-   //loads in style guides and context into prompt if files are available
-  let prompt = diagramInstructions;
-  let guide = style
-  return prompt.replace('$SELECTION_PLACEHOLDER$', guide || '');
 }
