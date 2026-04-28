@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import type { ReactNode } from 'react'
-import { Background, ConnectionLineType, Controls, MiniMap, ReactFlow } from '@xyflow/react'
+import { Background, ConnectionLineType, Controls, Handle, MiniMap, Position, ReactFlow } from '@xyflow/react'
+import type { Edge, NodeProps } from '@xyflow/react'
 
 import { JsonEditorPanel } from './JsonEditorPanel'
 import { MetadataPanel } from './MetadataPanel'
 import { DEFAULT_EDGE_OPTIONS } from '../constants/diagram'
 import { useDiagramFlow } from '../hooks/useDiagramFlow'
+import type { DiagramNode, DiagramNodeData } from '../constants/diagram'
 import type { PromptOutput } from '../types/PromptOutput'
 
 type DiagramCanvasProps = {
@@ -16,6 +18,66 @@ type DiagramCanvasProps = {
 }
 
 type PanelMode = 'prompt' | 'metadata' | null
+
+const NODE_TYPES = {
+  default: EditableDiagramNode,
+}
+
+function formatNodeData(nodes: DiagramNode[]) {
+  return JSON.stringify(nodes.map((node) => node.data), null, 2)
+}
+
+function formatEdgeData(edges: Edge[]) {
+  return JSON.stringify(edges, null, 2)
+}
+
+function isEditableNodeDataArray(value: unknown): value is DiagramNodeData[] {
+  return (
+    Array.isArray(value) &&
+    value.every((item) => (
+      typeof item === 'object' &&
+      item !== null &&
+      'label' in item &&
+      typeof item.label === 'string' &&
+      'metadata' in item &&
+      typeof item.metadata === 'object' &&
+      item.metadata !== null
+    ))
+  )
+}
+
+function isEditableEdgeArray(value: unknown): value is Edge[] {
+  return (
+    Array.isArray(value) &&
+    value.every((item) => (
+      typeof item === 'object' &&
+      item !== null &&
+      'id' in item &&
+      typeof item.id === 'string' &&
+      'source' in item &&
+      typeof item.source === 'string' &&
+      'target' in item &&
+      typeof item.target === 'string'
+    ))
+  )
+}
+
+function EditableDiagramNode({ data }: NodeProps<DiagramNode>) {
+  return (
+    <>
+      <Handle type="target" position={Position.Left} />
+      <div className="grid gap-1">
+        <div>{data.label}</div>
+        {data.subtext ? (
+          <div className="font-serif text-xs font-normal leading-snug opacity-80">
+            {data.subtext}
+          </div>
+        ) : null}
+      </div>
+      <Handle type="source" position={Position.Right} />
+    </>
+  )
+}
 
 type DockButtonProps = {
   active?: boolean
@@ -48,6 +110,33 @@ function DockButton({ active = false, children, disabled, label, onClick }: Dock
   )
 }
 
+type DockTextButtonProps = {
+  active?: boolean
+  children: ReactNode
+  label: string
+  onClick: () => void
+}
+
+function DockTextButton({ active = false, children, label, onClick }: DockTextButtonProps) {
+  return (
+    <button
+      type="button"
+      className={[
+        'h-[3.25rem] cursor-pointer rounded-full border border-[#171717]/8 bg-gradient-to-br from-[#f26f21] to-[#c95518] px-5 text-sm font-semibold text-white shadow-[0_14px_28px_rgba(242,111,33,0.28)] transition duration-150 ease-out hover:-translate-y-px',
+        active && 'ring-2 ring-[#171717]/12 ring-offset-2 ring-offset-white',
+      ]
+        .filter(Boolean)
+        .join(' ')}
+      onClick={onClick}
+      aria-label={label}
+      aria-pressed={active}
+      title={label}
+    >
+      {children}
+    </button>
+  )
+}
+
 export function DiagramCanvas({
   message,
   onBack,
@@ -55,14 +144,86 @@ export function DiagramCanvas({
   promptOutput,
 }: DiagramCanvasProps) {
   const [activePanel, setActivePanel] = useState<PanelMode>(null)
-  const { nodes, edges, onNodesChange, onEdgesChange, onConnect, selectedNodes } = useDiagramFlow({
+  const [isDiagramStudioVisible, setIsDiagramStudioVisible] = useState(false)
+  const { nodes, edges, onNodesChange, onEdgesChange, onConnect, selectedNodes, setEdges, setNodes } = useDiagramFlow({
     promptOutput,
   })
+  const [nodeJsonValue, setNodeJsonValue] = useState(() => formatNodeData(nodes))
+  const [nodeJsonError, setNodeJsonError] = useState<string | null>(null)
+  const [edgeJsonValue, setEdgeJsonValue] = useState(() => formatEdgeData(edges))
+  const [edgeJsonError, setEdgeJsonError] = useState<string | null>(null)
+  const [flowRenderKey, setFlowRenderKey] = useState(0)
 
   const closePanel = () => setActivePanel(null)
   const openMetadataPanel = () => setActivePanel('metadata')
   const openPromptPanel = () => setActivePanel('prompt')
+  const toggleDiagramStudio = () => setIsDiagramStudioVisible((isVisible) => !isVisible)
   const isPanelVisible = activePanel !== null
+
+  const applyNodeJsonToFlow = (value: string) => {
+    try {
+      const parsedValue: unknown = JSON.parse(value)
+
+      if (!isEditableNodeDataArray(parsedValue)) {
+        setNodeJsonError('JSON must be an array of node data objects with label and metadata.')
+        return false
+      }
+
+      if (parsedValue.length !== nodes.length) {
+        setNodeJsonError(`Expected ${nodes.length} node data objects, but found ${parsedValue.length}.`)
+        return false
+      }
+
+      setNodeJsonError(null)
+      setNodes((currentNodes) => (
+        currentNodes.map((node, index) => ({
+          ...node,
+          data: parsedValue[index],
+        }))
+      ))
+      return true
+    } catch (error) {
+      setNodeJsonError(error instanceof Error ? error.message : 'Invalid JSON.')
+      return false
+    }
+  }
+
+  const applyEdgeJsonToFlow = (value: string) => {
+    try {
+      const parsedValue: unknown = JSON.parse(value)
+
+      if (!isEditableEdgeArray(parsedValue)) {
+        setEdgeJsonError('JSON must be an array of edges with id, source, and target.')
+        return false
+      }
+
+      setEdgeJsonError(null)
+      setEdges(parsedValue)
+      return true
+    } catch (error) {
+      setEdgeJsonError(error instanceof Error ? error.message : 'Invalid JSON.')
+      return false
+    }
+  }
+
+  const handleNodeJsonChange = (value: string) => {
+    setNodeJsonValue(value)
+    applyNodeJsonToFlow(value)
+  }
+
+  const handleEdgeJsonChange = (value: string) => {
+    setEdgeJsonValue(value)
+    applyEdgeJsonToFlow(value)
+  }
+
+  const reloadFlowFromJson = () => {
+    const didApplyNodes = applyNodeJsonToFlow(nodeJsonValue)
+    const didApplyEdges = applyEdgeJsonToFlow(edgeJsonValue)
+
+    if (didApplyNodes && didApplyEdges) {
+      setFlowRenderKey((currentKey) => currentKey + 1)
+    }
+  }
 
   return (
     <main className="h-screen min-h-screen overflow-hidden p-0">
@@ -74,23 +235,84 @@ export function DiagramCanvas({
           .filter(Boolean)
           .join(' ')}
       >
-        <section className="min-h-0 h-full overflow-hidden [&_.react-flow]:bg-[radial-gradient(circle_at_top_left,rgba(242,111,33,0.12),transparent_20%),linear-gradient(180deg,#ffffff_0%,#f6f6f6_100%)] [&_.react-flow__node.selected]:shadow-[0_0_0_3px_rgba(242,111,33,0.26)] [&_.react-flow__controls-button]:border-[#171717]/10 [&_.react-flow__controls-button]:bg-white/96 [&_.react-flow__controls-button]:text-[#171717] [&_.react-flow__minimap]:rounded-2xl [&_.react-flow__minimap]:border [&_.react-flow__minimap]:border-[#171717]/10 [&_.react-flow__minimap]:bg-white/92">
-          <ReactFlow
-            nodes={nodes}
-            edges={edges}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
-            onConnect={onConnect}
-            fitView
-            fitViewOptions={{ padding: 0.2 }}
-            defaultEdgeOptions={DEFAULT_EDGE_OPTIONS}
-            connectionLineType={ConnectionLineType.Step}
-            proOptions={{ hideAttribution: true }}
-          >
-            <MiniMap pannable zoomable />
-            <Controls />
-            <Background gap={24} size={1} color="#d7d7d7" />
-          </ReactFlow>
+        <section
+          className={[
+            'grid min-h-0 h-full overflow-hidden [&_.react-flow]:bg-[radial-gradient(circle_at_top_left,rgba(242,111,33,0.12),transparent_20%),linear-gradient(180deg,#ffffff_0%,#f6f6f6_100%)] [&_.react-flow__node.selected]:shadow-[0_0_0_3px_rgba(242,111,33,0.26)] [&_.react-flow__controls-button]:border-[#171717]/10 [&_.react-flow__controls-button]:bg-white/96 [&_.react-flow__controls-button]:text-[#171717] [&_.react-flow__minimap]:rounded-2xl [&_.react-flow__minimap]:border [&_.react-flow__minimap]:border-[#171717]/10 [&_.react-flow__minimap]:bg-white/92',
+            isDiagramStudioVisible ? 'grid-cols-[minmax(36rem,48rem)_minmax(0,1fr)]' : 'grid-cols-1',
+          ]
+            .filter(Boolean)
+            .join(' ')}
+        >
+          {isDiagramStudioVisible && (
+            <aside className="grid min-h-0 grid-cols-2 border-r border-[#171717]/10 bg-white">
+              <div className="grid min-h-0 grid-rows-[auto_1fr_auto_auto] border-r border-[#171717]/10">
+                <h2 className="m-0 border-b border-[#171717]/10 px-4 py-3 text-xs font-bold uppercase tracking-wide text-[#171717]/60">
+                  Nodes
+                </h2>
+                <textarea
+                  className="min-h-0 w-full resize-none border-0 bg-white p-4 font-mono text-xs leading-relaxed text-[#171717] outline-none"
+                  value={nodeJsonValue}
+                  onChange={(event) => handleNodeJsonChange(event.target.value)}
+                  aria-label="Editable node data JSON"
+                  spellCheck={false}
+                />
+                {nodeJsonError && (
+                  <p className="m-0 border-t border-red-200 bg-red-50 px-4 py-3 text-xs font-medium text-red-700">
+                    {nodeJsonError}
+                  </p>
+                )}
+                <div className="border-t border-[#171717]/10 bg-white p-3">
+                  <button
+                    type="button"
+                    className="w-full rounded-md bg-[#f26f21] px-4 py-2 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(242,111,33,0.24)] transition hover:bg-[#d95f1c] disabled:cursor-not-allowed disabled:bg-[#bdbdbd] disabled:shadow-none"
+                    onClick={reloadFlowFromJson}
+                    disabled={nodeJsonError !== null || edgeJsonError !== null}
+                  >
+                    Reload diagram
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid min-h-0 grid-rows-[auto_1fr_auto]">
+                <h2 className="m-0 border-b border-[#171717]/10 px-4 py-3 text-xs font-bold uppercase tracking-wide text-[#171717]/60">
+                  Edges
+                </h2>
+                <textarea
+                  className="min-h-0 w-full resize-none border-0 bg-white p-4 font-mono text-xs leading-relaxed text-[#171717] outline-none"
+                  value={edgeJsonValue}
+                  onChange={(event) => handleEdgeJsonChange(event.target.value)}
+                  aria-label="Editable edges JSON"
+                  spellCheck={false}
+                />
+                {edgeJsonError && (
+                  <p className="m-0 border-t border-red-200 bg-red-50 px-4 py-3 text-xs font-medium text-red-700">
+                    {edgeJsonError}
+                  </p>
+                )}
+              </div>
+            </aside>
+          )}
+
+          <div className="min-h-0 min-w-0">
+            <ReactFlow
+              key={flowRenderKey}
+              nodes={nodes}
+              edges={edges}
+              nodeTypes={NODE_TYPES}
+              onNodesChange={onNodesChange}
+              onEdgesChange={onEdgesChange}
+              onConnect={onConnect}
+              fitView
+              fitViewOptions={{ padding: 0.2 }}
+              defaultEdgeOptions={DEFAULT_EDGE_OPTIONS}
+              connectionLineType={ConnectionLineType.Step}
+              proOptions={{ hideAttribution: true }}
+            >
+              <MiniMap pannable zoomable />
+              <Controls />
+              <Background gap={24} size={1} color="#d7d7d7" />
+            </ReactFlow>
+          </div>
         </section>
 
         {activePanel === 'prompt' && (
@@ -137,6 +359,14 @@ export function DiagramCanvas({
             <path d="M10 16h4" />
           </svg>
         </DockButton>
+
+        <DockTextButton
+          label="Diagram Studio"
+          onClick={toggleDiagramStudio}
+          active={isDiagramStudioVisible}
+        >
+          Diagram Studio
+        </DockTextButton>
 
         <DockButton
           label="Open selected node metadata"

@@ -22,7 +22,7 @@ export const ALLOWED_EXTENSIONS = new Set([
   'markdown',
   'txt',
   'rtf',
-])
+  ])
 
 export const ACCEPT_ATTR = [
   '.ppt',
@@ -62,6 +62,7 @@ export type NodeMetadata = {
 export type DiagramNodeData = {
   label: string
   metadata: NodeMetadata
+  subtext?: string
 }
 
 export type DiagramNode = Node<DiagramNodeData>

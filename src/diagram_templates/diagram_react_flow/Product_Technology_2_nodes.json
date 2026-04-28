@@ -1,0 +1,526 @@
+[
+  {
+    "label": "Core Application",
+    "metadata": {
+      "dependencies": [],
+      "environment": "Architecture Diagram",
+      "lastDeployed": "N/A",
+      "layerMetadata": {
+        "summary": "Primary product application layers and tenant data stores.",
+        "owner": "",
+        "system": "",
+        "runtime": "",
+        "environment": "",
+        "region": "",
+        "sla": "",
+        "last_deployed": "",
+        "dependencies": [],
+        "tags": [
+          "core"
+        ]
+      },
+      "owner": "System Design",
+      "region": "N/A",
+      "runtime": "N/A",
+      "sla": "N/A",
+      "summary": "Primary product application layers and tenant data stores.",
+      "system": "Core Application",
+      "tags": [
+        "group",
+        "section",
+        "core"
+      ]
+    }
+  },
+  {
+    "label": "Presentation Layer",
+    "subtext": "JavaScript/TypeScript ] AngularJS* (50%), React 18 (50%) ]",
+    "metadata": {
+      "dependencies": [
+        "REST API"
+      ],
+      "environment": "Architecture Diagram",
+      "lastDeployed": "N/A",
+      "layerMetadata": {
+        "summary": "User-facing presentation layer built with AngularJS and React.",
+        "owner": "",
+        "system": "",
+        "runtime": "",
+        "environment": "",
+        "region": "",
+        "sla": "",
+        "last_deployed": "",
+        "dependencies": [
+          "rest_api",
+          "application_layer"
+        ],
+        "tags": [
+          "frontend",
+          "ui"
+        ]
+      },
+      "owner": "Unspecified",
+      "region": "N/A",
+      "runtime": "JavaScript/TypeScript, AngularJS, React 18",
+      "sla": "N/A",
+      "summary": "User-facing presentation layer built with AngularJS and React.",
+      "system": "Core Application",
+      "tags": [
+        "rectangle",
+        "node",
+        "frontend",
+        "ui"
+      ]
+    }
+  },
+  {
+    "label": "Customer Integrations",
+    "metadata": {
+      "dependencies": [
+        "REST API"
+      ],
+      "environment": "Architecture Diagram",
+      "lastDeployed": "N/A",
+      "layerMetadata": {
+        "summary": "Customer-specific integrations connected through the application API.",
+        "owner": "",
+        "system": "",
+        "runtime": "",
+        "environment": "",
+        "region": "",
+        "sla": "",
+        "last_deployed": "",
+        "dependencies": [
+          "rest_api",
+          "application_layer"
+        ],
+        "tags": [
+          "integration",
+          "customer"
+        ]
+      },
+      "owner": "Unspecified",
+      "region": "N/A",
+      "runtime": "Unspecified",
+      "sla": "N/A",
+      "summary": "Customer-specific integrations connected through the application API.",
+      "system": "Core Application",
+      "tags": [
+        "rectangle",
+        "node",
+        "integration",
+        "customer"
+      ]
+    }
+  },
+  {
+    "label": "REST API",
+    "metadata": {
+      "dependencies": [
+        "Application Layer"
+      ],
+      "environment": "Architecture Diagram",
+      "lastDeployed": "N/A",
+      "layerMetadata": {
+        "summary": "API boundary between presentation, integrations, and application logic.",
+        "owner": "",
+        "system": "",
+        "runtime": "",
+        "environment": "",
+        "region": "",
+        "sla": "",
+        "last_deployed": "",
+        "dependencies": [
+          "application_layer"
+        ],
+        "tags": [
+          "api"
+        ]
+      },
+      "owner": "Unspecified",
+      "region": "N/A",
+      "runtime": "REST",
+      "sla": "N/A",
+      "summary": "API boundary between presentation, integrations, and application logic.",
+      "system": "Core Application",
+      "tags": [
+        "label",
+        "node",
+        "api"
+      ]
+    }
+  },
+  {
+    "label": "Application Layer",
+    "subtext": ".NET 8 [ Azure App Service ]",
+
+    "metadata": {
+      "dependencies": [
+        "Data Layer",
+        "Worker Array",
+        "Authentication",
+        "Visualization"
+      ],
+      "environment": "Architecture Diagram",
+      "lastDeployed": "N/A",
+      "layerMetadata": {
+        "summary": "Main backend application services.",
+        "owner": "",
+        "system": "",
+        "runtime": ".NET 8",
+        "environment": "",
+        "region": "",
+        "sla": "",
+        "last_deployed": "",
+        "dependencies": [
+          "data_layer",
+          "worker_array"
+        ],
+        "tags": [
+          "backend",
+          "app-service"
+        ]
+      },
+      "owner": "Azure App Service",
+      "region": "N/A",
+      "runtime": ".NET 8",
+      "sla": "N/A",
+      "summary": "Main backend application services.",
+      "system": "Core Application",
+      "tags": [
+        "rectangle",
+        "node",
+        "backend",
+        "app-service"
+      ]
+    }
+  },
+  {
+    "label": "Data Layer",
+    "metadata": {
+      "dependencies": [],
+      "environment": "Architecture Diagram",
+      "lastDeployed": "N/A",
+      "layerMetadata": {
+        "summary": "Per-tenant data storage layer.",
+        "owner": "",
+        "system": "",
+        "runtime": "",
+        "environment": "",
+        "region": "",
+        "sla": "",
+        "last_deployed": "",
+        "dependencies": [
+          "relational_db",
+          "file_storage"
+        ],
+        "tags": [
+          "data",
+          "tenant"
+        ]
+      },
+      "owner": "Unspecified",
+      "region": "N/A",
+      "runtime": "Unspecified",
+      "sla": "N/A",
+      "summary": "Per-tenant data storage layer.",
+      "system": "Core Application",
+      "tags": [
+        "rectangle",
+        "node",
+        "data",
+        "tenant"
+      ]
+    }
+  },
+  {
+    "label": "Relational DB",
+    "subtext": "SQL Server [ Azure SQL ]",
+
+    "metadata": {
+      "dependencies": [],
+      "environment": "Architecture Diagram",
+      "lastDeployed": "N/A",
+      "layerMetadata": {
+        "summary": "Primary relational database.",
+        "owner": "",
+        "system": "",
+        "runtime": "",
+        "environment": "",
+        "region": "",
+        "sla": "",
+        "last_deployed": "",
+        "dependencies": [],
+        "tags": [
+          "database",
+          "sql"
+        ]
+      },
+      "owner": "Azure SQL",
+      "region": "N/A",
+      "runtime": "SQL Server",
+      "sla": "N/A",
+      "summary": "Primary relational database.",
+      "system": "Core Application",
+      "tags": [
+        "cylinder",
+        "node",
+        "database",
+        "sql"
+      ]
+    }
+  },
+  {
+    "label": "File Storage",
+    "subtext": "Azure Blob",
+
+    "metadata": {
+      "dependencies": [],
+      "environment": "Architecture Diagram",
+      "lastDeployed": "N/A",
+      "layerMetadata": {
+        "summary": "Blob storage for files.",
+        "owner": "",
+        "system": "",
+        "runtime": "",
+        "environment": "",
+        "region": "",
+        "sla": "",
+        "last_deployed": "",
+        "dependencies": [],
+        "tags": [
+          "storage",
+          "blob"
+        ]
+      },
+      "owner": "Azure Blob",
+      "region": "N/A",
+      "runtime": "Azure Blob",
+      "sla": "N/A",
+      "summary": "Blob storage for files.",
+      "system": "Core Application",
+      "tags": [
+        "cylinder",
+        "node",
+        "storage",
+        "blob"
+      ]
+    }
+  },
+  {
+    "label": "Background Workers",
+    "metadata": {
+      "dependencies": [],
+      "environment": "Architecture Diagram",
+      "lastDeployed": "N/A",
+      "layerMetadata": {
+        "summary": "Asynchronous processing components.",
+        "owner": "",
+        "system": "",
+        "runtime": "",
+        "environment": "",
+        "region": "",
+        "sla": "",
+        "last_deployed": "",
+        "dependencies": [],
+        "tags": [
+          "workers"
+        ]
+      },
+      "owner": "System Design",
+      "region": "N/A",
+      "runtime": "N/A",
+      "sla": "N/A",
+      "summary": "Asynchronous processing components.",
+      "system": "Background Workers",
+      "tags": [
+        "group",
+        "section",
+        "workers"
+      ]
+    }
+  },
+  {
+    "label": "Worker Array",
+    "subtext": ".NET 8 [ Azure Functions ]",
+    "metadata": {
+      "dependencies": [
+        "Queue"
+      ],
+      "environment": "Architecture Diagram",
+      "lastDeployed": "N/A",
+      "layerMetadata": {
+        "summary": "Background worker execution environment.",
+        "owner": "",
+        "system": "",
+        "runtime": ".NET 8",
+        "environment": "",
+        "region": "",
+        "sla": "",
+        "last_deployed": "",
+        "dependencies": [
+          "queue"
+        ],
+        "tags": [
+          "worker",
+          "functions"
+        ]
+      },
+      "owner": "Azure Functions",
+      "region": "N/A",
+      "runtime": ".NET 8",
+      "sla": "N/A",
+      "summary": "Background worker execution environment.",
+      "system": "Background Workers",
+      "tags": [
+        "rectangle",
+        "node",
+        "worker",
+        "functions"
+      ]
+    }
+  },
+  {
+    "label": "Queue",
+    "subtext": "Storage Queue [ Azure ]",
+
+    "metadata": {
+      "dependencies": [],
+      "environment": "Architecture Diagram",
+      "lastDeployed": "N/A",
+      "layerMetadata": {
+        "summary": "Queue for background processing.",
+        "owner": "",
+        "system": "",
+        "runtime": "",
+        "environment": "",
+        "region": "",
+        "sla": "",
+        "last_deployed": "",
+        "dependencies": [],
+        "tags": [
+          "queue",
+          "messaging"
+        ]
+      },
+      "owner": "Azure",
+      "region": "N/A",
+      "runtime": "Azure Storage Queue",
+      "sla": "N/A",
+      "summary": "Queue for background processing.",
+      "system": "Background Workers",
+      "tags": [
+        "rectangle",
+        "node",
+        "queue",
+        "messaging"
+      ]
+    }
+  },
+  {
+    "label": "Integration",
+    "metadata": {
+      "dependencies": [],
+      "environment": "Architecture Diagram",
+      "lastDeployed": "N/A",
+      "layerMetadata": {
+        "summary": "Supporting external and platform capabilities.",
+        "owner": "",
+        "system": "",
+        "runtime": "",
+        "environment": "",
+        "region": "",
+        "sla": "",
+        "last_deployed": "",
+        "dependencies": [],
+        "tags": [
+          "integration"
+        ]
+      },
+      "owner": "System Design",
+      "region": "N/A",
+      "runtime": "N/A",
+      "sla": "N/A",
+      "summary": "Supporting external and platform capabilities.",
+      "system": "Integration",
+      "tags": [
+        "group",
+        "section",
+        "integration"
+      ]
+    }
+  },
+  {
+    "label": "Authentication",
+    "subtext": "Identity Server 4* [ Azure VM ]",
+
+    "metadata": {
+      "dependencies": [],
+      "environment": "Architecture Diagram",
+      "lastDeployed": "N/A",
+      "layerMetadata": {
+        "summary": "Identity and authentication service.",
+        "owner": "",
+        "system": "",
+        "runtime": "",
+        "environment": "",
+        "region": "",
+        "sla": "",
+        "last_deployed": "",
+        "dependencies": [],
+        "tags": [
+          "identity",
+          "auth"
+        ]
+      },
+      "owner": "Azure VM",
+      "region": "N/A",
+      "runtime": "Identity Server 4",
+      "sla": "N/A",
+      "summary": "Identity and authentication service.",
+      "system": "Integration",
+      "tags": [
+        "rectangle",
+        "node",
+        "identity",
+        "auth"
+      ]
+    }
+  },
+  {
+    "label": "Visualization",
+    "subtext": "Highcharts.js",
+    "metadata": {
+      "dependencies": [],
+      "environment": "Architecture Diagram",
+      "lastDeployed": "N/A",
+      "layerMetadata": {
+        "summary": "Visualization capability used by the product.",
+        "owner": "",
+        "system": "",
+        "runtime": "",
+        "environment": "",
+        "region": "",
+        "sla": "",
+        "last_deployed": "",
+        "dependencies": [],
+        "tags": [
+          "analytics",
+          "visualization"
+        ]
+      },
+      "owner": "Unspecified",
+      "region": "N/A",
+      "runtime": "Highcharts.js",
+      "sla": "N/A",
+      "summary": "Visualization capability used by the product.",
+      "system": "Integration",
+      "tags": [
+        "rectangle",
+        "node",
+        "analytics",
+        "visualization"
+      ]
+    }
+  }
+]
