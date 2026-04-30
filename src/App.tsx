@@ -4,7 +4,7 @@ import '@xyflow/react/dist/style.css'
 
 import { DiagramCanvas } from './components/DiagramCanvas'
 import { PromptPage } from './components/PromptPage'
-import { ACCEPT_ATTR } from './constants/diagram'
+import { ACCEPT_ATTR } from './lib/diagram'
 import { useDiagramSession } from './hooks/useDiagramSession'
 import { formatFileSize } from './utils/files'
 

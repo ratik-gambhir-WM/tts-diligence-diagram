@@ -4,7 +4,7 @@ import { Background, ConnectionLineType, Controls, MiniMap, ReactFlow } from '@x
 
 import { JsonEditorPanel } from './JsonEditorPanel'
 import { MetadataPanel } from './MetadataPanel'
-import { DEFAULT_EDGE_OPTIONS } from '../constants/diagram'
+import { DEFAULT_EDGE_OPTIONS } from '../lib/diagram'
 import { useDiagramFlow } from '../hooks/useDiagramFlow'
 import type { PromptOutput } from '../types/PromptOutput'
 

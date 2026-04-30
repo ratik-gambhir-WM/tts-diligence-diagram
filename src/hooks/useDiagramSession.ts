@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { ChangeEvent, FormEvent } from 'react'
 
-import { ALLOWED_EXTENSIONS, buildInitialGraph } from '../constants/diagram'
+import { ALLOWED_EXTENSIONS, buildInitialGraph } from '../lib/diagram'
 import { generateDiagramOutput } from '../lib/GenAPI'
 import type { PromptOutput } from '../types/PromptOutput'
 import { getExtension } from '../utils/files'

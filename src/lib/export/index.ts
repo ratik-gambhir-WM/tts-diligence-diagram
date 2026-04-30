@@ -69,14 +69,6 @@ export function buildPowerPointFromJson(
   }
 }
 
-export {
-  buildPptxPresentation,
-  buildSuggestedFileName,
-  normalizePresentationSpec,
-  type NormalizationOptions,
-  type NormalizedPresentation,
-  type ValidationIssue,
-} from './pptx.ts'
 
 function formatIssues(header: string, issues: ValidationIssue[]) {
   const formattedIssues = issues
