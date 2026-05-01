@@ -9,8 +9,8 @@ import type { Connection, Edge, OnConnect } from '@xyflow/react'
 import {
   buildInitialGraph,
   DEFAULT_EDGE_OPTIONS,
-} from '../constants/diagram'
-import type { DiagramNode } from '../constants/diagram'
+} from '../lib/diagram'
+import type { DiagramNode } from '../lib/diagram'
 import type { PromptOutput } from '../types/PromptOutput'
 
 type UseDiagramFlowParams = {

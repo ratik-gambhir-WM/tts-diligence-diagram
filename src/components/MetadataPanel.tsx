@@ -1,4 +1,4 @@
-import type { DiagramNode } from '../constants/diagram'
+import type { DiagramNode } from '../lib/diagram'
 import type { PromptOutputParentMetadataValue } from '../types/PromptOutput'
 
 type MetadataPanelProps = {
