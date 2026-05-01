@@ -22,7 +22,7 @@ export const ALLOWED_EXTENSIONS = new Set([
   'markdown',
   'txt',
   'rtf',
-  ])
+])
 
 export const ACCEPT_ATTR = [
   '.ppt',
