@@ -62,7 +62,6 @@ export type NodeMetadata = {
 export type DiagramNodeData = {
   label: string
   metadata: NodeMetadata
-  subtext?: string
 }
 
 export type DiagramNode = Node<DiagramNodeData>
