@@ -1,0 +1,222 @@
+{
+  "tagDefinitions": {
+    "Web Archtitecture": {
+      "default": false
+    },
+    "Data Architecture": {
+      "default": false
+    },
+    "Agentic AI": {
+      "default": false
+    },
+    "Cloud-Native": {
+      "default": false
+    },
+    "On-Premises": {
+      "default": false
+    },
+    "SaaS": {
+      "default": false
+    },
+    "Hybrid Cloud": {
+      "default": false
+    }
+  },
+  "diagrams": [
+    {
+      "name": "Product_Technology_1",
+      "Description": "",
+      "authors": ["West Monroe Architecture Library"],
+      "date": "",
+      "tags": {
+        "Web Archtitecture": false,
+        "Data Architecture": false,
+        "Agentic AI": false,
+        "Cloud-Native": false,
+        "On-Premises": false,
+        "SaaS": false,
+        "Hybrid Cloud": false
+      }
+    },
+    {
+      "name": "Product_Technology_2",
+      "Description": "",
+      "authors": ["West Monroe Architecture Library"],
+      "date": "",
+      "tags": {
+        "Web Archtitecture": false,
+        "Data Architecture": false,
+        "Agentic AI": false,
+        "Cloud-Native": false,
+        "On-Premises": false,
+        "SaaS": false,
+        "Hybrid Cloud": false
+      }
+    },
+    {
+      "name": "Product_Technology_3",
+      "Description": "",
+      "authors": ["West Monroe Architecture Library"],
+      "date": "",
+      "tags": {
+        "Web Archtitecture": false,
+        "Data Architecture": false,
+        "Agentic AI": false,
+        "Cloud-Native": false,
+        "On-Premises": false,
+        "SaaS": false,
+        "Hybrid Cloud": false
+      }
+    },
+    {
+      "name": "Product_Technology_4",
+      "Description": "",
+      "authors": ["West Monroe Architecture Library"],
+      "date": "",
+      "tags": {
+        "Web Archtitecture": false,
+        "Data Architecture": false,
+        "Agentic AI": false,
+        "Cloud-Native": false,
+        "On-Premises": false,
+        "SaaS": false,
+        "Hybrid Cloud": false
+      }
+    },
+    {
+      "name": "Product_Technology_5",
+      "Description": "",
+      "authors": ["West Monroe Architecture Library"],
+      "date": "",
+      "tags": {
+        "Web Archtitecture": false,
+        "Data Architecture": false,
+        "Agentic AI": false,
+        "Cloud-Native": false,
+        "On-Premises": false,
+        "SaaS": false,
+        "Hybrid Cloud": false
+      }
+    },
+    {
+      "name": "Product_Technology_6",
+      "Description": "",
+      "authors": ["West Monroe Architecture Library"],
+      "date": "",
+      "tags": {
+        "Web Archtitecture": false,
+        "Data Architecture": false,
+        "Agentic AI": false,
+        "Cloud-Native": false,
+        "On-Premises": false,
+        "SaaS": false,
+        "Hybrid Cloud": false
+      }
+    },
+    {
+      "name": "Product_Technology_7",
+      "Description": "",
+      "authors": ["West Monroe Architecture Library"],
+      "date": "",
+      "tags": {
+        "Web Archtitecture": false,
+        "Data Architecture": false,
+        "Agentic AI": false,
+        "Cloud-Native": false,
+        "On-Premises": false,
+        "SaaS": false,
+        "Hybrid Cloud": false
+      }
+    },
+    {
+      "name": "Product_Technology_8",
+      "Description": "",
+      "authors": ["West Monroe Architecture Library"],
+      "date": "",
+      "tags": {
+        "Web Archtitecture": false,
+        "Data Architecture": false,
+        "Agentic AI": false,
+        "Cloud-Native": false,
+        "On-Premises": false,
+        "SaaS": false,
+        "Hybrid Cloud": false
+      }
+    },
+    {
+      "name": "Product_Technology_9",
+      "Description": "",
+      "authors": ["West Monroe Architecture Library"],
+      "date": "",
+      "tags": {
+        "Web Archtitecture": false,
+        "Data Architecture": false,
+        "Agentic AI": false,
+        "Cloud-Native": false,
+        "On-Premises": false,
+        "SaaS": false,
+        "Hybrid Cloud": false
+      }
+    },
+    {
+      "name": "Product_Technology_10",
+      "Description": "",
+      "authors": ["West Monroe Architecture Library"],
+      "date": "",
+      "tags": {
+        "Web Archtitecture": false,
+        "Data Architecture": false,
+        "Agentic AI": false,
+        "Cloud-Native": false,
+        "On-Premises": false,
+        "SaaS": false,
+        "Hybrid Cloud": false
+      }
+    },
+    {
+      "name": "Product_Technology_11",
+      "Description": "",
+      "authors": ["West Monroe Architecture Library"],
+      "date": "",
+      "tags": {
+        "Web Archtitecture": false,
+        "Data Architecture": false,
+        "Agentic AI": false,
+        "Cloud-Native": false,
+        "On-Premises": false,
+        "SaaS": false,
+        "Hybrid Cloud": false
+      }
+    },
+    {
+      "name": "Product_Technology_12",
+      "Description": "Four layer web application using jQuery, .NET 4.7, .NET 8, Python, SQL Server",
+      "authors": ["Brian Locke", "Kuba Wiszowaty"],
+      "date": "05/01/2026",
+      "tags": {
+        "Web Archtitecture": true,
+        "Data Architecture": false,
+        "Agentic AI": false,
+        "Cloud-Native": false,
+        "On-Premises": false,
+        "SaaS": true,
+        "Hybrid Cloud": false
+      }
+    },
+    {
+      "name": "Product_Technology_13",
+      "Description": "",
+      "authors": [],
+      "date": "",
+      "tags": {
+        "Web Archtitecture": false,
+        "Data Architecture": false,
+        "Agentic AI": false,
+        "Cloud-Native": false,
+        "On-Premises": false,
+        "SaaS": false,
+        "Hybrid Cloud": false
+      }
+    }
+  ]
+}

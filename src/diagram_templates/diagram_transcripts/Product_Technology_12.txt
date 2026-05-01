@@ -1,0 +1,802 @@
+Speaker 2 | 00:00
+I'm great. In as well. I don't believe we've met yet.
+
+Speaker 3 | 00:40
+Everyone, hello everyone.
+
+Speaker 4 | 00:50
+Ron, I think we're all set from the first analysis side and the management team. Are you guys all set to start the call?
+
+Speaker 2 | 00:58
+I think so, anyone else from the team, please. Right on.
+
+Speaker 3 | 01:04
+Yeah, I think we're just waiting for one or two others. Let me just...
+
+Speaker 1 | 01:10
+Yeah, that's correct, and we're on SOW number two.
+
+Speaker 1 | 01:20
+Just joining.
+
+Speaker 3 | 01:23
+There he is. Okay.
+
+Speaker 1 | 01:28
+Afternoon.
+
+Speaker 3 | 01:31
+Hello.
+
+Speaker 1 | 01:34
+Alright, are we waiting for anyone on the poll side?
+
+Speaker 4 | 01:41
+No for all set.
+
+Speaker 1 | 01:43
+Great. Well, appreciate the time today. We'll go through our agenda pretty quickly here. The bulk of the time is going to be spent on understanding the final analytics product and talking through it from both capabilities and a technical architecture standpoint.
+
+So maybe to get us going and set, and provide a little primer on the product itself, perhaps you could start by giving us a sense of the product's evolution over time and how it came to be and why it is central to the business today.
+
+Speaker 2 | 02:48
+Yeah, definitely. I'm not sure if you wanted to start off on that topic or...
+
+Speaker 4 | 02:52
+Yeah, I can take it for sure. So hi everyone. I'm the product manager for our final analytics platform. So just a little bit of history and background on the product. So final analytics was launched in 2018, and it was a second iteration of a platform that we had previously used called five metrics.
+
+But essentially, the platform serves as a single source of truth for everything related to our customers' water management programs. As we have worked with clients in a really consultative manner on managing risk within building water systems, we've recognized the need to have a single platform to store all the information. There is a lot that goes into these water management programs, a lot of data. They are highly complex.
+
+Our user base, our customer base, they're managing a lot of things aside from water management. So this is one of many things that is on their plates on a day-to-day basis. So essentially, the value of the platform is to serve as that single source of truth. Make sure we're taking data that is traditionally very fragmented and stored in a lot of different areas and making it easily accessible in a way that helps to surface risk and help our customers very easily understand what actions need to be taken to address that.
+
+Speaker 1 | 04:21
+Got it. That's very helpful. May perhaps you could provide just kind of a high level. And if it's helpful to bring up the product on the screen, if that's possible, give us a sense of high level functionality. The product has and that it provides is what we're sort of envisioning it as a monitoring stream, so to speak, but it'd be helpful to kind of see it.
+
+Speaker 2 | 05:00
+Yeah, absolutely. So we are actually in the process of going through a UX UI update to the platform that is going to be launching officially this Saturday. So I am into our testing environment.
+
+I have a demo organization pulled up with what the platform is going to look like in the very near term. So I'll just give you guys a high-level walk-through of key functionality, primarily focusing on our dashboard page.
+
+As I mentioned, water management programs are highly complex. There's a lot of data involved. Alongside our navigation panel, there are a bunch of different pages where users can really get into the weeds on their data if they need to.
+
+But we try to centralize as much of the key information on this main dashboard as possible. And there is a dashboard that's going to be specific to our safety programs. So those are going to be water management programs for biological pathogens. These are industry-aligned programs.
+
+Then separately, we have a dashboard for our customers who use us to support water safety programs in their sterile processing departments. That is where medical devices used in surgeries are reprocessed.
+
+So as you can imagine, water quality in those areas is very important. I'm going to scroll to the bottom first, just because this aligns with how we would work with a customer. So first thing we're doing when we start an engagement with a customer is we are building a water management program for them.
+
+So this is a very standardized process that is aligned with industry standards and basically are going through and building out all of these different documents with them. The way we approach these programs is they're really living, breathing documents.
+
+So we take time to build them out on the front end. But we're constantly going back to these documents with our customers to make sure they're staying accurate and that the recommendations we've made in the program are actually effective at managing risks within their water systems.
+
+If we have data that tells us they're not, we're going back and making adjustments. From this view, our customers are able to access any individual documents. So this would be an example of what's called a risk characterization matrix. Essentially, this works with our customers to categorize risk from both a clinical and an exposure perspective in each of their patient care areas. They can access each of them from here.
+
+Then there's just a global download button that's going to create... depends on the facility, but generally like a 20 to 30-page PDF that consolidates all of their documentation. Once we've developed the program, we are using all of the information in here to build out the customer's configuration in the platform.
+
+So that is going to include capabilities for them to track different control strategies that they are implementing, enter data, then on an ongoing basis, if they are doing laboratory testing to confirm the effectiveness of their program, that is all going to be accessible from here as well.
+
+So at the very top, they're going to be able to see trending data for any... this is typically like disinfectant levels in the water system, which is a great metric that clients can easily check for. That's going to give an indication of risk and help them to understand if there are changes in the water system.
+
+At the highest level, really everywhere on the dashboard, we're going to get a system view. So when we're working with users that have oversight of multiple facilities, they're going to be able to see average disinfectant readings across their facilities. So they can easily get a bird's-eye view of maybe where there have been changes.
+
+Then, from there, they can drill down to a specific facility, and they're going to get more in-depth trending information. This would be an example of disinfectant readings that are manually entered into the platform. Alternatively, many of our customers do use equipment for the same purpose because that automates the process of capturing some of these water quality measures.
+
+So that data can be integrated into the platform and trended directly from here. The benefit of doing the equipment or continuous readings is that it's going to give them just more frequent visibility into their levels. They can more quickly surface risk.
+
+These are coming in really every fifteen minutes or so. Okay. If the team notices anything, like any events that they want to dig into further, they can drag and drop and get increased visibility into those specific events to understand what was going on in this case.
+
+We can see the disinfectant readings dropping below the green band here. Those are the control limits in the water management program. This tells us something was going on in the water system that was impacting chlorine. Possibly they were going through a period of low usage where water's just not getting used enough.
+
+Maybe something was going on with the city supplying the water. But we can see they were able to within a handful of days here, evaluate what was going on, implement a corrective action, and increase those disinfectant readings back within their control limits.
+
+Speaker 1 | 10:33
+Got it. Very helpful. Appreciate it. Quick, just kind of like an overarching question before we dive a little more technical, are there any of the inputs necessary for the product, you know, monitoring, sensors and equipment and labs? Are there any limitations to what inputs you can connect to or ingest in the product?
+
+Speaker 2 | 11:04
+So generally, I'll speak first about laboratory data. So this does connect directly with our internal laboratory system. So we have an analytical services laboratory, they have a laboratory information management system that they utilize and that connects directly with the platform.
+
+So customers that are using third party labs, different laboratories, that is not going to automatically integrate into the platform. From an equipment standpoint, pretty similar there where we provide the equipment and that has the integrations built into the platform.
+
+Speaker 1 | 11:46
+Yeah, got it. Is that the only sort of go-to-market you have? You provide the equipment as well, and the analytics platform is really kind of like a value add to the equipment you're putting in place? Is that the right way to see it, or is it kind of all one package?
+
+Speaker 2 | 12:11
+Yeah. So the analytics platform can operate for a client regardless of whether or not there's equipment in place, because they do have the option to do manual data entry. It's just more work internally, and you get less visibility into the data points.
+
+So really the value of the platform is kind of supporting overall facilitation of the program. And I would say equipment is definitely a value add to that because it's reducing manpower and just providing increased visibility into risk.
+
+Speaker 3 | 12:45
+Okay. We are able to integrate other sensors or controllers that they may already have on site. We have larger equipment systems, but the core component allows us to integrate using standard industrial communications like Modbus, 4 to 20 mA, 0 to 10V, those kinds of things.
+
+So if they have an existing controller, we can get that data into the analytics platform as well.
+
+Speaker 1 | 13:16
+Got it. Great. Were you going to jump in with a question?
+
+Speaker 3 | 13:21
+Yeah, that was going to be my... So it sounds like there are maybe... For a customer that doesn't have sensors in place, you have a recommended third-party hardware solution. But if there are already existing sensors, there's no problem integrating with any kind of standard sensor that's out there, correct?
+
+Speaker 1 | 13:43
+All right, cool. We'll appreciate this. Seeing the product is really helpful. We're going to pivot and dive into a little more technical now. I'm going to pass it off to our lead architects.
+
+Apologies for the intro for the sake of time, but folks can just introduce themselves as they speak in their respective sections. Appreciate that initial overview, and we'll dive into the technical architecture now.
+
+Speaker 5 | 14:27
+Alright. So how are you all? I am an advisory lead out of a U.S. office. Happy to be here. Looking forward to this conversation. As described, we're going to jump into the technical details on the application.
+
+I did get the documentation that you provided, so I'll try not to ask too many duplicative questions, but if I do, I apologize in advance.
+
+So with that, let's talk a little bit about the application itself, starting with the tech stack. I see that we're using jQuery and JavaScript on the front end with some .NET 8 web apps, and then we've got some WebForms using .NET Framework.
+
+So maybe walk me through the split. What percentage is “modern” versus “legacy” today?
+
+Speaker 2 | 15:27
+Sure, let me share my screen.
+
+Alright, so this right here is the legacy system. It's based upon .NET Framework 4.8 WebForms. So this is what one client uses currently. That client is the only one who uses the older system. The rest of our clients use the newer system, which is .NET 8 ASP.NET Core and .NET 6.
+
+In terms of percentage, I would say that client is the only one using the legacy system, while the majority use the newer system.
+
+Speaker 5 | 16:08
+Got it. That’s helpful. Maybe quickly talk about the tenancy model. Is it instance-per-client or fully multi-tenant?
+
+Speaker 2 | 16:23
+Yeah, so this is multi-tenant with logical separation. When a user logs in, they go directly into the organization they’re assigned to.
+
+Speaker 5 | 16:28
+And that applies to both legacy and modern?
+
+Speaker 2 | 16:38
+For the legacy system, it's dedicated to that single client. So when they log in, they only see their own data.
+
+Speaker 5 | 16:50
+Okay, and is that infrastructure unique all the way down?
+
+Speaker 2 | 16:51
+Yes.
+
+Speaker 5 | 16:55
+Is SQL Server shared across both systems or separate?
+
+Speaker 2 | 17:05
+The legacy architecture has its own database.
+
+Speaker 3 | 17:24
+They are technically on the same database instance, but separate databases.
+
+Speaker 5 | 17:28
+Got it—same server instance, different databases.
+
+What version of SQL Server are you running?
+
+Speaker 3 | 17:39
+2022.
+
+Speaker 5 | 18:07
+Great. How many instances of the legacy app do you run?
+
+Speaker 3 | 18:07
+Just one.
+
+Speaker 5 | 18:09
+And for the modern system? How do you scale?
+
+Speaker 3 | 18:27
+Currently running on two instances. Both are in auto-scaling groups, though they haven’t needed to scale up yet.
+
+Speaker 5 | 18:47
+And these are EC2 instances?
+
+Speaker 3 | 18:48
+Yes.
+
+Speaker 5 | 19:07
+Talk to me about logic distribution—how much is in code vs. database (e.g., stored procedures)?
+
+Speaker 2 | 19:17
+About 90% of logic is in services, 10% in the database. Some older code has logic in the database, but we plan to migrate that into the service layer over time.
+
+Speaker 5 | 19:33
+Is that a formal roadmap?
+
+Speaker 2 | 19:42
+Not formally—more of an incremental effort as we touch those areas.
+
+Speaker 5 | 19:58
+Have you had any performance issues in the last 18 months?
+
+Speaker 3 | 20:17
+We saw some slowness during a UI/UX redesign in staging, so we upgraded instance sizes preemptively. Otherwise, no major issues.
+
+Speaker 5 | 21:02
+What are you using for UI components?
+
+Speaker 2 | 21:02
+jQuery, JavaScript, Bootstrap. We plan to move toward Vue for a more modern component-based approach.
+
+Speaker 5 | 21:20
+Any Vue in production?
+
+Speaker 2 | 21:20
+Not yet.
+
+Speaker 5 | 21:27
+Timeline?
+
+Speaker 2 | 21:27
+As we build new features, we’ll gradually introduce Vue components.
+
+Speaker 5 | 21:43
+I saw you're using Hangfire—what for?
+
+Speaker 2 | 21:49
+Primarily background jobs like generating downloadable program documents asynchronously.
+
+Speaker 5 | 22:14
+What about authentication?
+
+Speaker 2 | 22:22
+Middleware handles authentication. We use SSO for internal users, OAuth 2.0 for external users, Azure identity provider, and MFA.
+
+Speaker 5 | 23:11
+Using built-in .NET auth or third-party?
+
+Speaker 2 | 23:11
+Azure-based authentication.
+
+Speaker 5 | 23:30
+Any third-party integrations like Twilio?
+
+Speaker 2 | 23:30
+Yes—Dynamics 365, internal systems, secrets manager, and project/task management integrations.
+
+Speaker 3 | 24:17
+Also using Twilio for SMS-based MFA.
+
+Speaker 5 | 24:39
+How do services connect to the database?
+
+Speaker 3 | 24:39
+Azure service accounts—no credentials in config files.
+
+Speaker 5 | 25:12
+TLS version?
+
+Speaker 3 | 25:12
+TLS 1.2 everywhere.
+
+Speaker 5 | 25:34
+Any encryption beyond passwords?
+
+Speaker 2 | 26:03
+No—only passwords using .NET hashing.
+
+Speaker 5 | 26:38
+Do developers get secure coding training?
+
+Speaker 2 | 26:38
+We document secure practices (e.g., XSS, SQL injection), but no formal annual training. We use CodeQL and Dependabot.
+
+Speaker 5 | 27:21
+Are those integrated into CI/CD?
+
+Speaker 2 | 27:21
+Dependabot is active; CodeQL is being integrated within a month.
+
+Speaker 5 | 27:57
+Team size?
+
+Speaker 2 | 28:04
+Four developers and one QA.
+
+Speaker 5 | 28:39
+Any plan to deprecate the legacy system?
+
+Speaker 2 | 28:39
+Discussions are ongoing, but no firm timeline.
+
+Speaker 5 | 29:16
+Are you still updating it?
+
+Speaker 2 | 29:16
+Minimal maintenance—minor changes only.
+
+Speaker 6 | 31:25
+Hi everyone, nice to meet you. I’ll be covering data for the next section. I want to talk about data flow and architecture, and then move into BI, AI, and ML.
+
+To start, I know you walked through some data sources during the demo, but could you summarize the main data sources and where they land? Are they all landing in SQL Server?
+
+Speaker 2 | 31:55
+Yes, most data lands in SQL Server. Sensor data is stored there, though we are planning to move sensor data to a dedicated time-series database in the future.
+
+Laboratory data also lands in SQL Server. External system data like Dynamics 365 remains in its source system, and we pull only what we need.
+
+Speaker 6 | 32:52
+Got it. What are you using for pipeline orchestration or automation?
+
+Speaker 3 | 33:03
+We don’t have a dedicated pipeline tool. Data ingestion is handled by different services—C# APIs that interact with sensors and insert data into SQL Server.
+
+Speaker 6 | 33:43
+And once the data lands, is there transformation or standardization?
+
+Speaker 3 | 33:57
+Most data lands raw. Separately, we do have a data warehouse in Azure SQL, using Azure Data Factory. Data is pulled from operational databases and external sources into a data lake.
+
+We use a bronze, silver, gold architecture for some processing. Most Power BI reports now sit on top of the warehouse rather than raw sources.
+
+Speaker 6 | 35:09
+So raw data → SQL Server → Azure Data Lake/Warehouse → Power BI?
+
+Speaker 3 | 35:23
+Correct.
+
+Speaker 6 | 35:24
+Where does the semantic layer live?
+
+Speaker 3 | 35:35
+Ideally in the gold layer, but currently some logic still exists in Power BI due to legacy report migrations. We’re working to centralize it in the gold layer, though progress is slow.
+
+Speaker 6 | 36:31
+Are those transformations automated?
+
+Speaker 3 | 37:24
+Yes, ingestion and transformations are automated via Azure Data Factory.
+
+Speaker 6 | 37:32
+Do you bring in any third-party enrichment data (e.g., weather)?
+
+Speaker 3 | 37:45
+Not currently, though we’ve considered it for predictive analytics use cases.
+
+Speaker 6 | 38:49
+What rights do you have over client data? Can you aggregate and benchmark?
+
+Speaker 3 | 39:08
+Yes, we can aggregate and anonymize data across clients.
+
+Speaker 6 | 39:22
+Are you doing benchmarking today?
+
+Speaker 3 | 39:22
+Yes, to some extent.
+
+Speaker 2 | 39:30
+We also track user activity—what features are used, browser types, timestamps—which helps guide product improvements.
+
+Speaker 6 | 40:06
+Great. Any AI/ML in production today?
+
+Speaker 3 | 40:42
+No.
+
+Speaker 6 | 40:49
+Any plans?
+
+Speaker 2 | 40:54
+Yes—using lab and sensor data for predictive analytics. It’s on the roadmap.
+
+Speaker 6 | 41:18
+Have you started MLOps practices?
+
+Speaker 2 | 41:28
+Not yet—planned for a future quarter.
+
+Speaker 6 | 41:41
+Do you have a data team?
+
+Speaker 3 | 41:50
+No dedicated data scientists or engineers. Infrastructure is managed internally.
+
+Speaker 6 | 42:28
+Any major data architecture changes planned?
+
+Speaker 3 | 42:36
+No major changes beyond what we discussed.
+
+Speaker 2 | 42:54
+We do plan to expand the API layer to support mobile applications and reuse service logic.
+
+Speaker 6 | 43:42
+So future focus includes predictive analytics?
+
+Speaker 2 | 43:42
+Yes.
+
+Speaker 7 | 45:09
+I’ll shift to infrastructure. You mentioned AWS and Azure—any additional Azure footprint beyond the data warehouse?
+
+Speaker 3 | 45:38
+Primarily data warehouse and some Azure functions. Most product infrastructure is in AWS.
+
+Speaker 7 | 47:03
+Are environments separated?
+
+Speaker 3 | 47:39
+Same AWS account, separate instances and subnets for environments.
+
+Speaker 7 | 48:06
+Are you multi-AZ?
+
+Speaker 3 | 48:06
+Yes—application instances and RDS are multi-AZ.
+
+Speaker 7 | 48:37
+How many EC2 instances?
+
+Speaker 3 | 53:43
+Roughly 20–30.
+
+Speaker 7 | 53:52
+Operating systems?
+
+Speaker 3 | 53:52
+Mostly Linux (Ubuntu/Amazon Linux), with a few Windows servers where required.
+
+Speaker 7 | 54:50
+How do you patch?
+
+Speaker 3 | 54:50
+Windows is patched regularly; Linux uses unattended upgrades. Some environments use rebuilt images.
+
+Speaker 7 | 55:56
+Endpoint protection?
+
+Speaker 3 | 55:56
+Yes, EDR tools deployed across instances and endpoints.
+
+Speaker 7 | 56:37
+Storage size?
+
+Speaker 3 | 56:44
+~1TB database, ~1–1.5TB object storage.
+
+Speaker 7 | 57:23
+Backups immutable?
+
+Speaker 3 | 57:23
+Yes, replicated across regions.
+
+Speaker 7 | 58:05
+Change management?
+
+Speaker 2 | 58:17
+We use Jira tickets, feature branches, PR reviews, dev → staging → production pipeline.
+
+Speaker 3 | 59:34
+Infrastructure changes are handled via PR + Terraform.
+
+Speaker 7 | 01:00:13
+Monitoring?
+
+Speaker 3 | 01:00:24
+CloudWatch and Datadog for logs, alerts, and monitoring.
+
+Speaker 7 | 01:01:56
+Cost scaling?
+
+Speaker 3 | 01:01:56
+Current infrastructure is over-provisioned; growth won’t immediately increase costs significantly.
+
+Speaker 7 | 01:03:29
+Future infrastructure plans?
+
+Speaker 3 | 01:03:29
+Move to time-series DB and migrate workloads to Linux where possible.
+
+Speaker 7 | 01:04:41
+I’ll move into cybersecurity. Do you have a designated person responsible for cybersecurity strategy?
+
+Speaker 3 | 01:05:13
+We have a fractional external advisor who supports technology and security strategy. Internally, I handle most implementation and management.
+
+Speaker 7 | 01:05:32
+How much time is dedicated to cybersecurity?
+
+Speaker 3 | 01:05:44
+Roughly a few hours per week. No dedicated full-time security role.
+
+Speaker 7 | 01:06:49
+Do you store any regulated data like PCI or HIPAA?
+
+Speaker 3 | 01:06:49
+No—no credit card data, PHI, or similar. Payments are handled by a third-party provider.
+
+Speaker 7 | 01:07:44
+Any certifications like SOC 2?
+
+Speaker 3 | 01:07:56
+Not yet. It’s on the roadmap, but timing has shifted depending on client requirements.
+
+Speaker 7 | 01:09:24
+Any security incidents in the past five years?
+
+Speaker 3 | 01:09:24
+No major data loss. There were minor incidents—like a phishing-related payment issue that was recovered, and an exploited legacy web component that attempted SMTP misuse.
+
+Speaker 7 | 01:11:40
+Cyber insurance coverage?
+
+Speaker 3 | 01:11:40
+Yes, currently several million dollars in coverage.
+
+Speaker 7 | 01:12:24
+Do you follow a specific security framework?
+
+Speaker 3 | 01:12:24
+Not formally—policies are often created based on client requirements.
+
+Speaker 7 | 01:12:49
+Do you use a GRC tool?
+
+Speaker 3 | 01:12:58
+No.
+
+Speaker 7 | 01:13:12
+Security training?
+
+Speaker 3 | 01:13:12
+Annual training and phishing simulations using a third-party tool.
+
+Speaker 7 | 01:13:33
+Vendor security reviews?
+
+Speaker 3 | 01:13:33
+We have a questionnaire but haven’t consistently used it.
+
+Speaker 7 | 01:14:12
+AI usage policies?
+
+Speaker 3 | 01:14:12
+Informal—limited to approved tools like built-in copilots. No formal governance yet.
+
+Speaker 7 | 01:15:17
+Monitoring unauthorized AI usage?
+
+Speaker 3 | 01:15:17
+Possible via DNS filtering logs, but not actively monitored.
+
+Speaker 7 | 01:15:56
+Vulnerability scanning and pen testing?
+
+Speaker 3 | 01:15:56
+Automated vulnerability scans weekly; annual external penetration testing.
+
+Speaker 7 | 01:17:29
+Any recent findings?
+
+Speaker 3 | 01:17:29
+Minor issues like header disclosures and outdated TLS references—remediated.
+
+Speaker 7 | 01:18:24
+Formal remediation timelines?
+
+Speaker 3 | 01:18:24
+Not formalized.
+
+Speaker 7 | 01:20:08
+Risk register?
+
+Speaker 3 | 01:20:08
+No centralized system.
+
+Speaker 7 | 01:21:00
+Cloud security posture management?
+
+Speaker 3 | 01:21:00
+Not formally implemented.
+
+Speaker 7 | 01:21:26
+Incident response plan?
+
+Speaker 3 | 01:21:26
+Yes—basic policies and response templates exist.
+
+Speaker 7 | 01:22:18
+Tabletop exercises?
+
+Speaker 3 | 01:22:18
+Not currently.
+
+Speaker 7 | 01:23:50
+Corporate data backups?
+
+Speaker 3 | 01:23:50
+Handled through built-in cloud tools; no offline backups.
+
+Speaker 7 | 01:24:49
+System hardening?
+
+Speaker 3 | 01:24:49
+Standard configurations via device management tools; limited additional hardening for servers.
+
+Speaker 7 | 01:26:06
+Mobile device management?
+
+Speaker 3 | 01:26:06
+Yes—containerized work profiles on personal devices.
+
+Speaker 7 | 01:27:33
+Data retention enforcement?
+
+Speaker 3 | 01:27:33
+Policy exists but not strongly enforced.
+
+Speaker 7 | 01:27:49
+DLP tools?
+
+Speaker 3 | 01:27:49
+Not yet, but planned.
+
+Speaker 7 | 01:28:19
+Email security?
+
+Speaker 3 | 01:28:19
+Using built-in protections with SPF, DKIM, and DMARC configured.
+
+Speaker 7 | 01:29:25
+Access control?
+
+Speaker 3 | 01:29:25
+Role-based access groups tied to departments.
+
+Speaker 7 | 01:30:03
+Access reviews?
+
+Speaker 3 | 01:30:03
+Handled during onboarding/offboarding, less formal during role changes.
+
+Speaker 7 | 01:30:42
+Local admin privileges?
+
+Speaker 3 | 01:30:42
+Restricted; elevation requires approval.
+
+Speaker 7 | 01:31:21
+SOC response process?
+
+Speaker 3 | 01:31:21
+Third-party SOC can isolate devices and notify internal teams.
+
+Speaker 7 | 01:34:03
+Office network segmentation?
+
+Speaker 3 | 01:34:03
+Older office is flat; newer office includes VLAN segmentation and managed networking.
+
+Speaker 8 | 01:36:10
+I’ll cover SDLC. What methodology do you use?
+
+Speaker 2 | 01:36:43
+Agile, with six-week release cycles.
+
+Speaker 8 | 01:36:51
+Agile rituals?
+
+Speaker 2 | 01:37:01
+Daily standups and retrospectives after each release.
+
+Speaker 8 | 01:37:23
+Artifacts tracked?
+
+Speaker 2 | 01:37:23
+Yes—documented in Confluence.
+
+Speaker 8 | 01:37:37
+Source control and CI/CD?
+
+Speaker 2 | 01:37:37
+GitHub and AppVeyor.
+
+Speaker 8 | 01:37:51
+Issue tracking?
+
+Speaker 2 | 01:37:51
+Jira.
+
+Speaker 8 | 01:38:02
+Prioritization?
+
+Speaker 2 | 01:38:02
+Hotfixes are highest priority; features and backlog managed by product leadership.
+
+Speaker 8 | 01:39:10
+Effort estimation?
+
+Speaker 2 | 01:39:10
+Story points assigned by developers; prioritization handled by product management.
+
+Speaker 8 | 01:39:50
+Metrics tracked?
+
+Speaker 2 | 01:39:50
+Burndown charts and defect tracking.
+
+Speaker 8 | 01:40:37
+Resource allocation?
+
+Speaker 2 | 01:40:37
+Primarily new features, with portions for maintenance and technical debt.
+
+Speaker 8 | 01:41:32
+Testing approach?
+
+Speaker 2 | 01:41:32
+Developers perform testing; QA role recently added. Mostly manual testing today.
+
+Speaker 8 | 01:42:48
+Automation plans?
+
+Speaker 2 | 01:42:48
+Planning to implement Selenium and Playwright; currently using monitoring-based smoke tests.
+
+Speaker 8 | 01:43:55
+Coverage targets?
+
+Speaker 2 | 01:43:55
+Focus first on critical pages, eventually aiming for full coverage.
+
+Speaker 8 | 01:44:46
+AI usage in development?
+
+Speaker 2 | 01:44:46
+Used for code generation and assistance, with human validation.
+
+Speaker 8 | 01:45:31
+AI for testing?
+
+Speaker 2 | 01:45:31
+Not yet, but planned.
+
+Speaker 8 | 01:46:33
+AI training?
+
+Speaker 2 | 01:46:33
+Internal experimentation and learning.
+
+Speaker 8 | 01:47:00
+Rollback process?
+
+Speaker 2 | 01:47:10
+Yes—via version control rollback.
+
+Speaker 8 | 01:47:42
+Code review process?
+
+Speaker 2 | 01:47:42
+Multiple reviewers for large changes; at least one for smaller changes.
+
+Speaker 8 | 01:48:32
+Release sign-off?
+
+Speaker 2 | 01:48:32
+Developers and product stakeholders after UAT.
+
+Speaker 8 | 01:49:27
+Effort split?
+
+Speaker 2 | 01:49:29
+Majority on development, smaller portion on reviews and release prep.
+
+Speaker 1 | 01:50:08
+That wraps up our agenda. Any final questions?
+
+(No additional questions.)
+
+Speaker 1 | 01:50:36
+We may follow up with additional requests, but appreciate your time today.
+
+Speaker 2 | 01:50:36
+Thank you.
+
+Speaker 3 | 01:50:37
+Thank you, everyone.
+
+Speaker 5 | 01:50:38
+Thank you.
+
+Speaker 3 | 01:50:39
+Thank you.
+
+Speaker 5 | 01:50:39
+Take care.
