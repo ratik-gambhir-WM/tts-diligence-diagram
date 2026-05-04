@@ -28,7 +28,7 @@
       "borderRadius": 0,
       "offset": 18
     },
-    "id": "edge_customer_integrations_to_rest_api",
+    "id": "edge_customer_integrations_to_application_layer",
     "source": "customer_integrations",
     "target": "application_layer",
     "label": "",

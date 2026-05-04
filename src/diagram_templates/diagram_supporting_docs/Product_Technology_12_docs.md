@@ -3,7 +3,7 @@
 ## Application & UI
 - **.NET 8 (C#)**   
 - **JavaScript + jQuery**  
-- **ASP.NET Web Forms (.NET Framework 4.0)** 
+- **ASP.NET Web Forms (.NET Framework 4.8)** 
 
 ## Mobile
 - **Flutter** – planned mobile application framework (iOS/Android)  

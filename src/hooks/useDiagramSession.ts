@@ -156,7 +156,6 @@ export function useDiagramSession({ onGenerated }: UseDiagramSessionParams) {
       promptOutput: null,
       submittedMessage: '',
     }))
-    console.log('Graph build error:', errorMessage)
     setError(errorMessage)
   }
 

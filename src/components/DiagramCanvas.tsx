@@ -41,7 +41,13 @@ function isEditableNodeDataArray(value: unknown): value is DiagramNodeData[] {
       typeof item.label === 'string' &&
       'metadata' in item &&
       typeof item.metadata === 'object' &&
-      item.metadata !== null
+      item.metadata !== null &&
+      'dependencies' in item.metadata &&
+      Array.isArray(item.metadata.dependencies) &&
+      'summary' in item.metadata &&
+      typeof item.metadata.summary === 'string' &&
+      'system' in item.metadata &&
+      typeof item.metadata.system === 'string'
     ))
   )
 }
@@ -175,6 +181,7 @@ export function DiagramCanvas({
       }
 
       setNodeJsonError(null)
+
       setNodes((currentNodes) => (
         currentNodes.map((node, index) => ({
           ...node,
