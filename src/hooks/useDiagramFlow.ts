@@ -20,7 +20,7 @@ type UseDiagramFlowParams = {
 export function useDiagramFlow({ promptOutput }: UseDiagramFlowParams) {
   const diagramGraph = useMemo(() => buildInitialGraph(promptOutput), [promptOutput])
 
-  const [nodes, , onNodesChange] = useNodesState<DiagramNode>(diagramGraph.nodes)
+  const [nodes, setNodes, onNodesChange] = useNodesState<DiagramNode>(diagramGraph.nodes)
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>(diagramGraph.edges)
 
   const onConnect: OnConnect = useCallback((connection: Connection) => {
@@ -39,5 +39,7 @@ export function useDiagramFlow({ promptOutput }: UseDiagramFlowParams) {
     onEdgesChange,
     onNodesChange,
     selectedNodes,
+    setEdges,
+    setNodes,
   }
 }
