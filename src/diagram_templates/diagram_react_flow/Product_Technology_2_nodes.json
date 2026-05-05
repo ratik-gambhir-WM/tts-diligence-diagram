@@ -34,7 +34,7 @@
   },
   {
     "label": "Presentation Layer",
-    "subtext": "JavaScript/TypeScript ] AngularJS* (50%), React 18 (50%) ]",
+    "subtext": "JavaScript/TypeScript AngularJS* (50%), React 18 (50%)",
     "metadata": {
       "dependencies": [
         "REST API"
