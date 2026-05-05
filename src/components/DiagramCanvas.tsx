@@ -7,7 +7,7 @@ import { JsonEditorPanel } from './JsonEditorPanel'
 import { MetadataPanel } from './MetadataPanel'
 import { DEFAULT_EDGE_OPTIONS } from '../lib/diagram'
 import { useDiagramFlow } from '../hooks/useDiagramFlow'
-import type { DiagramNode, DiagramNodeData } from '../constants/diagram'
+import type { DiagramNode, DiagramNodeData } from '../lib/diagram'
 import type { PromptOutput } from '../types/PromptOutput'
 
 type DiagramCanvasProps = {
