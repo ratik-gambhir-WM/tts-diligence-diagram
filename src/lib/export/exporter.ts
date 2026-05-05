@@ -6,11 +6,15 @@ import {
   type NormalizationOptions,
   type NormalizedPresentation,
   type ValidationIssue,
-} from './pptx.ts'
+} from './PowerpointGenerator.ts'
 
-export { buildSuggestedFileName } from './pptx.ts'
+export { buildSuggestedFileName } from './PowerpointGenerator.ts'
 export { isExtractedSlideSpec, normalizeExtractedPresentation } from './PowerpointSimulator.ts'
-export type { NormalizationOptions, NormalizedPresentation, ValidationIssue } from './pptx.ts'
+export type {
+  NormalizationOptions,
+  NormalizedPresentation,
+  ValidationIssue,
+} from './PowerpointGenerator.ts'
 export type { ExtractedSlideSpec } from './PowerpointSimulator.ts'
 
 export interface GeneratePowerPointOptions {

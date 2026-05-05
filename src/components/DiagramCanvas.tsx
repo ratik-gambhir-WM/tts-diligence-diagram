@@ -5,7 +5,7 @@ import { Background, ConnectionLineType, Controls, MiniMap, ReactFlow } from '@x
 import { JsonEditorPanel } from './JsonEditorPanel'
 import { MetadataPanel } from './MetadataPanel'
 import layeredArchitectureTemplate from '../lib/export/json-slide-templates/layered-arch.json'
-import { generatePowerPointFromJson } from '../lib/export'
+import { generatePowerPointFromJson } from '../lib/export/exporter.ts'
 import { DEFAULT_EDGE_OPTIONS } from '../lib/diagram'
 import { useDiagramFlow } from '../hooks/useDiagramFlow'
 import type { PromptOutput } from '../types/PromptOutput'

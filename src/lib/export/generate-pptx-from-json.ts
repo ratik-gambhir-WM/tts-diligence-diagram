@@ -4,7 +4,7 @@ import {
   buildSuggestedFileName,
   generatePowerPointFromPresentation,
   normalizeJsonToPresentation,
-} from './index.ts'
+} from './exporter.ts'
 
 async function main() {
   const [, , inputArg, outputArg] = process.argv

@@ -5,7 +5,7 @@ import type {
   NormalizedPresentation,
   NormalizedTextRun,
   ValidationIssue,
-} from './pptx.ts'
+} from './PowerpointGenerator.ts'
 
 type UnknownRecord = Record<string, unknown>
 type VerticalAlign = 'top' | 'middle' | 'bottom'

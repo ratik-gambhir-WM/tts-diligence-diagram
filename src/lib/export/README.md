@@ -8,7 +8,7 @@ This folder is a copied, portable export module. The original project logic in `
 import {
   generatePowerPointFromJson,
   generatePowerPointFromPresentation,
-} from './export/index.ts'
+} from './export/exporter.ts'
 import compactJson from './src/json/file.compact.json' with { type: 'json' }
 
 await generatePowerPointFromJson(compactJson, {
@@ -26,9 +26,9 @@ await generatePowerPointFromPresentation(normalizedPresentation, {
 
 ## Included Copies
 
-- `pptx.ts`: native JSON normalizer and PowerPoint generation logic
+- `PowerpointGenerator.ts`: native JSON normalizer and PowerPoint generation logic
 - `PowerpointSimulator.ts`: extracted PowerPoint slide payload normalizer
-- `index.ts`: facade with JSON and `NormalizedPresentation` generation entry points
+- `exporter.ts`: facade with JSON and `NormalizedPresentation` generation entry points
 - `generate-pptx-from-json.ts`: copied CLI helper
 - `condense-slide-json.ts`: copied compact JSON converter
 
