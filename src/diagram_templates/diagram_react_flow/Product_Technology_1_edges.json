@@ -1,0 +1,48 @@
+[
+  {
+    "type": "smoothstep",
+    "pathOptions": {
+      "borderRadius": 0,
+      "offset": 18
+    },
+    "id": "edge_presentation_to_api",
+    "source": "presentation_layer",
+    "target": "rest_api",
+    "label": "",
+    "animated": true,
+    "markerEnd": {
+      "type": "arrowclosed"
+    },
+    "style": {
+      "stroke": "#2563eb"
+    },
+    "labelStyle": {
+      "fill": "#334155",
+      "fontWeight": 600,
+      "fontSize": 11
+    }
+  },
+  {
+    "type": "smoothstep",
+    "pathOptions": {
+      "borderRadius": 0,
+      "offset": 18
+    },
+    "id": "edge_api_to_application",
+    "source": "rest_api",
+    "target": "application_layer",
+    "label": "",
+    "animated": true,
+    "markerEnd": {
+      "type": "arrowclosed"
+    },
+    "style": {
+      "stroke": "#2563eb"
+    },
+    "labelStyle": {
+      "fill": "#334155",
+      "fontWeight": 600,
+      "fontSize": 11
+    }
+  }
+]
