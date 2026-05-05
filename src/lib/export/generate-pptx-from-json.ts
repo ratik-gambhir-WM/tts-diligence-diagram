@@ -1,10 +1,10 @@
 import { mkdir, readFile } from 'node:fs/promises'
 import path from 'node:path'
 import {
-  buildPptxPresentation,
   buildSuggestedFileName,
-  normalizePresentationSpec,
-} from './pptx.ts'
+  generatePowerPointFromPresentation,
+  normalizeJsonToPresentation,
+} from './index.ts'
 
 async function main() {
   const [, , inputArg, outputArg] = process.argv
@@ -18,17 +18,9 @@ async function main() {
   const inputPath = path.resolve(process.cwd(), inputArg)
   const raw = await readFile(inputPath, 'utf8')
   const parsed = JSON.parse(raw) as unknown
-  const { presentation, issues } = normalizePresentationSpec(parsed, {
+  const { presentation, issues } = normalizeJsonToPresentation(parsed, {
     baseDir: path.dirname(inputPath),
   })
-
-  const errors = issues.filter((issue) => issue.level === 'error')
-  if (!presentation || errors.length > 0) {
-    const formattedIssues = issues
-      .map((issue) => `${issue.level.toUpperCase()} ${issue.path}: ${issue.message}`)
-      .join('\n')
-    throw new Error(`The JSON could not be converted into a PowerPoint deck.\n${formattedIssues}`)
-  }
 
   for (const issue of issues.filter((issue) => issue.level === 'warning')) {
     console.warn(`WARNING ${issue.path}: ${issue.message}`)
@@ -38,8 +30,10 @@ async function main() {
   const outputPath = resolveOutputPath(inputPath, outputArg, defaultFileName)
   await mkdir(path.dirname(outputPath), { recursive: true })
 
-  const pptx = buildPptxPresentation(presentation)
-  await pptx.writeFile({ fileName: outputPath, compression: true })
+  await generatePowerPointFromPresentation(presentation, {
+    outputPath,
+    compression: true,
+  })
 
   console.log(outputPath)
 }

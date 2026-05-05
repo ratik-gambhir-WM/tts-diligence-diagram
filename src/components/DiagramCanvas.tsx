@@ -4,6 +4,8 @@ import { Background, ConnectionLineType, Controls, MiniMap, ReactFlow } from '@x
 
 import { JsonEditorPanel } from './JsonEditorPanel'
 import { MetadataPanel } from './MetadataPanel'
+import layeredArchitectureTemplate from '../lib/export/json-slide-templates/layered-arch.json'
+import { generatePowerPointFromJson } from '../lib/export'
 import { DEFAULT_EDGE_OPTIONS } from '../lib/diagram'
 import { useDiagramFlow } from '../hooks/useDiagramFlow'
 import type { PromptOutput } from '../types/PromptOutput'
@@ -55,6 +57,8 @@ export function DiagramCanvas({
   promptOutput,
 }: DiagramCanvasProps) {
   const [activePanel, setActivePanel] = useState<PanelMode>(null)
+  const [exportError, setExportError] = useState<string | null>(null)
+  const [isExporting, setIsExporting] = useState(false)
   const { nodes, edges, onNodesChange, onEdgesChange, onConnect, selectedNodes } = useDiagramFlow({
     promptOutput,
   })
@@ -63,6 +67,20 @@ export function DiagramCanvas({
   const openMetadataPanel = () => setActivePanel('metadata')
   const openPromptPanel = () => setActivePanel('prompt')
   const isPanelVisible = activePanel !== null
+  const exportLayeredArchitectureDeck = async () => {
+    setExportError(null)
+    setIsExporting(true)
+
+    try {
+      await generatePowerPointFromJson(layeredArchitectureTemplate, {
+        outputPath: 'layered-architecture.pptx',
+      })
+    } catch (error) {
+      setExportError(error instanceof Error ? error.message : 'The PowerPoint export failed.')
+    } finally {
+      setIsExporting(false)
+    }
+  }
 
   return (
     <main className="h-screen min-h-screen overflow-hidden p-0">
@@ -103,6 +121,37 @@ export function DiagramCanvas({
 
         {activePanel === 'metadata' && (
           <MetadataPanel nodes={selectedNodes} onClose={closePanel} />
+        )}
+      </div>
+
+      <div className="fixed right-[1.1rem] top-[1.1rem] z-20 flex flex-col items-end gap-2 max-[640px]:right-[0.85rem] max-[640px]:top-[0.85rem]">
+        <button
+          type="button"
+          className="inline-flex h-11 items-center gap-2 rounded-full border border-[#171717]/10 bg-white/94 px-4 text-[0.78rem] font-bold text-[#171717] shadow-[0_18px_48px_rgba(23,23,23,0.14)] backdrop-blur-xl transition duration-150 ease-out hover:-translate-y-px hover:border-[#f26f21]/35 disabled:cursor-wait disabled:opacity-70 disabled:transform-none"
+          onClick={exportLayeredArchitectureDeck}
+          disabled={isExporting}
+          aria-label="Export layered architecture PowerPoint"
+        >
+          <svg
+            viewBox="0 0 24 24"
+            focusable="false"
+            className="h-4 w-4 fill-none stroke-current [stroke-linecap:round] [stroke-linejoin:round] [stroke-width:2]"
+            aria-hidden="true"
+          >
+            <path d="M12 3v11" />
+            <path d="m7 10 5 5 5-5" />
+            <path d="M5 21h14" />
+          </svg>
+          <span>{isExporting ? 'Exporting' : 'Export'}</span>
+        </button>
+
+        {exportError && (
+          <p
+            className="max-w-[18rem] rounded-lg border border-[#c95518]/25 bg-white/96 px-3 py-2 text-right text-[0.72rem] leading-relaxed text-[#9f3f12] shadow-[0_14px_38px_rgba(23,23,23,0.12)]"
+            role="status"
+          >
+            {exportError}
+          </p>
         )}
       </div>
 
