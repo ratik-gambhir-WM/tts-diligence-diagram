@@ -31,6 +31,15 @@ Prefer this visual composition unless the input clearly requires a different gro
 5. Do not invent systems, vendors, or integrations not present in the input.
 6. Use `Data Layer` as the canonical layer name. If input suggests `Repository Layer`, normalize it to `Data Layer`.
 
+## Transcript Extraction Rules
+
+- Treat any attached files as source architecture input.
+- Extract named technologies, runtimes, platforms, databases, queues, cloud services, and vendors.
+- Put technology names in `technology`.
+- Put hosting, vendor, or deployment context in `deployment`.
+- These fields render as React Flow subtext; and add a separate `subtext` key.
+- If multiple technologies belong to one node, use concise comma-separated values.
+
 ## Parent/Child Layout Semantics
 
 ### Core Application
@@ -114,6 +123,7 @@ Use:
 - `nodeType: "node"`
 - `children: []` when no nested nodes
 - empty string `""` for unknown `subtitle`, `technology`, or `deployment`
+- populate `technology` and `deployment` from transcript evidence so React Flow can render subtext
 - always include `metadata` with the exact metadata shape below
 
 ### Nested child rules
@@ -133,6 +143,7 @@ Use:
 
 - `nodeType: "node"`
 - empty string `""` for unknown `subtitle`, `technology`, or `deployment`
+- populate `technology` and `deployment` from transcript evidence so React Flow can render subtext
 - always include `metadata` with the exact metadata shape below
 
 Do not add `children` at this nested level.
