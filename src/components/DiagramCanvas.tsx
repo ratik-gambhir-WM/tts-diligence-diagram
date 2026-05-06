@@ -68,7 +68,31 @@ function isEditableEdgeArray(value: unknown): value is Edge[] {
   )
 }
 
+function isCylinderNodeData(data: DiagramNodeData) {
+  return data.shape === 'cylinder' || data.metadata.tags.some((tag) => tag.toLowerCase() === 'cylinder')
+}
+
 function EditableDiagramNode({ data }: NodeProps<DiagramNode>) {
+  if (isCylinderNodeData(data)) {
+    return (
+      <div className="database-node">
+        <div className="top" />
+        <div className="body">
+          <div>{data.label}</div>
+          {data.subtext ? (
+            <div className="font-serif text-xs font-normal leading-snug opacity-80">
+              {data.subtext}
+            </div>
+          ) : null}
+        </div>
+        <div className="bottom" />
+
+        <Handle type="target" position={Position.Top} />
+        <Handle type="source" position={Position.Bottom} />
+      </div>
+    )
+  }
+
   return (
     <>
       <Handle type="target" position={Position.Left} />
