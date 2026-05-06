@@ -1,5 +1,4 @@
 import PptxGenJS from 'pptxgenjs'
-import { isExtractedSlideSpec, normalizeExtractedPresentation } from './PowerpointSimulator.ts'
 
 type UnknownRecord = Record<string, unknown>
 
@@ -118,7 +117,7 @@ export interface NormalizedPresentation {
     title: string
     width: number
     height: number
-    sourceType: 'extracted-slide' | 'native-presentation'
+    sourceType: 'native-presentation'
   }
   slides: NormalizedSlide[]
 }
@@ -194,11 +193,6 @@ export function normalizePresentationSpec(
       message: 'Expected a JSON object or array of slide objects.',
     })
     return { issues }
-  }
-
-  if (isExtractedSlideSpec(input)) {
-    const presentation = normalizeExtractedPresentation(input, issues)
-    return { presentation, issues }
   }
 
   const presentation = normalizeNativePresentation(input, issues, options)
@@ -356,7 +350,7 @@ function normalizeNativePresentation(
       level: 'error',
       path: 'slides',
       message:
-        'Expected either an extracted PowerPoint slide payload (`shapeTree`) or a slide/deck object with `slides` or `elements`.',
+        'Expected a slide/deck object with `slides` or `elements`.',
     })
     return undefined
   }
@@ -415,10 +409,6 @@ function normalizeSingleSlideLike(
       message: 'Skipped a non-object slide entry.',
     })
     return undefined
-  }
-
-  if (isExtractedSlideSpec(input)) {
-    return normalizeExtractedPresentation(input, issues).slides[0]
   }
 
   return normalizeNativeSlide(input, 0, DEFAULT_WIDTH_PX, DEFAULT_HEIGHT_PX, issues, options)

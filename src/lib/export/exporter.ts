@@ -9,13 +9,11 @@ import {
 } from './PowerpointGenerator.ts'
 
 export { buildSuggestedFileName } from './PowerpointGenerator.ts'
-export { isExtractedSlideSpec, normalizeExtractedPresentation } from './PowerpointSimulator.ts'
 export type {
   NormalizationOptions,
   NormalizedPresentation,
   ValidationIssue,
 } from './PowerpointGenerator.ts'
-export type { ExtractedSlideSpec } from './PowerpointSimulator.ts'
 
 export interface GeneratePowerPointOptions {
   outputPath?: string
@@ -26,8 +24,6 @@ export interface GeneratePowerPointFromJsonOptions
   extends NormalizationOptions,
     GeneratePowerPointOptions {}
 
-export interface GeneratePowerPointFromPresentationOptions extends GeneratePowerPointOptions {}
-
 export interface GeneratePowerPointResult {
   outputPath: string
   fileName: string
@@ -36,7 +32,6 @@ export interface GeneratePowerPointResult {
 }
 
 export type GeneratePowerPointFromJsonResult = GeneratePowerPointResult
-export type GeneratePowerPointFromPresentationResult = GeneratePowerPointResult
 
 export async function generatePowerPointFromJson(
   json: unknown,
@@ -49,31 +44,16 @@ export async function generatePowerPointFromJson(
   return writePowerPoint(presentation, issues, options)
 }
 
-export async function generatePowerPointFromPresentation(
-  presentation: NormalizedPresentation,
-  options: GeneratePowerPointFromPresentationOptions = {},
-): Promise<GeneratePowerPointFromPresentationResult> {
-  return writePowerPoint(presentation, [], options)
-}
-
 export function buildPowerPointFromJson(
   json: unknown,
   options: NormalizationOptions = {},
 ) {
   const { presentation, issues } = normalizeJsonToPresentation(json, options)
-  const built = buildPowerPointFromPresentation(presentation)
 
-  return {
-    ...built,
-    issues,
-  }
-}
-
-export function buildPowerPointFromPresentation(presentation: NormalizedPresentation) {
   return {
     pptx: buildPptxPresentation(presentation),
     presentation,
-    issues: [] as ValidationIssue[],
+    issues,
   }
 }
 
