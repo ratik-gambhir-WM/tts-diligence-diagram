@@ -29,8 +29,8 @@
       "authors": ["West Monroe Architecture Library"],
       "date": "",
       "tags": {
-        "Web Architecture": false,
-        "Data Architecture": false,
+        "Web Architecture": true,
+        "Data Architecture": true,
         "Agentic AI": false,
         "Cloud-Native": false,
         "On-Premises": false,
@@ -44,8 +44,8 @@
       "authors": ["West Monroe Architecture Library"],
       "date": "",
       "tags": {
-        "Web Architecture": false,
-        "Data Architecture": false,
+        "Web Architecture": true,
+        "Data Architecture": true,
         "Agentic AI": false,
         "Cloud-Native": false,
         "On-Premises": false,
@@ -60,7 +60,7 @@
       "date": "",
       "tags": {
         "Web Architecture": true,
-        "Data Architecture": false,
+        "Data Architecture": true,
         "Agentic AI": false,
         "Cloud-Native": false,
         "On-Premises": true,
@@ -74,13 +74,13 @@
       "authors": ["West Monroe Architecture Library"],
       "date": "",
       "tags": {
-        "Web Architecture": false,
-        "Data Architecture": false,
+        "Web Architecture": true,
+        "Data Architecture": true,
         "Agentic AI": false,
         "Cloud-Native": false,
-        "On-Premises": false,
+        "On-Premises": true,
         "SaaS": false,
-        "Hybrid Cloud": false
+        "Hybrid Cloud": true
       }
     },
     {
@@ -104,11 +104,11 @@
       "authors": ["West Monroe Architecture Library"],
       "date": "",
       "tags": {
-        "Web Architecture": false,
-        "Data Architecture": false,
+        "Web Architecture": true,
+        "Data Architecture": true,
         "Agentic AI": false,
         "Cloud-Native": false,
-        "On-Premises": false,
+        "On-Premises": true,
         "SaaS": false,
         "Hybrid Cloud": false
       }
