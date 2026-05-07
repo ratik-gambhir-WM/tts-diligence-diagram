@@ -1,5 +1,5 @@
 import { MarkerType } from '@xyflow/react'
-import type { DefaultEdgeOptions, Edge, Node } from '@xyflow/react'
+import type { DefaultEdgeOptions, Edge, Node, SmoothStepPathOptions } from '@xyflow/react'
 
 import type {
   PromptOutput,
@@ -66,7 +66,12 @@ export type DiagramNodeData = {
 
 export type DiagramNode = Node<DiagramNodeData>
 
-export const DEFAULT_EDGE_OPTIONS: DefaultEdgeOptions = {
+type SmoothStepDefaultEdgeOptions = DefaultEdgeOptions & {
+  pathOptions: SmoothStepPathOptions
+  type: 'smoothstep'
+}
+
+export const DEFAULT_EDGE_OPTIONS: SmoothStepDefaultEdgeOptions = {
   animated: true,
   type: 'smoothstep',
   pathOptions: { borderRadius: 0, offset: 18 },
@@ -739,15 +744,6 @@ function buildGeneratedGraph(promptOutput: PromptOutput): BuiltGraph {
     nodeIds,
   }
 }
-
-// export function buildInitialNodes(promptOutput: PromptOutput): DiagramNode[] {
-//   return buildInitialGraph(promptOutput).nodes
-// }
-
-// export function buildInitialEdges(promptOutput: PromptOutput): Edge[] {
-//   return buildInitialGraph(promptOutput).edges
-// }
-
 export function buildInitialGraph(promptOutput: PromptOutput): Pick<BuiltGraph, 'edges' | 'nodes'> {
   if (!promptOutput) {
     throw new Error('Generated diagram data is missing.')

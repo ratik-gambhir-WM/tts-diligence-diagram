@@ -2,10 +2,12 @@
 
 This folder is a copied, portable export module. The original project logic in `src/` and `scripts/` was not moved or deleted.
 
-## Main Function
+## Main Entry Points
 
 ```ts
-import { generatePowerPointFromJson } from './export/index.ts'
+import {
+  generatePowerPointFromJson,
+} from './export/exporter.ts'
 import compactJson from './src/json/file.compact.json' with { type: 'json' }
 
 await generatePowerPointFromJson(compactJson, {
@@ -13,12 +15,12 @@ await generatePowerPointFromJson(compactJson, {
 })
 ```
 
-`generatePowerPointFromJson(json, options)` accepts either a parsed JSON object or a JSON string. It normalizes the JSON, builds a native PowerPoint deck, writes the `.pptx`, and returns the output path, normalized presentation, and any warnings.
+`generatePowerPointFromJson(json, options)` accepts either a parsed JSON object or a JSON string. It normalizes the JSON into a `NormalizedPresentation`, builds a native PowerPoint deck, writes the `.pptx`, and returns the output path, normalized presentation, and any warnings.
 
 ## Included Copies
 
-- `pptx.ts`: copied normalizer and PowerPoint generation logic
-- `index.ts`: single-function facade for generating a PowerPoint from JSON
+- `PowerpointGenerator.ts`: native JSON normalizer and PowerPoint generation logic
+- `exporter.ts`: facade with the JSON generation entry point
 - `generate-pptx-from-json.ts`: copied CLI helper
 - `condense-slide-json.ts`: copied compact JSON converter
 
