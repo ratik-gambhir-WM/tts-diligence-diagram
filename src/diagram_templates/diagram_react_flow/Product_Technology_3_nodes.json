@@ -155,7 +155,7 @@
   },
   {
     "label": "Desktop",
-    "subtext": "Typescript [ Electron ]",
+    "subtext": "TypeScript [ Electron ]",
     "metadata": {
       "dependencies": [],
       "environment": "On-Prem",
