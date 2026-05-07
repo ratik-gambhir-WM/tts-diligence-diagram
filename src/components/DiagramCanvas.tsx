@@ -69,7 +69,7 @@ function isEditableEdgeArray(value: unknown): value is Edge[] {
 }
 
 function isCylinderNodeData(data: DiagramNodeData) {
-  return data.shape === 'cylinder' || data.metadata.tags.some((tag) => tag.toLowerCase() === 'cylinder')
+  return data.shape === 'cylinder' || (Array.isArray(data.metadata.tags) && data.metadata.tags.some((tag) => tag.toLowerCase() === 'cylinder'))
 }
 
 function EditableDiagramNode({ data }: NodeProps<DiagramNode>) {
