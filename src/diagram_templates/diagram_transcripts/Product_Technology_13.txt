@@ -278,7 +278,7 @@ OK.
 Meaning our proprietary best practices that we've learned by. So we actually have a a tool that we can show you and and maybe when you come back, but essentially what it does is it can. So on a very high level we've run hundreds of millions of dollars of ad spend.
 On like platforms like [PLATFORM] or [PLATFORM] across multiple different audiences within life sciences. Because of that, we're able to pull that data and actually look at all the creatives, the messaging and the performance of those things by target by.
 And the target audience that we advertise to from that we can continually get learnings and those learnings would be what does a good ad look like and that type of stuff will continually create a feedback loop. So when we have like let's say.
-That's how we use one of our REDACTEDpaign development or creative creation workflows. We can feed the best practices of what we've learned as an aggregate back to a specific customer because we've improved that workflow that references that data layer. Does that?
+That's how we use one of our campaign development or creative creation workflows. We can feed the best practices of what we've learned as an aggregate back to a specific customer because we've improved that workflow that references that data layer. Does that?
 makes sense.
 
 [SPEAKER] 21:22
