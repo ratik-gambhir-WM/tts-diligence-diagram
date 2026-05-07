@@ -117,7 +117,7 @@
   },
   {
     "label": "Mobile",
-    "subtext": "C# / Xamarin [ Andoird 10+, iOS 11+ ]",
+    "subtext": "C# / Xamarin [ Android 10+, iOS 11+ ]",
     "metadata": {
       "dependencies": [],
       "environment": "On-Prem",
