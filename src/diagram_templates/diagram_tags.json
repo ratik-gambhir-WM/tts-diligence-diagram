@@ -205,16 +205,16 @@
     },
     {
       "name": "Product_Technology_13",
-      "Description": "",
-      "authors": [],
-      "date": "",
+      "Description": "AI Agentic web application using Laravel PHP, Runbear, Lovable, AWS Aurora, ",
+      "authors": ["Kuba Wiszowaty, Mark Harris"],
+      "date": "05/07/2026",
       "tags": {
-        "Web Architecture": false,
-        "Data Architecture": false,
-        "Agentic AI": false,
-        "Cloud-Native": false,
+        "Web Architecture": true,
+        "Data Architecture": true,
+        "Agentic AI": true,
+        "Cloud-Native": true,
         "On-Premises": false,
-        "SaaS": false,
+        "SaaS": true,
         "Hybrid Cloud": false
       }
     }
