@@ -79,7 +79,7 @@
   },
   {
     "label": "Web",
-    "subtext": ".JavaScript [ AngularJS 1.7* ]",
+    "subtext": "JavaScript [ AngularJS 1.7* ]",
     "metadata": {
       "dependencies": [],
       "environment": "On-Prem",
