@@ -62,6 +62,8 @@ export type NodeMetadata = {
 export type DiagramNodeData = {
   label: string
   metadata: NodeMetadata
+  shape?: PromptOutputShape
+  subtext?: string
 }
 
 export type DiagramNode = Node<DiagramNodeData>
@@ -100,7 +102,7 @@ const SECONDARY_PARENT_MIN_HEIGHT = 200
 
 const SHAPE_DIMENSIONS: Record<PromptOutputShape, { height: number; width: number }> = {
   rectangle: { width: 470, height: 94 },
-  cylinder: { width: 130, height: 88 },
+  cylinder: { width: 150, height: 96 },
   label: { width: 150, height: 34 },
 }
 
@@ -118,6 +120,7 @@ function createNode(
   position: { x: number; y: number },
   className: string,
   metadata: NodeMetadata,
+  dataOptions: Pick<DiagramNodeData, 'shape' | 'subtext'> = {},
   options: Partial<Pick<DiagramNode, 'extent' | 'parentId' | 'style' | 'type'>> = {},
 ): DiagramNode {
   const normalizedLabel = normalizeNodeLabel(label)
@@ -125,7 +128,7 @@ function createNode(
   return {
     id,
     position,
-    data: { label: normalizedLabel, metadata },
+    data: { label: normalizedLabel, metadata, ...dataOptions },
     className,
     ...options,
   }
@@ -156,6 +159,32 @@ function getParentClassName() {
   ].join(' ')
 }
 
+const DATASTORE_TAGS = new Set([
+  'blob',
+  'cache',
+  'database',
+  'datastore',
+  'data-store',
+  'file-storage',
+  'file_storage',
+  'object-storage',
+  'storage',
+])
+
+function hasDatastoreTag(metadata: PromptOutputParentMetadata) {
+  return metadata.tags.some((tag) => DATASTORE_TAGS.has(tag.toLowerCase()))
+}
+
+function getEffectiveChildShape(child: PromptOutputChildNode | PromptOutputLeafNode) {
+  const hasNestedChildren = 'children' in child && Boolean(child.children && child.children.length > 0)
+
+  if (!hasNestedChildren && hasDatastoreTag(child.metadata)) {
+    return 'cylinder'
+  }
+
+  return child.shape
+}
+
 function getChildClassName(shape: PromptOutputShape, isContainer = false) {
   if (shape === 'label') {
     return [
@@ -175,12 +204,13 @@ function getChildClassName(shape: PromptOutputShape, isContainer = false) {
   if (shape === 'cylinder') {
     return [
       'rf-cylinder-node',
-      !isContainer ? '!w-[130px]' : '',
-      '!px-3',
-      '!pt-6',
-      '!pb-4',
+      !isContainer ? '!w-[150px]' : '',
+      '!border-0',
+      '!bg-transparent',
+      '!p-0',
       '!text-center',
       '!font-semibold',
+      '!shadow-none',
     ].join(' ')
   }
 
@@ -459,7 +489,8 @@ function layoutChildSubtree({
   // Child coordinates are relative to the parent container when parentId is set.
   relativePosition: { x: number; y: number }
 }): ChildLayoutResult {
-  const { height: baseHeight, width: baseWidth } = getNodeDimensions(child.shape)
+  const effectiveShape = getEffectiveChildShape(child)
+  const { height: baseHeight, width: baseWidth } = getNodeDimensions(effectiveShape)
   const nestedChildren = 'children' in child ? child.children : undefined
   const hasNestedChildren = Boolean(nestedChildren && nestedChildren.length > 0)
   let width = baseWidth
@@ -513,8 +544,14 @@ function layoutChildSubtree({
     child.id,
     child.label,
     relativePosition,
-    getChildClassName(child.shape, hasNestedChildren),
+    getChildClassName(effectiveShape, hasNestedChildren),
     metadata,
+    {
+      shape: effectiveShape,
+      subtext: [child.technology, child.deployment ? `[ ${child.deployment} ]` : '']
+        .filter(Boolean)
+        .join(' '),
+    },
     {
       extent: 'parent',
       parentId,
@@ -691,6 +728,7 @@ function buildGeneratedGraph(promptOutput: PromptOutput): BuiltGraph {
         { x: parentX, y: parentY },
         getParentClassName(),
         buildParentMetadata(parent.label, parent.metadata, dependenciesBySource.get(parent.id) ?? []),
+        {},
         {
           style: {
             height: parentHeight,

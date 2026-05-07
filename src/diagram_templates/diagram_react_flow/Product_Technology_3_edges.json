@@ -1,0 +1,163 @@
+[
+  {
+    "type": "smoothstep",
+    "pathOptions": {
+      "borderRadius": 0,
+      "offset": 18
+    },
+    "id": "edge_ms_presentation_to_wcf",
+    "source": "ms_presentation_layer",
+    "target": "ms_wcf_api",
+    "label": "",
+    "animated": true,
+    "markerEnd": {
+      "type": "arrowclosed"
+    },
+    "style": {
+      "stroke": "#2563eb"
+    },
+    "labelStyle": {
+      "fill": "#334155",
+      "fontWeight": 600,
+      "fontSize": 11
+    }
+  },
+  {
+    "type": "smoothstep",
+    "pathOptions": {
+      "borderRadius": 0,
+      "offset": 18
+    },
+    "id": "edge_ms_wcf_to_app",
+    "source": "ms_wcf_api",
+    "target": "ms_application_layer",
+    "label": "",
+    "animated": true,
+    "markerEnd": {
+      "type": "arrowclosed"
+    },
+    "style": {
+      "stroke": "#2563eb"
+    },
+    "labelStyle": {
+      "fill": "#334155",
+      "fontWeight": 600,
+      "fontSize": 11
+    }
+  },
+  {
+    "type": "smoothstep",
+    "pathOptions": {
+      "borderRadius": 0,
+      "offset": 18
+    },
+    "id": "edge_ms_app_to_queue",
+    "source": "ms_application_layer",
+    "target": "ms_queue",
+    "label": "",
+    "animated": true,
+    "markerEnd": {
+      "type": "arrowclosed"
+    },
+    "style": {
+      "stroke": "#b45309"
+    },
+    "labelStyle": {
+      "fill": "#334155",
+      "fontWeight": 600,
+      "fontSize": 11
+    }
+  },
+  {
+    "type": "smoothstep",
+    "pathOptions": {
+      "borderRadius": 0,
+      "offset": 18
+    },
+    "id": "edge_ms_app_to_data",
+    "source": "ms_application_layer",
+    "target": "ms_data_layer",
+    "label": "",
+    "animated": false,
+    "markerEnd": {
+      "type": "arrowclosed"
+    },
+    "style": {
+      "stroke": "#475569"
+    },
+    "labelStyle": {
+      "fill": "#334155",
+      "fontWeight": 600,
+      "fontSize": 11
+    }
+  },
+  {
+    "type": "smoothstep",
+    "pathOptions": {
+      "borderRadius": 0,
+      "offset": 18
+    },
+    "id": "edge_mono_presentation_to_rest",
+    "source": "mono_presentation_layer",
+    "target": "mono_rest_api",
+    "label": "",
+    "animated": true,
+    "markerEnd": {
+      "type": "arrowclosed"
+    },
+    "style": {
+      "stroke": "#2563eb"
+    },
+    "labelStyle": {
+      "fill": "#334155",
+      "fontWeight": 600,
+      "fontSize": 11
+    }
+  },
+  {
+    "type": "smoothstep",
+    "pathOptions": {
+      "borderRadius": 0,
+      "offset": 18
+    },
+    "id": "edge_mono_rest_to_app",
+    "source": "mono_rest_api",
+    "target": "mono_application_layer",
+    "label": "",
+    "animated": true,
+    "markerEnd": {
+      "type": "arrowclosed"
+    },
+    "style": {
+      "stroke": "#2563eb"
+    },
+    "labelStyle": {
+      "fill": "#334155",
+      "fontWeight": 600,
+      "fontSize": 11
+    }
+  },
+  {
+    "type": "smoothstep",
+    "pathOptions": {
+      "borderRadius": 0,
+      "offset": 18
+    },
+    "id": "edge_mono_app_to_data",
+    "source": "mono_application_layer",
+    "target": "mono_data_layer",
+    "label": "",
+    "animated": false,
+    "markerEnd": {
+      "type": "arrowclosed"
+    },
+    "style": {
+      "stroke": "#475569"
+    },
+    "labelStyle": {
+      "fill": "#334155",
+      "fontWeight": 600,
+      "fontSize": 11
+    }
+  }
+]

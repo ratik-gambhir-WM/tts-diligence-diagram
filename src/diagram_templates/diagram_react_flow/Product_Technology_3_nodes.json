@@ -1,0 +1,817 @@
+[
+  {
+    "label": "SPA/Microservices",
+    "subtext": "N/A [ System Design ]",
+    "metadata": {
+      "dependencies": [],
+      "environment": "On-Prem",
+      "lastDeployed": "N/A",
+      "layerMetadata": {
+        "summary": "On-prem SPA and microservices deployment pattern.",
+        "owner": "",
+        "system": "Product",
+        "runtime": "",
+        "environment": "On-Prem",
+        "region": "",
+        "sla": "",
+        "last_deployed": "",
+        "dependencies": [],
+        "tags": [
+          "on-prem",
+          "microservices",
+          "spa"
+        ]
+      },
+      "owner": "System Design",
+      "region": "N/A",
+      "runtime": "N/A",
+      "sla": "N/A",
+      "summary": "On-prem SPA and microservices deployment pattern.",
+      "system": "SPA/Microservices",
+      "tags": [
+        "group",
+        "section",
+        "on-prem",
+        "microservices",
+        "spa"
+      ]
+    }
+  },
+  {
+    "label": "SPA/Microservices",
+
+    "metadata": {
+      "dependencies": [
+        "WCF API"
+      ],
+      "environment": "On-Prem",
+      "lastDeployed": "N/A",
+      "layerMetadata": {
+        "summary": "Client applications for web, mobile, and desktop channels.",
+        "owner": "",
+        "system": "Product",
+        "runtime": "",
+        "environment": "On-Prem",
+        "region": "",
+        "sla": "",
+        "last_deployed": "",
+        "dependencies": [
+          "ms_wcf_api"
+        ],
+        "tags": [
+          "presentation",
+          "clients"
+        ]
+      },
+      "owner": "Unspecified",
+      "region": "N/A",
+      "runtime": "Unspecified",
+      "sla": "N/A",
+      "summary": "Client applications for web, mobile, and desktop channels.",
+      "system": "Product",
+      "tags": [
+        "rectangle",
+        "node",
+        "presentation",
+        "clients"
+      ]
+    }
+  },
+  {
+    "label": "Web",
+    "subtext": "JavaScript [ AngularJS 1.7* ]",
+    "metadata": {
+      "dependencies": [],
+      "environment": "On-Prem",
+      "lastDeployed": "N/A",
+      "layerMetadata": {
+        "summary": "Web SPA client.",
+        "owner": "",
+        "system": "Product",
+        "runtime": "",
+        "environment": "On-Prem",
+        "region": "",
+        "sla": "",
+        "last_deployed": "",
+        "dependencies": [
+          "ms_wcf_api"
+        ],
+        "tags": [
+          "web",
+          "spa"
+        ]
+      },
+      "owner": "Unspecified",
+      "region": "N/A",
+      "runtime": "JavaScript, AngularJS 1.7*",
+      "sla": "N/A",
+      "summary": "Web SPA client.",
+      "system": "Product",
+      "tags": [
+        "rectangle",
+        "node",
+        "web",
+        "spa"
+      ]
+    }
+  },
+  {
+    "label": "Mobile",
+    "subtext": "C# / Xamarin [ Android 10+, iOS 11+ ]",
+    "metadata": {
+      "dependencies": [],
+      "environment": "On-Prem",
+      "lastDeployed": "N/A",
+      "layerMetadata": {
+        "summary": "Mobile client application.",
+        "owner": "",
+        "system": "Product",
+        "runtime": "",
+        "environment": "On-Prem",
+        "region": "",
+        "sla": "",
+        "last_deployed": "",
+        "dependencies": [
+          "ms_wcf_api"
+        ],
+        "tags": [
+          "mobile",
+          "xamarin"
+        ]
+      },
+      "owner": "Android 10+, iOS 11+",
+      "region": "N/A",
+      "runtime": "C#, Xamarin",
+      "sla": "N/A",
+      "summary": "Mobile client application.",
+      "system": "Product",
+      "tags": [
+        "rectangle",
+        "node",
+        "mobile",
+        "xamarin"
+      ]
+    }
+  },
+  {
+    "label": "Desktop",
+    "subtext": "TypeScript [ Electron ]",
+    "metadata": {
+      "dependencies": [],
+      "environment": "On-Prem",
+      "lastDeployed": "N/A",
+      "layerMetadata": {
+        "summary": "Desktop client application.",
+        "owner": "",
+        "system": "Product",
+        "runtime": "",
+        "environment": "On-Prem",
+        "region": "",
+        "sla": "",
+        "last_deployed": "",
+        "dependencies": [
+          "ms_wcf_api"
+        ],
+        "tags": [
+          "desktop",
+          "electron"
+        ]
+      },
+      "owner": "Unspecified",
+      "region": "N/A",
+      "runtime": "TypeScript, Electron",
+      "sla": "N/A",
+      "summary": "Desktop client application.",
+      "system": "Product",
+      "tags": [
+        "rectangle",
+        "node",
+        "desktop",
+        "electron"
+      ]
+    }
+  },
+  {
+    "label": "WCF API",
+    "subtext": "WCF [ Unspecified ]",
+    "metadata": {
+      "dependencies": [
+        "Application Layer"
+      ],
+      "environment": "On-Prem",
+      "lastDeployed": "N/A",
+      "layerMetadata": {
+        "summary": "API interface between clients and application layer.",
+        "owner": "",
+        "system": "Product",
+        "runtime": "",
+        "environment": "On-Prem",
+        "region": "",
+        "sla": "",
+        "last_deployed": "",
+        "dependencies": [
+          "ms_application_layer"
+        ],
+        "tags": [
+          "api",
+          "wcf"
+        ]
+      },
+      "owner": "Unspecified",
+      "region": "N/A",
+      "runtime": "WCF",
+      "sla": "N/A",
+      "summary": "API interface between clients and application layer.",
+      "system": "Product",
+      "tags": [
+        "label",
+        "node",
+        "api",
+        "wcf"
+      ]
+    }
+  },
+  {
+    "label": "Application Layer",
+    "subtext": ".NET 4.8 [ Windows Server 2020 / IIS ]",
+    "metadata": {
+      "dependencies": [
+        "Queue",
+        "Data Layer"
+      ],
+      "environment": "On-Prem",
+      "lastDeployed": "N/A",
+      "layerMetadata": {
+        "summary": "Core application services for the microservices deployment.",
+        "owner": "",
+        "system": "Product",
+        "runtime": ".NET 4.8",
+        "environment": "On-Prem",
+        "region": "",
+        "sla": "",
+        "last_deployed": "",
+        "dependencies": [
+          "ms_queue",
+          "ms_data_layer"
+        ],
+        "tags": [
+          "application",
+          "iis",
+          "windows-server"
+        ]
+      },
+      "owner": "Windows Server 2020 / IIS",
+      "region": "N/A",
+      "runtime": ".NET 4.8",
+      "sla": "N/A",
+      "summary": "Core application services for the microservices deployment.",
+      "system": "Product",
+      "tags": [
+        "rectangle",
+        "node",
+        "application",
+        "iis",
+        "windows-server"
+      ]
+    }
+  },
+  {
+    "label": "Queue",
+    "subtext": "RabbitMQ 2.4 [ Unspecified ]",
+    "metadata": {
+      "dependencies": [],
+      "environment": "On-Prem",
+      "lastDeployed": "N/A",
+      "layerMetadata": {
+        "summary": "Messaging queue for asynchronous processing.",
+        "owner": "",
+        "system": "Product",
+        "runtime": "",
+        "environment": "On-Prem",
+        "region": "",
+        "sla": "",
+        "last_deployed": "",
+        "dependencies": [],
+        "tags": [
+          "queue",
+          "messaging",
+          "rabbitmq"
+        ]
+      },
+      "owner": "Unspecified",
+      "region": "N/A",
+      "runtime": "RabbitMQ 2.4",
+      "sla": "N/A",
+      "summary": "Messaging queue for asynchronous processing.",
+      "system": "Product",
+      "tags": [
+        "rectangle",
+        "node",
+        "queue",
+        "messaging",
+        "rabbitmq"
+      ]
+    }
+  },
+  {
+    "label": "Data Layer",
+
+    "metadata": {
+      "dependencies": [],
+      "environment": "On-Prem",
+      "lastDeployed": "N/A",
+      "layerMetadata": {
+        "summary": "Persistence layer for the microservices deployment.",
+        "owner": "",
+        "system": "Product",
+        "runtime": "",
+        "environment": "On-Prem",
+        "region": "",
+        "sla": "",
+        "last_deployed": "",
+        "dependencies": [
+          "ms_relational_db"
+        ],
+        "tags": [
+          "data-layer",
+          "database"
+        ]
+      },
+      "owner": "Unspecified",
+      "region": "N/A",
+      "runtime": "Unspecified",
+      "sla": "N/A",
+      "summary": "Persistence layer for the microservices deployment.",
+      "system": "Product",
+      "tags": [
+        "rectangle",
+        "node",
+        "data-layer",
+        "database"
+      ]
+    }
+  },
+  {
+    "label": "Relational DB",
+    "subtext": "SQL Server 2022 Express [ Unspecified ]",
+    "metadata": {
+      "dependencies": [],
+      "environment": "On-Prem",
+      "lastDeployed": "N/A",
+      "layerMetadata": {
+        "summary": "Primary relational database.",
+        "owner": "",
+        "system": "Product",
+        "runtime": "",
+        "environment": "On-Prem",
+        "region": "",
+        "sla": "",
+        "last_deployed": "",
+        "dependencies": [],
+        "tags": [
+          "database",
+          "sql-server",
+          "relational"
+        ]
+      },
+      "owner": "Unspecified",
+      "region": "N/A",
+      "runtime": "SQL Server 2022 Express",
+      "sla": "N/A",
+      "summary": "Primary relational database.",
+      "system": "Product",
+      "tags": [
+        "cylinder",
+        "node",
+        "database",
+        "sql-server",
+        "relational"
+      ]
+    }
+  },
+  {
+    "label": "SPA/Monolith",
+    "subtext": "N/A [ System Design ]",
+    "metadata": {
+      "dependencies": [],
+      "environment": "On-Prem",
+      "lastDeployed": "N/A",
+      "layerMetadata": {
+        "summary": "On-prem SPA and monolith deployment pattern.",
+        "owner": "",
+        "system": "Product",
+        "runtime": "",
+        "environment": "On-Prem",
+        "region": "",
+        "sla": "",
+        "last_deployed": "",
+        "dependencies": [],
+        "tags": [
+          "on-prem",
+          "monolith",
+          "spa"
+        ]
+      },
+      "owner": "System Design",
+      "region": "N/A",
+      "runtime": "N/A",
+      "sla": "N/A",
+      "summary": "On-prem SPA and monolith deployment pattern.",
+      "system": "SPA/Monolith",
+      "tags": [
+        "group",
+        "section",
+        "on-prem",
+        "monolith",
+        "spa"
+      ]
+    }
+  },
+  {
+    "label": "SPA/Monolith",
+
+    "metadata": {
+      "dependencies": [
+        "REST API"
+      ],
+      "environment": "On-Prem",
+      "lastDeployed": "N/A",
+      "layerMetadata": {
+        "summary": "Client applications for web and mobile channels.",
+        "owner": "",
+        "system": "Product",
+        "runtime": "",
+        "environment": "On-Prem",
+        "region": "",
+        "sla": "",
+        "last_deployed": "",
+        "dependencies": [
+          "mono_rest_api"
+        ],
+        "tags": [
+          "presentation",
+          "clients"
+        ]
+      },
+      "owner": "Unspecified",
+      "region": "N/A",
+      "runtime": "Unspecified",
+      "sla": "N/A",
+      "summary": "Client applications for web and mobile channels.",
+      "system": "Product",
+      "tags": [
+        "rectangle",
+        "node",
+        "presentation",
+        "clients"
+      ]
+    }
+  },
+  {
+    "label": "Web",
+    "subtext": "JavaScript, AngularJS 1.7*, GWT 2.9 [ Unspecified ]",
+    "metadata": {
+      "dependencies": [],
+      "environment": "On-Prem",
+      "lastDeployed": "N/A",
+      "layerMetadata": {
+        "summary": "Web SPA client.",
+        "owner": "",
+        "system": "Product",
+        "runtime": "",
+        "environment": "On-Prem",
+        "region": "",
+        "sla": "",
+        "last_deployed": "",
+        "dependencies": [
+          "mono_rest_api"
+        ],
+        "tags": [
+          "web",
+          "spa",
+          "gwt"
+        ]
+      },
+      "owner": "Unspecified",
+      "region": "N/A",
+      "runtime": "JavaScript, AngularJS 1.7*, GWT 2.9",
+      "sla": "N/A",
+      "summary": "Web SPA client.",
+      "system": "Product",
+      "tags": [
+        "rectangle",
+        "node",
+        "web",
+        "spa",
+        "gwt"
+      ]
+    }
+  },
+  {
+    "label": "Mobile",
+    "subtext": "Objective-C [ iOS 11+ ]",
+    "metadata": {
+      "dependencies": [],
+      "environment": "On-Prem",
+      "lastDeployed": "N/A",
+      "layerMetadata": {
+        "summary": "Mobile client application.",
+        "owner": "",
+        "system": "Product",
+        "runtime": "",
+        "environment": "On-Prem",
+        "region": "",
+        "sla": "",
+        "last_deployed": "",
+        "dependencies": [
+          "mono_rest_api"
+        ],
+        "tags": [
+          "mobile",
+          "ios"
+        ]
+      },
+      "owner": "iOS 11+",
+      "region": "N/A",
+      "runtime": "Objective-C",
+      "sla": "N/A",
+      "summary": "Mobile client application.",
+      "system": "Product",
+      "tags": [
+        "rectangle",
+        "node",
+        "mobile",
+        "ios"
+      ]
+    }
+  },
+  {
+    "label": "REST API",
+    "subtext": "REST [ Unspecified ]",
+    "metadata": {
+      "dependencies": [
+        "Application Layer"
+      ],
+      "environment": "On-Prem",
+      "lastDeployed": "N/A",
+      "layerMetadata": {
+        "summary": "REST API interface between clients and monolith application layer.",
+        "owner": "",
+        "system": "Product",
+        "runtime": "",
+        "environment": "On-Prem",
+        "region": "",
+        "sla": "",
+        "last_deployed": "",
+        "dependencies": [
+          "mono_application_layer"
+        ],
+        "tags": [
+          "api",
+          "rest"
+        ]
+      },
+      "owner": "Unspecified",
+      "region": "N/A",
+      "runtime": "REST",
+      "sla": "N/A",
+      "summary": "REST API interface between clients and monolith application layer.",
+      "system": "Product",
+      "tags": [
+        "label",
+        "node",
+        "api",
+        "rest"
+      ]
+    }
+  },
+  {
+    "label": "Application Layer",
+    "subtext": "Java 16* [ Apache Tomcat 9.0.22 ]",
+    "metadata": {
+      "dependencies": [
+        "Data Layer"
+      ],
+      "environment": "On-Prem",
+      "lastDeployed": "N/A",
+      "layerMetadata": {
+        "summary": "Core monolith application services.",
+        "owner": "",
+        "system": "Product",
+        "runtime": "Java 16*",
+        "environment": "On-Prem",
+        "region": "",
+        "sla": "",
+        "last_deployed": "",
+        "dependencies": [
+          "mono_data_layer"
+        ],
+        "tags": [
+          "application",
+          "java",
+          "spring",
+          "tomcat"
+        ]
+      },
+      "owner": "Apache Tomcat 9.0.22",
+      "region": "N/A",
+      "runtime": "Java 16*",
+      "sla": "N/A",
+      "summary": "Core monolith application services.",
+      "system": "Product",
+      "tags": [
+        "rectangle",
+        "node",
+        "application",
+        "java",
+        "spring",
+        "tomcat"
+      ]
+    }
+  },
+  {
+    "label": "Data Layer",
+
+    "metadata": {
+      "dependencies": [],
+      "environment": "On-Prem",
+      "lastDeployed": "N/A",
+      "layerMetadata": {
+        "summary": "Persistence layer for the monolith deployment.",
+        "owner": "",
+        "system": "Product",
+        "runtime": "",
+        "environment": "On-Prem",
+        "region": "",
+        "sla": "",
+        "last_deployed": "",
+        "dependencies": [
+          "mono_relational_db"
+        ],
+        "tags": [
+          "data-layer",
+          "database"
+        ]
+      },
+      "owner": "Unspecified",
+      "region": "N/A",
+      "runtime": "Unspecified",
+      "sla": "N/A",
+      "summary": "Persistence layer for the monolith deployment.",
+      "system": "Product",
+      "tags": [
+        "rectangle",
+        "node",
+        "data-layer",
+        "database"
+      ]
+    }
+  },
+  {
+    "label": "Relational DB",
+    "subtext": "MariaDB 11.4 [ Unspecified ]",
+    "metadata": {
+      "dependencies": [],
+      "environment": "On-Prem",
+      "lastDeployed": "N/A",
+      "layerMetadata": {
+        "summary": "Primary relational database.",
+        "owner": "",
+        "system": "Product",
+        "runtime": "",
+        "environment": "On-Prem",
+        "region": "",
+        "sla": "",
+        "last_deployed": "",
+        "dependencies": [],
+        "tags": [
+          "database",
+          "mariadb",
+          "relational"
+        ]
+      },
+      "owner": "Unspecified",
+      "region": "N/A",
+      "runtime": "MariaDB 11.4",
+      "sla": "N/A",
+      "summary": "Primary relational database.",
+      "system": "Product",
+      "tags": [
+        "cylinder",
+        "node",
+        "database",
+        "mariadb",
+        "relational"
+      ]
+    }
+  },
+  {
+    "label": "Integration",
+    "subtext": "N/A [ System Design ]",
+    "metadata": {
+      "dependencies": [],
+      "environment": "On-Prem",
+      "lastDeployed": "N/A",
+      "layerMetadata": {
+        "summary": "Integration interfaces represented in the architecture.",
+        "owner": "",
+        "system": "Product",
+        "runtime": "",
+        "environment": "On-Prem",
+        "region": "",
+        "sla": "",
+        "last_deployed": "",
+        "dependencies": [],
+        "tags": [
+          "integration"
+        ]
+      },
+      "owner": "System Design",
+      "region": "N/A",
+      "runtime": "N/A",
+      "sla": "N/A",
+      "summary": "Integration interfaces represented in the architecture.",
+      "system": "Integration",
+      "tags": [
+        "group",
+        "section",
+        "integration"
+      ]
+    }
+  },
+  {
+    "label": "WCF API",
+    "metadata": {
+      "dependencies": [],
+      "environment": "On-Prem",
+      "lastDeployed": "N/A",
+      "layerMetadata": {
+        "summary": "Integration endpoint used by the SPA/microservices variant.",
+        "owner": "",
+        "system": "Product",
+        "runtime": "",
+        "environment": "On-Prem",
+        "region": "",
+        "sla": "",
+        "last_deployed": "",
+        "dependencies": [
+          "ms_application_layer"
+        ],
+        "tags": [
+          "integration",
+          "wcf"
+        ]
+      },
+      "owner": "Unspecified",
+      "region": "N/A",
+      "runtime": "WCF",
+      "sla": "N/A",
+      "summary": "Integration endpoint used by the SPA/microservices variant.",
+      "system": "Product",
+      "tags": [
+        "rectangle",
+        "node",
+        "integration",
+        "wcf"
+      ]
+    }
+  },
+  {
+    "label": "REST API",
+    "subtext": "REST [ Unspecified ]",
+    "metadata": {
+      "dependencies": [],
+      "environment": "On-Prem",
+      "lastDeployed": "N/A",
+      "layerMetadata": {
+        "summary": "Integration endpoint used by the SPA/monolith variant.",
+        "owner": "",
+        "system": "Product",
+        "runtime": "",
+        "environment": "On-Prem",
+        "region": "",
+        "sla": "",
+        "last_deployed": "",
+        "dependencies": [
+          "mono_application_layer"
+        ],
+        "tags": [
+          "integration",
+          "rest"
+        ]
+      },
+      "owner": "Unspecified",
+      "region": "N/A",
+      "runtime": "REST",
+      "sla": "N/A",
+      "summary": "Integration endpoint used by the SPA/monolith variant.",
+      "system": "Product",
+      "tags": [
+        "rectangle",
+        "node",
+        "integration",
+        "rest"
+      ]
+    }
+  }
+]

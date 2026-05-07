@@ -59,11 +59,11 @@
       "authors": ["West Monroe Architecture Library"],
       "date": "",
       "tags": {
-        "Web Architecture": false,
+        "Web Architecture": true,
         "Data Architecture": false,
         "Agentic AI": false,
         "Cloud-Native": false,
-        "On-Premises": false,
+        "On-Premises": true,
         "SaaS": false,
         "Hybrid Cloud": false
       }
