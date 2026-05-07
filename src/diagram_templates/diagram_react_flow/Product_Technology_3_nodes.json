@@ -472,14 +472,14 @@
     "subtext": "JavaScript, AngularJS 1.7*, GWT 2.9 [ Unspecified ]",
     "metadata": {
       "dependencies": [],
-      "environment": "On-PRem",
+      "environment": "On-Prem",
       "lastDeployed": "N/A",
       "layerMetadata": {
         "summary": "Web SPA client.",
         "owner": "",
         "system": "Product",
         "runtime": "",
-        "environment": "On-PRem",
+        "environment": "On-Prem",
         "region": "",
         "sla": "",
         "last_deployed": "",
