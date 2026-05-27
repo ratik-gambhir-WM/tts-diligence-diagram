@@ -3,6 +3,7 @@ import type { ChangeEvent } from 'react'
 
 import layeredArchImage from '../arch-picker/layered-arch.png'
 import layeredArchVariantImage from '../arch-picker/layered-arch-2.png'
+import multiAppArchImage from '../arch-picker/multi-app-arch.png'
 import multiTenantArchImage from '../arch-picker/multi-tenant-arch.png'
 import productArchImage from '../arch-picker/product-arch-2.png'
 
@@ -20,6 +21,7 @@ type DiagramTemplate = {
   description: string
   image: string
   name: string
+  path: string
   relatedAlt: string
 }
 
@@ -29,6 +31,7 @@ const DIAGRAM_TEMPLATES: DiagramTemplate[] = [
     description:
       'A clean layered view for showing presentation, service, integration, and data responsibilities across one application stack.',
     image: layeredArchImage,
+    path: '/Users/rgambhir/tts-mermaid/src/lib/export/json-slide-templates/layered-arch.json',
     relatedAlt: 'Layered architecture diagram preview',
   },
   {
@@ -36,6 +39,7 @@ const DIAGRAM_TEMPLATES: DiagramTemplate[] = [
     description:
       'A denser platform-oriented variant that helps explain shared services, internal enablement layers, and cross-cutting concerns.',
     image: layeredArchVariantImage,
+    path: '/Users/rgambhir/tts-mermaid/src/lib/export/json-slide-templates/layered-arch-2.json',
     relatedAlt: 'Layered platform architecture preview',
   },
   {
@@ -43,13 +47,23 @@ const DIAGRAM_TEMPLATES: DiagramTemplate[] = [
     description:
       'A multi-tenant diagram template for illustrating tenant isolation, shared infrastructure, and service boundaries in one product ecosystem.',
     image: multiTenantArchImage,
+    path: '/Users/rgambhir/tts-mermaid/src/lib/export/json-slide-templates/two-system-arch.json',
     relatedAlt: 'Multi-tenant system diagram preview',
+  },
+  {
+    name: 'Multi-Application Ecosystem',
+    description:
+      'A multi-application architecture template for showing how several products or business applications interact through shared services, integrations, and data flows.',
+    image: multiAppArchImage,
+    path: '/Users/rgambhir/tts-mermaid/src/lib/export/json-slide-templates/multi-app-arch.json',
+    relatedAlt: 'Multi-application ecosystem diagram preview',
   },
   {
     name: 'Product Architecture',
     description:
       'A product-centric architecture view that emphasizes product modules, supporting integrations, and how business capabilities connect end to end.',
     image: productArchImage,
+    path: '/Users/rgambhir/tts-mermaid/src/lib/export/json-slide-templates/multi-product-arch.json',
     relatedAlt: 'Product architecture diagram preview',
   },
 ]
@@ -84,9 +98,9 @@ export function DiagramPicker({
     [activeIndex],
   )
 
-  function moveSelection(direction: 'next' | 'previous') {
+  function moveSelection(direction: 'above' | 'below') {
     setActiveIndex((currentIndex) => {
-      if (direction === 'previous') {
+      if (direction === 'above') {
         return currentIndex === 0 ? DIAGRAM_TEMPLATES.length - 1 : currentIndex - 1
       }
 
@@ -111,8 +125,8 @@ export function DiagramPicker({
         </div>
       </header>
 
-      <section className="mx-auto grid min-h-[calc(100vh-89px)] max-w-[1240px] grid-cols-[1.05fr_0.95fr] items-center gap-10 px-8 py-10 max-[980px]:grid-cols-1 max-[980px]:gap-12 max-[980px]:px-5">
-        <div className="relative flex min-h-[620px] items-center justify-center overflow-hidden max-[980px]:min-h-[420px]">
+      <section className="mx-auto grid min-h-[calc(100vh-89px)] max-w-[1340px] grid-cols-[0.95fr_1.05fr] items-center gap-10 px-8 py-10 max-[980px]:grid-cols-1 max-[980px]:gap-12 max-[980px]:px-5">
+        <div className="relative flex min-h-[620px] items-center justify-center overflow-visible px-12 max-[980px]:min-h-[420px] max-[980px]:px-8">
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
             <div className="h-[430px] w-[430px] rounded-full border border-[#ddd7ee]" />
             <div className="absolute h-[510px] w-[510px] rounded-full border border-[#ebe5f5]" />
@@ -120,9 +134,9 @@ export function DiagramPicker({
 
           <button
             type="button"
-            onClick={() => moveSelection('previous')}
-            aria-label="Previous diagram"
-            className="absolute left-3 top-1/2 z-10 -translate-y-1/2 cursor-pointer border-0 bg-transparent p-2 text-[3rem] leading-none text-[#e2b11d] transition hover:scale-110"
+            onClick={() => moveSelection('above')}
+            aria-label="Diagram above"
+            className="absolute left-0 top-1/2 z-10 -translate-y-1/2 cursor-pointer border-0 bg-transparent px-3 py-2 text-[3rem] leading-none text-[#e2b11d] transition hover:scale-110"
           >
             ‹
           </button>
@@ -146,20 +160,20 @@ export function DiagramPicker({
 
           <button
             type="button"
-            onClick={() => moveSelection('next')}
-            aria-label="Next diagram"
-            className="absolute right-3 top-1/2 z-10 -translate-y-1/2 cursor-pointer border-0 bg-transparent p-2 text-[3rem] leading-none text-[#e2b11d] transition hover:scale-110"
+            onClick={() => moveSelection('below')}
+            aria-label="Diagram below"
+            className="absolute right-0 top-1/2 z-10 -translate-y-1/2 cursor-pointer border-0 bg-transparent px-3 py-2 text-[3rem] leading-none text-[#e2b11d] transition hover:scale-110"
           >
             ›
           </button>
         </div>
 
         <div className="border border-[#ece7f5] bg-white px-8 py-8 shadow-[0_22px_50px_rgba(80,52,160,0.12)] max-[640px]:px-5">
-          <div className="relative overflow-hidden bg-[#110f58]">
+          <div className="relative overflow-hidden border border-[#dfe3f3] bg-[#eef2fb] p-4">
             <img
               src={activeTemplate.image}
               alt={activeTemplate.relatedAlt}
-              className="block aspect-[16/10] w-full object-cover"
+              className="block aspect-[18/10] w-full object-contain object-center"
             />
           </div>
 
@@ -217,6 +231,12 @@ export function DiagramPicker({
             <p className="mt-3 font-sans text-[0.98rem] text-[#5c5974]">
               {attachmentCountLabel}
             </p>
+            <button
+              type="button"
+              className="mt-5 inline-flex items-center justify-center bg-[#17164d] px-12 py-4 text-[1.05rem] font-bold uppercase tracking-[0.12em] text-white transition hover:brightness-110"
+            >
+              Submit
+            </button>
           </div>
 
           {attachments.length > 0 && (

@@ -1,18 +1,21 @@
-import OpenAI from 'openai'
+import OpenAIClient from 'openai'
 import type {
   ResponseCreateParamsNonStreaming,
   ResponseInput,
   ResponseInputContent,
+  ResponseInputFile,
+  ResponseInputImage,
+  ResponseInputText,
 } from 'openai/resources/responses/responses'
 
-import diagramInstructions from '../prompts/RevisedPrompt.md?raw'
-import { PROMPT_OUTPUT_FORMAT } from '../types/PromptOutput'
-import type { PromptOutput } from '../types/PromptOutput'
 import { getExtension } from '../utils/files'
 
-type GenerateDiagramOutputParams = {
+type CreateOpenAIResponseParams = {
   attachments?: File[]
+  model?: string
   prompt: string
+  systemInstructions?: string
+  text?: ResponseCreateParamsNonStreaming['text']
 }
 
 const DEFAULT_MODEL = import.meta.env.VITE_OPENAI_MODEL || 'gpt-5.2'
@@ -30,7 +33,7 @@ const MIME_BY_EXTENSION: Record<string, string> = {
   txt: 'text/plain',
 }
 
-let client: OpenAI | null = null
+let client: OpenAIClient | null = null
 
 function getApiKey() {
   const apiKey =
@@ -46,7 +49,7 @@ function getApiKey() {
 }
 
 function getClient() {
-  client ??= new OpenAI({
+  client ??= new OpenAIClient({
     apiKey: getApiKey(),
     dangerouslyAllowBrowser: true,
   })
@@ -89,18 +92,22 @@ function getMimeType(file: File) {
   return MIME_BY_EXTENSION[extension] ?? 'application/octet-stream'
 }
 
-async function buildAttachmentContent(file: File): Promise<ResponseInputContent> {
+async function buildImageAttachmentContent(file: File): Promise<ResponseInputImage> {
   const base64 = await fileToBase64(file)
   const mimeType = getMimeType(file)
   const dataUrl = `data:${mimeType};base64,${base64}`
 
-  if (isImageFile(file)) {
-    return {
-      type: 'input_image',
-      image_url: dataUrl,
-      detail: 'high',
-    }
+  return {
+    type: 'input_image',
+    image_url: dataUrl,
+    detail: 'auto',
   }
+}
+
+async function buildFileAttachmentContent(file: File): Promise<ResponseInputFile> {
+  const base64 = await fileToBase64(file)
+  const mimeType = getMimeType(file)
+  const dataUrl = `data:${mimeType};base64,${base64}`
 
   return {
     type: 'input_file',
@@ -109,48 +116,48 @@ async function buildAttachmentContent(file: File): Promise<ResponseInputContent>
   }
 }
 
-async function buildResponseInput(prompt: string, attachments: File[]): Promise<ResponseInputContent[]> {
+export async function buildOpenAIUserContent(
+  prompt: string,
+  attachments: File[] = [],
+): Promise<ResponseInputContent[]> {
+  const imageAttachments = attachments.filter(isImageFile)
+  const fileAttachments = attachments.filter((file) => !isImageFile(file))
+  const textContent: ResponseInputText = {
+    type: 'input_text',
+    text: prompt.trim(),
+  }
+
   return [
-    {
-      type: 'input_text',
-      text: prompt.trim(),
-    },
-    ...(await Promise.all(attachments.map(buildAttachmentContent))),
+    textContent,
+    ...(await Promise.all(fileAttachments.map(buildFileAttachmentContent))),
+    ...(await Promise.all(imageAttachments.map(buildImageAttachmentContent))),
   ]
 }
 
-export async function generateDiagramOutput({
+export async function createOpenAIResponse({
   attachments = [],
+  model = DEFAULT_MODEL,
   prompt,
-}: GenerateDiagramOutputParams): Promise<PromptOutput> {
-  const input: ResponseInput = [
-    {
+  systemInstructions,
+  text,
+}: CreateOpenAIResponseParams) {
+  const input: ResponseInput = []
+
+  if (systemInstructions?.trim()) {
+    input.push({
       role: 'system',
-      content: diagramInstructions.trim(),
-    },
-    {
-      role: 'user',
-      content: await buildResponseInput(prompt, attachments),
-    },
-  ]
+      content: systemInstructions.trim(),
+    })
+  }
 
-  const request: ResponseCreateParamsNonStreaming = {
-    model: DEFAULT_MODEL,
+  input.push({
+    role: 'user',
+    content: await buildOpenAIUserContent(prompt, attachments),
+  })
+
+  return getClient().responses.create({
+    model,
     input,
-    text: {
-      format: {
-        type: 'json_schema',
-        ...PROMPT_OUTPUT_FORMAT,
-      },
-    },
-  }
-
-  const response = await getClient().responses.create(request)
-
-  if (response.output_text) {
-    const parsedPromptOutput = JSON.parse(response.output_text) as PromptOutput
-    return parsedPromptOutput
-  }
-
-  throw new Error('OpenAI did not return a structured diagram payload.')
+    ...(text ? { text } : {}),
+  })
 }
