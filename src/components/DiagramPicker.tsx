@@ -1,11 +1,11 @@
 import { useId, useMemo, useState } from 'react'
 import type { ChangeEvent } from 'react'
 
-import layeredArchImage from '../arch-picker/layered-arch.png'
-import layeredArchVariantImage from '../arch-picker/layered-arch-2.png'
-import multiAppArchImage from '../arch-picker/multi-app-arch.png'
-import multiTenantArchImage from '../arch-picker/multi-tenant-arch.png'
-import productArchImage from '../arch-picker/product-arch-2.png'
+import {
+  DEFAULT_DIAGRAM_TEMPLATE_ID,
+  DIAGRAM_TEMPLATES,
+} from '../lib/diagramTemplates'
+import type { DiagramTemplate } from '../lib/diagramTemplates'
 
 type DiagramPickerProps = {
   acceptAttr: string
@@ -14,59 +14,9 @@ type DiagramPickerProps = {
   onFileChange: (event: ChangeEvent<HTMLInputElement>) => void
   onOpenPromptPage: () => void
   onRemoveAttachment: (index: number) => void
+  onSelectTemplate: (template: DiagramTemplate) => void
   renderFileSize: (bytes: number) => string
 }
-
-type DiagramTemplate = {
-  description: string
-  image: string
-  name: string
-  path: string
-  relatedAlt: string
-}
-
-const DIAGRAM_TEMPLATES: DiagramTemplate[] = [
-  {
-    name: 'Layered Architecture',
-    description:
-      'A clean layered view for showing presentation, service, integration, and data responsibilities across one application stack.',
-    image: layeredArchImage,
-    path: '/Users/rgambhir/tts-mermaid/src/lib/export/json-slide-templates/layered-arch.json',
-    relatedAlt: 'Layered architecture diagram preview',
-  },
-  {
-    name: 'Layered Platform',
-    description:
-      'A denser platform-oriented variant that helps explain shared services, internal enablement layers, and cross-cutting concerns.',
-    image: layeredArchVariantImage,
-    path: '/Users/rgambhir/tts-mermaid/src/lib/export/json-slide-templates/layered-arch-2.json',
-    relatedAlt: 'Layered platform architecture preview',
-  },
-  {
-    name: 'Multi-Tenant System',
-    description:
-      'A multi-tenant diagram template for illustrating tenant isolation, shared infrastructure, and service boundaries in one product ecosystem.',
-    image: multiTenantArchImage,
-    path: '/Users/rgambhir/tts-mermaid/src/lib/export/json-slide-templates/two-system-arch.json',
-    relatedAlt: 'Multi-tenant system diagram preview',
-  },
-  {
-    name: 'Multi-Application Ecosystem',
-    description:
-      'A multi-application architecture template for showing how several products or business applications interact through shared services, integrations, and data flows.',
-    image: multiAppArchImage,
-    path: '/Users/rgambhir/tts-mermaid/src/lib/export/json-slide-templates/multi-app-arch.json',
-    relatedAlt: 'Multi-application ecosystem diagram preview',
-  },
-  {
-    name: 'Product Architecture',
-    description:
-      'A product-centric architecture view that emphasizes product modules, supporting integrations, and how business capabilities connect end to end.',
-    image: productArchImage,
-    path: '/Users/rgambhir/tts-mermaid/src/lib/export/json-slide-templates/multi-product-arch.json',
-    relatedAlt: 'Product architecture diagram preview',
-  },
-]
 
 function getWheelItemClasses(distanceFromActive: number) {
   if (distanceFromActive === 0) {
@@ -87,9 +37,16 @@ export function DiagramPicker({
   onFileChange,
   onOpenPromptPage,
   onRemoveAttachment,
+  onSelectTemplate,
   renderFileSize,
 }: DiagramPickerProps) {
-  const [activeIndex, setActiveIndex] = useState(1)
+  const [activeIndex, setActiveIndex] = useState(() => {
+    const defaultIndex = DIAGRAM_TEMPLATES.findIndex(
+      (template) => template.id === DEFAULT_DIAGRAM_TEMPLATE_ID,
+    )
+
+    return defaultIndex >= 0 ? defaultIndex : 0
+  })
   const inputId = useId()
 
   const activeTemplate = DIAGRAM_TEMPLATES[activeIndex]
@@ -233,6 +190,7 @@ export function DiagramPicker({
             </p>
             <button
               type="button"
+              onClick={() => onSelectTemplate(activeTemplate)}
               className="mt-5 inline-flex items-center justify-center bg-[#17164d] px-12 py-4 text-[1.05rem] font-bold uppercase tracking-[0.12em] text-white transition hover:brightness-110"
             >
               Submit

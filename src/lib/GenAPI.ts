@@ -149,6 +149,7 @@ export async function generateDiagramOutput({
 
   if (response.output_text) {
     const parsedPromptOutput = JSON.parse(response.output_text) as PromptOutput
+    console.log("Prompt output: ", parsedPromptOutput)
     return parsedPromptOutput
   }
 
