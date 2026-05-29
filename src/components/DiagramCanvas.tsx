@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import { Background, ConnectionLineType, Controls, Handle, MiniMap, Position, ReactFlow } from '@xyflow/react'
 import type { Edge, NodeProps } from '@xyflow/react'
@@ -299,7 +299,7 @@ export function DiagramCanvas({
   const [edgeJsonError, setEdgeJsonError] = useState<string | null>(null)
   const [flowRenderKey, setFlowRenderKey] = useState(0)
 
-  useEffect(() => {
+  useMemo(() => {
     setNodeJsonValue(formatNodeData(nodes))
     setEdgeJsonValue(formatEdgeData(edges, nodes))
   }, [edges, nodes])
