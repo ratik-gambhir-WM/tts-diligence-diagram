@@ -1,10 +1,12 @@
 import layeredArchImage from '../arch-picker/layered-arch.png'
 import layeredArchVariantImage from '../arch-picker/layered-arch-2.png'
+import microserviceArchImage from '../arch-picker/microservice-arch.png'
 import multiAppArchImage from '../arch-picker/multi-app-arch.png'
 import multiTenantArchImage from '../arch-picker/multi-tenant-arch.png'
 import productArchImage from '../arch-picker/product-arch-2.png'
 import layeredArchSpec from './export/json-slide-templates/layered-arch.json'
 import layeredArchVariantSpec from './export/json-slide-templates/layered-arch-2.json'
+import microserviceArchSpec from './export/json-slide-templates/microservice-arch.json'
 import multiAppArchSpec from './export/json-slide-templates/multi-app-arch.json'
 import multiTenantArchSpec from './export/json-slide-templates/two-system-arch.json'
 import productArchSpec from './export/json-slide-templates/multi-product-arch.json'
@@ -36,6 +38,15 @@ export const DIAGRAM_TEMPLATES: DiagramTemplate[] = [
     image: layeredArchVariantImage,
     jsonSpec: layeredArchVariantSpec,
     relatedAlt: 'Layered platform architecture preview',
+  },
+  {
+    id: 'microservice-architecture',
+    name: 'Microservice Architecture',
+    description:
+      'A microservice architecture template for showing service boundaries, API interaction points, data ownership, and supporting infrastructure across distributed capabilities.',
+    image: microserviceArchImage,
+    jsonSpec: microserviceArchSpec,
+    relatedAlt: 'Microservice architecture diagram preview',
   },
   {
     id: 'multi-tenant-system',
