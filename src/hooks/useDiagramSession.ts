@@ -8,6 +8,13 @@ import { getExtension } from '../utils/files'
 
 const DIAGRAM_SESSION_STORAGE_KEY = 'tts-mermaid.diagram-session'
 
+export type AttachmentMode = 'prompt' | 'upload-only'
+
+type AttachmentRecord = {
+  file: File
+  mode: AttachmentMode
+}
+
 type StoredDiagramSession = {
   message: string
   promptOutput: PromptOutput | null
@@ -98,11 +105,19 @@ function formatUnsupportedFilesMessage(fileNames: string[]) {
 
 export function useDiagramSession({ onGenerated }: UseDiagramSessionParams) {
   const [session, setSession] = useState<StoredDiagramSession>(() => readStoredDiagramSession())
-  const [attachments, setAttachments] = useState<File[]>([])
+  const [attachmentRecords, setAttachmentRecords] = useState<AttachmentRecord[]>([])
+  const [attachmentMode, setAttachmentMode] = useState<AttachmentMode>('prompt')
   const [error, setError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const { message, promptOutput, submittedMessage } = session
+  const attachments = attachmentRecords.map((attachment) => attachment.file)
+  const promptAttachments = attachmentRecords
+    .filter((attachment) => attachment.mode === 'prompt')
+    .map((attachment) => attachment.file)
+  const uploadOnlyAttachments = attachmentRecords
+    .filter((attachment) => attachment.mode === 'upload-only')
+    .map((attachment) => attachment.file)
 
   useEffect(() => {
     persistStoredDiagramSession(session)
@@ -110,22 +125,28 @@ export function useDiagramSession({ onGenerated }: UseDiagramSessionParams) {
 
   const attachmentCountLabel = getAttachmentCountLabel(attachments.length)
 
-  function handleFiles(event: ChangeEvent<HTMLInputElement>) {
+  function handleFiles(event: ChangeEvent<HTMLInputElement>, mode: AttachmentMode = 'prompt') {
     const incomingFiles = Array.from(event.target.files ?? [])
 
     if (incomingFiles.length === 0) {
-      return
+      return []
     }
 
     const { invalidFileNames, validAttachments } = partitionAttachments(incomingFiles)
 
     if (validAttachments.length > 0) {
-      setAttachments((previousAttachments) => [...previousAttachments, ...validAttachments])
+      setAttachmentMode(mode)
+      setAttachmentRecords((previousAttachments) => [
+        ...previousAttachments,
+        ...validAttachments.map((file) => ({ file, mode })),
+      ])
     }
 
     setError(formatUnsupportedFilesMessage(invalidFileNames))
 
     event.target.value = ''
+
+    return validAttachments
   }
 
   function handleMessageChange(value: string) {
@@ -145,7 +166,7 @@ export function useDiagramSession({ onGenerated }: UseDiagramSessionParams) {
   }
 
   function removeAttachment(index: number) {
-    setAttachments((previousAttachments) =>
+    setAttachmentRecords((previousAttachments) =>
       previousAttachments.filter((_, currentIndex) => currentIndex !== index),
     )
   }
@@ -175,7 +196,7 @@ export function useDiagramSession({ onGenerated }: UseDiagramSessionParams) {
     try {
       const generatedOutput = await generateDiagramOutput({
         prompt: trimmedMessage,
-        attachments,
+        attachments: promptAttachments,
       })
       buildInitialGraph(generatedOutput)
 
@@ -198,6 +219,7 @@ export function useDiagramSession({ onGenerated }: UseDiagramSessionParams) {
   }
 
   return {
+    attachmentMode,
     attachmentCountLabel,
     attachments,
     error,
@@ -208,8 +230,10 @@ export function useDiagramSession({ onGenerated }: UseDiagramSessionParams) {
     isSubmitting,
     message,
     promptOutput,
+    promptAttachments,
     removeAttachment,
     submittedMessage,
     updateSubmittedMessage: handleSubmittedMessageChange,
+    uploadOnlyAttachments,
   }
 }

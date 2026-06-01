@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import type { ChangeEvent } from 'react'
 import { ReactFlowProvider } from '@xyflow/react'
 import { Navigate, Route, Routes, useNavigate } from 'react-router-dom'
 import '@xyflow/react/dist/style.css'
@@ -8,9 +9,15 @@ import { DiagramPicker } from './components/DiagramPicker'
 import { PromptPage } from './components/PromptPage'
 import { ACCEPT_ATTR } from './lib/diagram'
 import { getDefaultDiagramTemplate, type DiagramTemplate } from './lib/diagramTemplates'
+import { generatePowerPointFromJson } from './lib/export/exporter'
+import {
+  getSelectedArchitectureTemplate,
+  selectArchitectureDiagramModel,
+} from './lib/modelSelector'
 import { generateSlidePromptOutput } from './lib/OpenAI'
 import { SlideFlowCanvas } from './lib/slide-flow'
 import { useDiagramSession } from './hooks/useDiagramSession'
+import type { ModelSelectorOutput } from './types/ModelSelectorOutput'
 import { formatFileSize } from './utils/files'
 
 const EXPORTER_ROUTE = '/'
@@ -24,7 +31,12 @@ export default function App() {
   const [templateStatusMessage, setTemplateStatusMessage] = useState('')
   const [templateError, setTemplateError] = useState('')
   const [isTemplateSubmitting, setIsTemplateSubmitting] = useState(false)
+  const [modelSelection, setModelSelection] = useState<ModelSelectorOutput | null>(null)
+  const [modelSelectorError, setModelSelectorError] = useState('')
+  const [isModelSelecting, setIsModelSelecting] = useState(false)
+  const [isTemplateJsonOpenOnLoad, setIsTemplateJsonOpenOnLoad] = useState(false)
   const {
+    attachmentMode,
     attachmentCountLabel,
     attachments,
     error,
@@ -37,12 +49,73 @@ export default function App() {
     removeAttachment,
     submittedMessage,
     updateSubmittedMessage,
+    uploadOnlyAttachments,
   } = useDiagramSession({
     onGenerated: () => navigate(GENERATED_DIAGRAM_ROUTE),
   })
 
+  function handleUploadOnlyFileChange(event: ChangeEvent<HTMLInputElement>) {
+    const uploadedFiles = handleFiles(event, 'upload-only')
+
+    if (uploadedFiles.length === 0) {
+      return
+    }
+
+    setModelSelection(null)
+    setModelSelectorError('')
+  }
+
+  async function handleUploadOnlySubmit() {
+    if (uploadOnlyAttachments.length === 0) {
+      setModelSelectorError('Upload at least one file before submitting.')
+      return
+    }
+
+    setModelSelectorError('')
+    setIsModelSelecting(true)
+
+    try {
+      const selection = await selectArchitectureDiagramModel({ uploadedFiles: uploadOnlyAttachments })
+      const selectedTemplate = getSelectedArchitectureTemplate(selection)
+
+      if (!selectedTemplate) {
+        throw new Error(`No template JSON found for selected diagram id: ${selection.selectedDiagramId}`)
+      }
+
+      const generatedSlideJson = await generateSlidePromptOutput({
+        attachments: uploadOnlyAttachments,
+        templateJson: selectedTemplate.jsonSpec,
+        prompt: [
+          `Selected template: ${selectedTemplate.name}.`,
+          'Use the attached technical context files to update the architecture diagram text.',
+          'Keep the template layout and all non-text JSON values unchanged.',
+        ].join(' '),
+      })
+
+      setModelSelection(selection)
+      setCanvasTemplate({
+        ...selectedTemplate,
+        jsonSpec: generatedSlideJson,
+      })
+      setTemplateStatusMessage(
+        `Generated ${selectedTemplate.name} from uploaded diligence material.`,
+      )
+      setIsTemplateJsonOpenOnLoad(true)
+      navigate(DIAGRAM_CANVAS_ROUTE)
+    } catch (selectionError) {
+      setModelSelectorError(
+        selectionError instanceof Error
+          ? selectionError.message
+          : 'Failed to select an architecture diagram.',
+      )
+    } finally {
+      setIsModelSelecting(false)
+    }
+  }
+
   async function handleSubmitTemplate(template: DiagramTemplate) {
     setTemplateError('')
+    setIsTemplateJsonOpenOnLoad(false)
     setIsTemplateSubmitting(true)
 
     try {
@@ -86,17 +159,24 @@ export default function App() {
         element={
           <PromptPage
             acceptAttr={ACCEPT_ATTR}
+            attachmentMode={attachmentMode}
             attachmentCountLabel={attachmentCountLabel}
             attachments={attachments}
             error={error}
             isSubmitting={isSubmitting}
+            isUploadOnlySelecting={isModelSelecting}
             message={message}
             onFileChange={handleFiles}
             onMessageChange={handleMessageChange}
             onOpenDiagramPicker={() => navigate(DIAGRAM_PICKER_ROUTE)}
             onRemoveAttachment={removeAttachment}
             onSubmit={handleSubmit}
+            onUploadOnlyFileChange={handleUploadOnlyFileChange}
+            onUploadOnlySubmit={handleUploadOnlySubmit}
             renderFileSize={formatFileSize}
+            selectedArchitectureDiagramId={modelSelection?.selectedDiagramId ?? ''}
+            uploadOnlyFileCount={uploadOnlyAttachments.length}
+            uploadOnlyError={modelSelectorError}
           />
         }
       />
@@ -140,6 +220,7 @@ export default function App() {
           <TemplateCanvasPage
             template={canvasTemplate}
             statusMessage={templateStatusMessage}
+            showJsonByDefault={isTemplateJsonOpenOnLoad}
             onOpenPicker={() => navigate(DIAGRAM_PICKER_ROUTE)}
             onOpenPromptPage={() => navigate(EXPORTER_ROUTE)}
           />
@@ -152,6 +233,7 @@ export default function App() {
 type TemplateCanvasPageProps = {
   onOpenPicker: () => void
   onOpenPromptPage: () => void
+  showJsonByDefault: boolean
   statusMessage: string
   template: DiagramTemplate
 }
@@ -159,14 +241,38 @@ type TemplateCanvasPageProps = {
 function TemplateCanvasPage({
   onOpenPicker,
   onOpenPromptPage,
+  showJsonByDefault,
   statusMessage,
   template,
 }: TemplateCanvasPageProps) {
-  const [isJsonPanelOpen, setIsJsonPanelOpen] = useState(false)
+  const [isJsonPanelOpen, setIsJsonPanelOpen] = useState(showJsonByDefault)
+  const [isExporting, setIsExporting] = useState(false)
+  const [exportError, setExportError] = useState('')
   const currentTemplateJson = useMemo(
     () => JSON.stringify(template.jsonSpec, null, 2),
     [template.jsonSpec],
   )
+
+  useEffect(() => {
+    setIsJsonPanelOpen(showJsonByDefault)
+  }, [showJsonByDefault, template.id])
+
+  async function handleExportPowerPoint() {
+    setExportError('')
+    setIsExporting(true)
+
+    try {
+      await generatePowerPointFromJson(template.jsonSpec)
+    } catch (error) {
+      setExportError(
+        error instanceof Error
+          ? error.message
+          : 'Failed to export the current template JSON to PowerPoint.',
+      )
+    } finally {
+      setIsExporting(false)
+    }
+  }
 
   return (
     <main className="min-h-screen bg-[#f6f3ff] px-6 py-5 text-[#17164d]">
@@ -187,6 +293,14 @@ function TemplateCanvasPage({
           <div className="flex flex-wrap gap-3">
             <button
               type="button"
+              onClick={handleExportPowerPoint}
+              disabled={isExporting}
+              className="cursor-pointer rounded-none border border-[#17164d] bg-[#f3c316] px-5 py-2 text-[0.94rem] font-bold tracking-[0.12em] text-[#17164d] uppercase transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-70"
+            >
+              {isExporting ? 'Exporting' : 'Export PPTX'}
+            </button>
+            <button
+              type="button"
               onClick={onOpenPicker}
               className="cursor-pointer rounded-none border border-[#17164d] bg-transparent px-5 py-2 text-[0.94rem] font-bold tracking-[0.12em] uppercase transition hover:bg-[#17164d] hover:text-white"
             >
@@ -201,6 +315,12 @@ function TemplateCanvasPage({
             </button>
           </div>
         </div>
+
+        {exportError && (
+          <p className="mt-3 max-w-4xl font-sans text-[0.92rem] leading-5 text-red-700">
+            {exportError}
+          </p>
+        )}
 
         <div className="relative mt-5 min-h-0 flex-1 overflow-hidden border border-[#d8d4e9] bg-white">
           <SlideFlowCanvas input={template.jsonSpec} className="h-full" />

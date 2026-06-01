@@ -152,7 +152,15 @@ function SlideElementNode({ data }: NodeProps) {
 function SlideShapeElement({ element }: { element: NormalizedShapeElement }) {
   const shapeStyle = getSharedBoxStyle(element)
   const textStyle = getTextBoxStyle(element)
-  const label = <SlideTextRuns runs={element.textRuns} fallbackText={element.label} />
+  const shouldStackRuns = element.shape === 'rect'
+  const label = (
+    <SlideTextRuns
+      fallbackText={element.label}
+      maxStackedFontSizePt={shouldStackRuns ? getMaxStackedFontSizePt(element) : undefined}
+      runs={element.textRuns}
+      stackVertically={shouldStackRuns}
+    />
+  )
 
   if (element.shape === 'ellipse') {
     return (
@@ -186,7 +194,14 @@ function SlideShapeElement({ element }: { element: NormalizedShapeElement }) {
     )
   }
 
-  return <SlideRectShape element={element} label={label} shapeStyle={shapeStyle} textStyle={textStyle} />
+  return (
+    <SlideRectShape
+      element={element}
+      label={label}
+      shapeStyle={shapeStyle}
+      textStyle={getStackedTextBoxStyle(element)}
+    />
+  )
 }
 
 function SlideSvgShapeFrame({
@@ -407,10 +422,14 @@ function SlideLineArrowMarker({
 
 function SlideTextRuns({
   fallbackText,
+  maxStackedFontSizePt,
   runs,
+  stackVertically = false,
 }: {
   fallbackText: string
+  maxStackedFontSizePt?: number
   runs: NormalizedTextRun[]
+  stackVertically?: boolean
 }) {
   if (!runs.length) {
     return <>{fallbackText}</>
@@ -423,11 +442,15 @@ function SlideTextRuns({
           key={`${run.text}-${index}`}
           style={{
             color: toCssColor(run.color),
+            display: stackVertically ? 'block' : undefined,
             fontFamily: run.fontFace,
-            fontSize: `${run.fontSize}pt`,
+            fontSize: `${Math.min(run.fontSize, maxStackedFontSizePt ?? run.fontSize)}pt`,
             fontStyle: run.italic ? 'italic' : undefined,
             fontWeight: run.bold ? 700 : 400,
+            maxWidth: stackVertically ? '100%' : undefined,
             textDecoration: run.underline ? 'underline' : undefined,
+            whiteSpace: 'pre-wrap',
+            wordBreak: stackVertically ? 'break-word' : undefined,
           }}
         >
           {run.text}
@@ -436,6 +459,35 @@ function SlideTextRuns({
       ))}
     </>
   )
+}
+
+function getStackedTextBoxStyle(element: NormalizedShapeElement): CSSProperties {
+  return {
+    ...getTextBoxStyle(element),
+    alignItems: toFlexJustify(element.align),
+    flexDirection: 'column',
+    justifyContent: toFlexAlign(element.valign),
+  }
+}
+
+function getMaxStackedFontSizePt(element: NormalizedShapeElement) {
+  const lineCount = Math.max(
+    element.textRuns.reduce((count, run) => count + Math.max(run.text.split('\n').length, 1), 0),
+    element.label.split('\n').length,
+    1,
+  )
+  const largestRunSize = Math.max(...element.textRuns.map((run) => run.fontSize), element.fontSize)
+  const availableHeight = Math.max(element.h - element.padding * 2, 1)
+  const availableWidth = Math.max(element.w - element.padding * 2, 1)
+  const longestLineLength = Math.max(
+    ...element.textRuns.flatMap((run) => run.text.split('\n').map((line) => line.trim().length)),
+    ...element.label.split('\n').map((line) => line.trim().length),
+    1,
+  )
+  const heightLimitedSize = availableHeight / (lineCount * 1.28)
+  const widthLimitedSize = availableWidth / (longestLineLength * 0.62)
+
+  return Math.max(Math.min(largestRunSize, heightLimitedSize, widthLimitedSize), 5)
 }
 
 function getSharedBoxStyle(

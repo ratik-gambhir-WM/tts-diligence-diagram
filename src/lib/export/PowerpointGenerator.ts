@@ -303,7 +303,7 @@ export function buildPptxPresentation(presentation: NormalizedPresentation) {
       })
 
       if (element.label.trim()) {
-        slide.addText(toPptxTextRuns(element.textRuns), {
+        slide.addText(toPptxTextRuns(element.textRuns, { stackVertically: element.shape === 'rect' }), {
           x: pxToInches(element.x),
           y: pxToInches(element.y),
           w: pxToInches(element.w),
@@ -739,14 +739,17 @@ function buildImageOptions(element: NormalizedImageElement) {
   }
 }
 
-function toPptxTextRuns(runs: NormalizedTextRun[]) {
-  return runs.map((run) => ({
+function toPptxTextRuns(
+  runs: NormalizedTextRun[],
+  options: { stackVertically?: boolean } = {},
+) {
+  return runs.map((run, index) => ({
     text: run.text,
     options: {
       bold: run.bold,
       italic: run.italic,
       underline: run.underline ? {} : undefined,
-      breakLine: run.breakLine,
+      breakLine: options.stackVertically ? index < runs.length - 1 : run.breakLine,
       color: cleanHex(run.color, '111827'),
       fontFace: run.fontFace,
       fontSize: run.fontSize,
