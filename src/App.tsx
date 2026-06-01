@@ -8,6 +8,7 @@ import { DiagramPicker } from './components/DiagramPicker'
 import { PromptPage } from './components/PromptPage'
 import { ACCEPT_ATTR } from './lib/diagram'
 import { getDefaultDiagramTemplate, type DiagramTemplate } from './lib/diagramTemplates'
+import { generateSlidePromptOutput } from './lib/OpenAI'
 import { SlideFlowCanvas } from './lib/slide-flow'
 import { useDiagramSession } from './hooks/useDiagramSession'
 import { formatFileSize } from './utils/files'
@@ -21,6 +22,8 @@ export default function App() {
   const navigate = useNavigate()
   const [canvasTemplate, setCanvasTemplate] = useState<DiagramTemplate>(() => getDefaultDiagramTemplate())
   const [templateStatusMessage, setTemplateStatusMessage] = useState('')
+  const [templateError, setTemplateError] = useState('')
+  const [isTemplateSubmitting, setIsTemplateSubmitting] = useState(false)
   const {
     attachmentCountLabel,
     attachments,
@@ -38,16 +41,42 @@ export default function App() {
     onGenerated: () => navigate(GENERATED_DIAGRAM_ROUTE),
   })
 
-  function handleSubmitTemplate(template: DiagramTemplate) {
-    setCanvasTemplate(template)
-    setTemplateStatusMessage(
-      `Loaded ${template.name}. ${
-        attachments.length > 0
-          ? `${attachments.length} context file${attachments.length === 1 ? '' : 's'} still attached on the picker route.`
-          : 'Template JSON is rendered in React Flow.'
-      }`,
-    )
-    navigate(DIAGRAM_CANVAS_ROUTE)
+  async function handleSubmitTemplate(template: DiagramTemplate) {
+    setTemplateError('')
+    setIsTemplateSubmitting(true)
+
+    try {
+      const generatedSlideJson = await generateSlidePromptOutput({
+        attachments,
+        templateJson: template.jsonSpec,
+        prompt: [
+          `Selected template: ${template.name}.`,
+          'Use the attached technical context files to update the architecture diagram text.',
+          'Keep the template layout and all non-text JSON values unchanged.',
+        ].join(' '),
+      })
+
+      setCanvasTemplate({
+        ...template,
+        jsonSpec: generatedSlideJson,
+      })
+      setTemplateStatusMessage(
+        `Generated ${template.name} from ${
+          attachments.length === 0
+            ? 'the selected template.'
+            : `${attachments.length} context file${attachments.length === 1 ? '' : 's'}.`
+        }`,
+      )
+      navigate(DIAGRAM_CANVAS_ROUTE)
+    } catch (submissionError) {
+      setTemplateError(
+        submissionError instanceof Error
+          ? submissionError.message
+          : 'Failed to generate the slide diagram JSON.',
+      )
+    } finally {
+      setIsTemplateSubmitting(false)
+    }
   }
 
   return (
@@ -78,6 +107,8 @@ export default function App() {
             acceptAttr={ACCEPT_ATTR}
             attachmentCountLabel={attachmentCountLabel}
             attachments={attachments}
+            error={templateError}
+            isSubmitting={isTemplateSubmitting}
             onFileChange={handleFiles}
             onOpenPromptPage={() => navigate(EXPORTER_ROUTE)}
             onRemoveAttachment={removeAttachment}

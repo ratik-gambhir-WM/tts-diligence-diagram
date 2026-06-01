@@ -27,7 +27,6 @@ When you update an element-level `"text"` value, also update that same element's
 
 Do not change layer, section, or container labels. These labels define the diagram structure and must stay exactly as provided:
 
-- `<Product> Architecture`
 - `Core Application`
 - `Background Workers`
 - `Analytics`
@@ -49,6 +48,7 @@ Examples:
 Use the supplied technical information to update component names and technical detail lines, including:
 
 - Product name in labels that contain `<Product>`, if a product name is clearly provided.
+- The product title may replace only the `<Product>` placeholder; keep surrounding title text such as `Architecture` unchanged.
 - Component labels such as worker, queue, pipeline, ETL, visualization, database, cache, or storage labels.
 - Runtime or framework lines such as `Java 17/Spring`, `React 18`, `Python`, or similar.
 - Deployment or platform lines inside brackets, such as `[ EKS – multi-AZ ]`, `[ EC2 ]`, `[ RDS ]`, or similar.

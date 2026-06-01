@@ -8,6 +8,9 @@ import type {
   ResponseInputText,
 } from 'openai/resources/responses/responses'
 
+import slideTextOnlyInstructions from '../prompts/SlideTextOnlyPrompt.md?raw'
+import { SLIDE_PROMPT_OUTPUT_FORMAT } from '../types/SlidePromptOutput'
+import type { SlidePromptOutput } from '../types/SlidePromptOutput'
 import { getExtension } from '../utils/files'
 
 type CreateOpenAIResponseParams = {
@@ -16,6 +19,12 @@ type CreateOpenAIResponseParams = {
   prompt: string
   systemInstructions?: string
   text?: ResponseCreateParamsNonStreaming['text']
+}
+
+type GenerateSlidePromptOutputParams = {
+  attachments?: File[]
+  prompt?: string
+  templateJson: unknown
 }
 
 const DEFAULT_MODEL = import.meta.env.VITE_OPENAI_MODEL || 'gpt-5.2'
@@ -160,4 +169,41 @@ export async function createOpenAIResponse({
     input,
     ...(text ? { text } : {}),
   })
+}
+
+function buildSlideTextOnlyPrompt(templateJson: unknown, prompt?: string) {
+  const userContext = prompt?.trim()
+
+  return [
+    userContext
+      ? `Use this user request as additional guidance:\n${userContext}`
+      : 'Use the attached technical information to update the slide text values.',
+    'Return the full resulting JSON object after editing only allowed text values.',
+    'Base PowerPoint architecture diagram JSON:',
+    JSON.stringify(templateJson, null, 2),
+  ].join('\n\n')
+}
+
+export async function generateSlidePromptOutput({
+  attachments = [],
+  prompt,
+  templateJson,
+}: GenerateSlidePromptOutputParams): Promise<SlidePromptOutput> {
+  const response = await createOpenAIResponse({
+    attachments,
+    prompt: buildSlideTextOnlyPrompt(templateJson, prompt),
+    systemInstructions: slideTextOnlyInstructions,
+    text: {
+      format: {
+        type: 'json_schema',
+        ...SLIDE_PROMPT_OUTPUT_FORMAT,
+      },
+    },
+  })
+
+  if (response.output_text) {
+    return JSON.parse(response.output_text) as SlidePromptOutput
+  }
+
+  throw new Error('OpenAI did not return a structured slide JSON payload.')
 }

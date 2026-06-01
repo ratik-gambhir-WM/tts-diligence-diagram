@@ -6,11 +6,14 @@ import {
   DIAGRAM_TEMPLATES,
 } from '../lib/diagramTemplates'
 import type { DiagramTemplate } from '../lib/diagramTemplates'
+import { SnailLoader } from './SnailLoader'
 
 type DiagramPickerProps = {
   acceptAttr: string
   attachmentCountLabel: string
   attachments: File[]
+  error: string
+  isSubmitting: boolean
   onFileChange: (event: ChangeEvent<HTMLInputElement>) => void
   onOpenPromptPage: () => void
   onRemoveAttachment: (index: number) => void
@@ -34,6 +37,8 @@ export function DiagramPicker({
   acceptAttr,
   attachmentCountLabel,
   attachments,
+  error,
+  isSubmitting,
   onFileChange,
   onOpenPromptPage,
   onRemoveAttachment,
@@ -54,6 +59,10 @@ export function DiagramPicker({
     () => DIAGRAM_TEMPLATES.filter((_, index) => index !== activeIndex).slice(0, 3),
     [activeIndex],
   )
+
+  if (isSubmitting) {
+    return <SnailLoader />
+  }
 
   function moveSelection(direction: 'above' | 'below') {
     setActiveIndex((currentIndex) => {
@@ -175,7 +184,7 @@ export function DiagramPicker({
               htmlFor={inputId}
               className="inline-flex cursor-pointer items-center justify-center bg-[#f3c316] px-12 py-4 text-[1.05rem] font-bold uppercase tracking-[0.12em] text-[#17164d] transition hover:brightness-105"
             >
-              Add Context
+              Add Context Files
             </label>
             <input
               id={inputId}
@@ -183,6 +192,7 @@ export function DiagramPicker({
               multiple
               accept={acceptAttr}
               onChange={onFileChange}
+              disabled={isSubmitting}
               className="sr-only"
             />
             <p className="mt-3 font-sans text-[0.98rem] text-[#5c5974]">
@@ -191,10 +201,12 @@ export function DiagramPicker({
             <button
               type="button"
               onClick={() => onSelectTemplate(activeTemplate)}
-              className="mt-5 inline-flex items-center justify-center bg-[#17164d] px-12 py-4 text-[1.05rem] font-bold uppercase tracking-[0.12em] text-white transition hover:brightness-110"
+              disabled={isSubmitting}
+              className="mt-5 inline-flex items-center justify-center bg-[#17164d] px-12 py-4 text-[1.05rem] font-bold uppercase tracking-[0.12em] text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-70"
             >
-              Submit
+              {isSubmitting ? 'Generating...' : 'Submit'}
             </button>
+            {error && <p className="mt-3 font-sans text-[0.98rem] text-red-700">{error}</p>}
           </div>
 
           {attachments.length > 0 && (
@@ -210,6 +222,7 @@ export function DiagramPicker({
                   <button
                     type="button"
                     onClick={() => onRemoveAttachment(index)}
+                    disabled={isSubmitting}
                     className="cursor-pointer border-0 bg-transparent text-[0.88rem] font-bold uppercase tracking-[0.08em] text-[#17164d] transition hover:text-[#7f1be8]"
                   >
                     Remove
