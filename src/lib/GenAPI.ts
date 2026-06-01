@@ -15,7 +15,7 @@ type GenerateDiagramOutputParams = {
   prompt: string
 }
 
-const DEFAULT_MODEL = import.meta.env.VITE_OPENAI_MODEL || 'gpt-5.2'
+const DEFAULT_MODEL = import.meta.env.VITE_OPENAI_MODEL || 'gpt-5.4'
 
 const MIME_BY_EXTENSION: Record<string, string> = {
   jpeg: 'image/jpeg',

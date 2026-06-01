@@ -4,10 +4,11 @@ import {
   ReactFlow,
   ReactFlowProvider,
   useNodesState,
+  type Node,
   type NodeProps,
   type NodeTypes,
 } from '@xyflow/react'
-import { useEffect, useMemo, type CSSProperties } from 'react'
+import { useMemo, type CSSProperties, type ReactNode } from 'react'
 import '@xyflow/react/dist/style.css'
 
 import type {
@@ -33,11 +34,7 @@ const nodeTypes: NodeTypes = {
 export function SlideFlowCanvas({ className, input, slideIndex = 0 }: SlideFlowCanvasProps) {
   const model = useMemo(() => buildSlideFlowModel(input, { slideIndex }), [input, slideIndex])
   const slide = model.slide
-  const [nodes, setNodes, onNodesChange] = useNodesState(model.nodes)
-
-  useEffect(() => {
-    setNodes(model.nodes)
-  }, [model.nodes, setNodes])
+  const flowKey = useMemo(() => getFlowKey(model.nodes), [model.nodes])
 
   if (!slide) {
     return (
@@ -53,24 +50,44 @@ export function SlideFlowCanvas({ className, input, slideIndex = 0 }: SlideFlowC
       style={{ '--slide-flow-bg': toCssColor(slide.backgroundColor) } as CSSProperties}
     >
       <ReactFlowProvider>
-        <ReactFlow
-          nodes={nodes}
-          edges={[]}
-          nodeTypes={nodeTypes}
-          fitView
-          fitViewOptions={{ padding: 0.035 }}
-          minZoom={0.15}
-          maxZoom={4}
-          onNodesChange={onNodesChange}
-          nodesConnectable={false}
-          nodesDraggable
-          proOptions={{ hideAttribution: true }}
-        >
-          <Background color="#d9deea" gap={32} size={1} />
-          <Controls position="bottom-right" showInteractive={false} />
-        </ReactFlow>
+        <SlideFlowGraph key={flowKey} initialNodes={model.nodes} />
       </ReactFlowProvider>
     </div>
+  )
+}
+
+function SlideFlowGraph({ initialNodes }: { initialNodes: Node<SlideFlowNodeData>[] }) {
+  const [nodes, , onNodesChange] = useNodesState(initialNodes)
+
+  return (
+    <ReactFlow
+      nodes={nodes}
+      edges={[]}
+      nodeTypes={nodeTypes}
+      fitView
+      fitViewOptions={{ padding: 0.035 }}
+      minZoom={0.15}
+      maxZoom={4}
+      onNodesChange={onNodesChange}
+      nodesConnectable={false}
+      nodesDraggable
+      proOptions={{ hideAttribution: true }}
+    >
+      <Background color="#d9deea" gap={32} size={1} />
+      <Controls position="bottom-right" showInteractive={false} />
+    </ReactFlow>
+  )
+}
+
+function getFlowKey(nodes: Node<SlideFlowNodeData>[]) {
+  return JSON.stringify(
+    nodes.map((node) => ({
+      data: node.data,
+      id: node.id,
+      position: node.position,
+      style: node.style,
+      type: node.type,
+    })),
   )
 }
 
@@ -139,114 +156,167 @@ function SlideShapeElement({ element }: { element: NormalizedShapeElement }) {
 
   if (element.shape === 'ellipse') {
     return (
-      <div className="slide-flow-shape-node" style={shapeStyle}>
-        <svg className="slide-flow-shape-svg" viewBox={`0 0 ${element.w} ${element.h}`}>
-          <ellipse
-            cx={element.w / 2}
-            cy={element.h / 2}
-            fill={toCssColor(element.fill)}
-            opacity={element.opacity}
-            rx={Math.max(element.w / 2 - element.strokeWidth / 2, 0)}
-            ry={Math.max(element.h / 2 - element.strokeWidth / 2, 0)}
-            stroke={toCssColor(element.stroke)}
-            strokeWidth={element.strokeWidth}
-          />
-        </svg>
-        {element.label.trim() && (
-          <div className="slide-flow-shape-label" style={textStyle}>
-            {label}
-          </div>
-        )}
-      </div>
+      <SlideSvgShapeFrame element={element} label={label} shapeStyle={shapeStyle} textStyle={textStyle}>
+        <SlideEllipseShape element={element} />
+      </SlideSvgShapeFrame>
     )
   }
 
   if (element.shape === 'diamond') {
     return (
-      <div className="slide-flow-shape-node" style={shapeStyle}>
-        <svg className="slide-flow-shape-svg" viewBox={`0 0 ${element.w} ${element.h}`}>
-          <polygon
-            fill={toCssColor(element.fill)}
-            opacity={element.opacity}
-            points={`${element.w / 2},0 ${element.w},${element.h / 2} ${element.w / 2},${element.h} 0,${element.h / 2}`}
-            stroke={toCssColor(element.stroke)}
-            strokeWidth={element.strokeWidth}
-          />
-        </svg>
-        {element.label.trim() && (
-          <div className="slide-flow-shape-label" style={textStyle}>
-            {label}
-          </div>
-        )}
-      </div>
+      <SlideSvgShapeFrame element={element} label={label} shapeStyle={shapeStyle} textStyle={textStyle}>
+        <SlideDiamondShape element={element} />
+      </SlideSvgShapeFrame>
     )
   }
 
   if (element.shape === 'chevron') {
     return (
-      <div className="slide-flow-shape-node" style={shapeStyle}>
-        <svg className="slide-flow-shape-svg" viewBox={`0 0 ${element.w} ${element.h}`}>
-          <polygon
-            fill={toCssColor(element.fill)}
-            opacity={element.opacity}
-            points={`0,0 ${element.w * 0.78},0 ${element.w},${element.h / 2} ${element.w * 0.78},${element.h} 0,${element.h} ${element.w * 0.22},${element.h / 2}`}
-            stroke={toCssColor(element.stroke)}
-            strokeWidth={element.strokeWidth}
-          />
-        </svg>
-        {element.label.trim() && (
-          <div className="slide-flow-shape-label" style={textStyle}>
-            {label}
-          </div>
-        )}
-      </div>
+      <SlideSvgShapeFrame element={element} label={label} shapeStyle={shapeStyle} textStyle={textStyle}>
+        <SlideChevronShape element={element} />
+      </SlideSvgShapeFrame>
     )
   }
 
   if (element.shape === 'flowChartMagneticDisk') {
-    const capHeight = Math.min(element.h * 0.22, 18)
-
     return (
-      <div className="slide-flow-shape-node" style={shapeStyle}>
-        <svg className="slide-flow-shape-svg" viewBox={`0 0 ${element.w} ${element.h}`}>
-          <path
-            d={`M ${element.strokeWidth / 2} ${capHeight / 2}
-              C ${element.strokeWidth / 2} ${-capHeight / 6}, ${element.w - element.strokeWidth / 2} ${-capHeight / 6}, ${element.w - element.strokeWidth / 2} ${capHeight / 2}
-              L ${element.w - element.strokeWidth / 2} ${element.h - capHeight / 2}
-              C ${element.w - element.strokeWidth / 2} ${element.h + capHeight / 6}, ${element.strokeWidth / 2} ${element.h + capHeight / 6}, ${element.strokeWidth / 2} ${element.h - capHeight / 2}
-              Z`}
-            fill={toCssColor(element.fill)}
-            opacity={element.opacity}
-            stroke={toCssColor(element.stroke)}
-            strokeWidth={element.strokeWidth}
-          />
-          <ellipse
-            cx={element.w / 2}
-            cy={capHeight / 2}
-            fill="none"
-            rx={Math.max(element.w / 2 - element.strokeWidth / 2, 0)}
-            ry={capHeight / 2}
-            stroke={toCssColor(element.stroke)}
-            strokeWidth={element.strokeWidth}
-          />
-        </svg>
-        {element.label.trim() && (
-          <div className="slide-flow-shape-label" style={textStyle}>
-            {label}
-          </div>
-        )}
-      </div>
+      <SlideSvgShapeFrame element={element} label={label} shapeStyle={shapeStyle} textStyle={textStyle}>
+        <SlideMagneticDiskShape element={element} />
+      </SlideSvgShapeFrame>
     )
   }
 
+  return <SlideRectShape element={element} label={label} shapeStyle={shapeStyle} textStyle={textStyle} />
+}
+
+function SlideSvgShapeFrame({
+  children,
+  element,
+  label,
+  shapeStyle,
+  textStyle,
+}: {
+  children: ReactNode
+  element: NormalizedShapeElement
+  label: ReactNode
+  shapeStyle: CSSProperties
+  textStyle: CSSProperties
+}) {
+  return (
+    <div className="slide-flow-shape-node" style={shapeStyle}>
+      <svg className="slide-flow-shape-svg" viewBox={`0 0 ${element.w} ${element.h}`}>
+        {children}
+      </svg>
+      <SlideShapeLabel className="slide-flow-shape-label" element={element} label={label} style={textStyle} />
+    </div>
+  )
+}
+
+function SlideRectShape({
+  element,
+  label,
+  shapeStyle,
+  textStyle,
+}: {
+  element: NormalizedShapeElement
+  label: ReactNode
+  shapeStyle: CSSProperties
+  textStyle: CSSProperties
+}) {
   return (
     <div className="slide-flow-rect-element" style={{ ...shapeStyle, ...getShapePaintStyle(element) }}>
-      {element.label.trim() && (
-        <div className="slide-flow-rect-label" style={textStyle}>
-          {label}
-        </div>
-      )}
+      <SlideShapeLabel className="slide-flow-rect-label" element={element} label={label} style={textStyle} />
     </div>
+  )
+}
+
+function SlideShapeLabel({
+  className,
+  element,
+  label,
+  style,
+}: {
+  className: string
+  element: NormalizedShapeElement
+  label: ReactNode
+  style: CSSProperties
+}) {
+  if (!element.label.trim()) {
+    return null
+  }
+
+  return (
+    <div className={className} style={style}>
+      {label}
+    </div>
+  )
+}
+
+function SlideEllipseShape({ element }: { element: NormalizedShapeElement }) {
+  return (
+    <ellipse
+      cx={element.w / 2}
+      cy={element.h / 2}
+      fill={toCssColor(element.fill)}
+      opacity={element.opacity}
+      rx={Math.max(element.w / 2 - element.strokeWidth / 2, 0)}
+      ry={Math.max(element.h / 2 - element.strokeWidth / 2, 0)}
+      stroke={toCssColor(element.stroke)}
+      strokeWidth={element.strokeWidth}
+    />
+  )
+}
+
+function SlideDiamondShape({ element }: { element: NormalizedShapeElement }) {
+  return (
+    <polygon
+      fill={toCssColor(element.fill)}
+      opacity={element.opacity}
+      points={`${element.w / 2},0 ${element.w},${element.h / 2} ${element.w / 2},${element.h} 0,${element.h / 2}`}
+      stroke={toCssColor(element.stroke)}
+      strokeWidth={element.strokeWidth}
+    />
+  )
+}
+
+function SlideChevronShape({ element }: { element: NormalizedShapeElement }) {
+  return (
+    <polygon
+      fill={toCssColor(element.fill)}
+      opacity={element.opacity}
+      points={`0,0 ${element.w * 0.78},0 ${element.w},${element.h / 2} ${element.w * 0.78},${element.h} 0,${element.h} ${element.w * 0.22},${element.h / 2}`}
+      stroke={toCssColor(element.stroke)}
+      strokeWidth={element.strokeWidth}
+    />
+  )
+}
+
+function SlideMagneticDiskShape({ element }: { element: NormalizedShapeElement }) {
+  const capHeight = Math.min(element.h * 0.22, 18)
+
+  return (
+    <>
+      <path
+        d={`M ${element.strokeWidth / 2} ${capHeight / 2}
+          C ${element.strokeWidth / 2} ${-capHeight / 6}, ${element.w - element.strokeWidth / 2} ${-capHeight / 6}, ${element.w - element.strokeWidth / 2} ${capHeight / 2}
+          L ${element.w - element.strokeWidth / 2} ${element.h - capHeight / 2}
+          C ${element.w - element.strokeWidth / 2} ${element.h + capHeight / 6}, ${element.strokeWidth / 2} ${element.h + capHeight / 6}, ${element.strokeWidth / 2} ${element.h - capHeight / 2}
+          Z`}
+        fill={toCssColor(element.fill)}
+        opacity={element.opacity}
+        stroke={toCssColor(element.stroke)}
+        strokeWidth={element.strokeWidth}
+      />
+      <ellipse
+        cx={element.w / 2}
+        cy={capHeight / 2}
+        fill="none"
+        rx={Math.max(element.w / 2 - element.strokeWidth / 2, 0)}
+        ry={capHeight / 2}
+        stroke={toCssColor(element.stroke)}
+        strokeWidth={element.strokeWidth}
+      />
+    </>
   )
 }
 
@@ -274,6 +344,7 @@ function SlideLineElement({ element }: { element: NormalizedLineElement }) {
   const x2 = element.x1 <= element.x2 ? width : 0
   const y1 = element.y1 <= element.y2 ? 0 : height
   const y2 = element.y1 <= element.y2 ? height : 0
+  const hasEndArrow = element.endArrow !== 'none'
   const markerId = `${element.id}-arrow`
 
   return (
@@ -287,19 +358,7 @@ function SlideLineElement({ element }: { element: NormalizedLineElement }) {
         width,
       }}
     >
-      <defs>
-        <marker
-          id={markerId}
-          markerHeight="8"
-          markerWidth="8"
-          orient="auto"
-          refX="7"
-          refY="4"
-          viewBox="0 0 8 8"
-        >
-          <path d="M 0 0 L 8 4 L 0 8 z" fill={toCssColor(element.stroke)} />
-        </marker>
-      </defs>
+      <SlideLineArrowMarker color={toCssColor(element.stroke)} id={markerId} isVisible={hasEndArrow} />
       <line
         x1={x1}
         x2={x2}
@@ -310,9 +369,39 @@ function SlideLineElement({ element }: { element: NormalizedLineElement }) {
         strokeDasharray={getStrokeDasharray(element)}
         strokeLinecap="round"
         strokeWidth={element.strokeWidth}
-        markerEnd={element.endArrow === 'none' ? undefined : `url(#${markerId})`}
+        markerEnd={hasEndArrow ? `url(#${markerId})` : undefined}
       />
     </svg>
+  )
+}
+
+function SlideLineArrowMarker({
+  color,
+  id,
+  isVisible,
+}: {
+  color: string
+  id: string
+  isVisible: boolean
+}) {
+  if (!isVisible) {
+    return null
+  }
+
+  return (
+    <defs>
+      <marker
+        id={id}
+        markerHeight="8"
+        markerWidth="8"
+        orient="auto"
+        refX="7"
+        refY="4"
+        viewBox="0 0 8 8"
+      >
+        <path d="M 0 0 L 8 4 L 0 8 z" fill={color} />
+      </marker>
+    </defs>
   )
 }
 
