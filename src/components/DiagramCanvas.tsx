@@ -5,7 +5,6 @@ import type { Edge, NodeProps } from '@xyflow/react'
 
 import { JsonEditorPanel } from './JsonEditorPanel'
 import { MetadataPanel } from './MetadataPanel'
-import layeredArchitectureTemplate from '../lib/export/json-slide-templates/layered-arch.json'
 import productArch from '/Users/rgambhir/tts-mermaid/src/lib/export/json-slide-templates/multi-product-arch.json'
 import { generatePowerPointFromJson } from '../lib/export/exporter.ts'
 import { DEFAULT_EDGE_OPTIONS } from '../lib/diagram'

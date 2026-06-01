@@ -11,6 +11,7 @@ type PromptPageProps = {
   message: string
   onFileChange: (event: ChangeEvent<HTMLInputElement>) => void
   onMessageChange: (value: string) => void
+  onOpenDiagramPicker: () => void
   onRemoveAttachment: (index: number) => void
   onSubmit: (event: FormEvent<HTMLFormElement>) => void
   renderFileSize: (bytes: number) => string
@@ -25,6 +26,7 @@ export function PromptPage({
   message,
   onFileChange,
   onMessageChange,
+  onOpenDiagramPicker,
   onRemoveAttachment,
   onSubmit,
   renderFileSize,
@@ -78,6 +80,13 @@ export function PromptPage({
               className="sr-only"
             />
             <span className="text-[0.92rem] text-[#5c5c5c]">{attachmentCountLabel}</span>
+            <button
+              type="button"
+              onClick={onOpenDiagramPicker}
+              className="cursor-pointer rounded-full border border-[#171717]/14 bg-white px-4 py-2.5 text-[0.95rem] font-bold text-[#171717] transition duration-150 ease-out hover:border-[#171717] hover:bg-[#f6f6f6]"
+            >
+              Browse templates
+            </button>
             <button
               type="submit"
               className="ml-auto cursor-pointer rounded-full border-0 bg-gradient-to-br from-[#f26f21] to-[#c95518] px-4 py-2.5 text-[0.95rem] font-bold text-white shadow-[0_12px_24px_rgba(242,111,33,0.28)] transition duration-150 ease-out hover:-translate-y-px disabled:cursor-not-allowed max-[640px]:ml-0"
