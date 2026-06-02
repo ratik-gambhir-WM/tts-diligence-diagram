@@ -9,7 +9,7 @@ import {
   type NormalizedShapeElement,
   type NormalizedTextElement,
   type NormalizedTextRun,
-} from './pptx.ts'
+} from './PowerpointGenerator.ts'
 
 type JsonRecord = Record<string, unknown>
 

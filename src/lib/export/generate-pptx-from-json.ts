@@ -1,10 +1,8 @@
 import { mkdir, readFile } from 'node:fs/promises'
 import path from 'node:path'
 import {
-  buildPptxPresentation,
-  buildSuggestedFileName,
-  normalizePresentationSpec,
-} from './pptx.ts'
+  generatePowerPointFromJson,
+} from './exporter.ts'
 
 async function main() {
   const [, , inputArg, outputArg] = process.argv
@@ -18,30 +16,38 @@ async function main() {
   const inputPath = path.resolve(process.cwd(), inputArg)
   const raw = await readFile(inputPath, 'utf8')
   const parsed = JSON.parse(raw) as unknown
-  const { presentation, issues } = normalizePresentationSpec(parsed, {
-    baseDir: path.dirname(inputPath),
-  })
+  const defaultFileName = deriveDefaultFileName(parsed)
+  const outputPath = resolveOutputPath(inputPath, outputArg, defaultFileName)
+  await mkdir(path.dirname(outputPath), { recursive: true })
 
-  const errors = issues.filter((issue) => issue.level === 'error')
-  if (!presentation || errors.length > 0) {
-    const formattedIssues = issues
-      .map((issue) => `${issue.level.toUpperCase()} ${issue.path}: ${issue.message}`)
-      .join('\n')
-    throw new Error(`The JSON could not be converted into a PowerPoint deck.\n${formattedIssues}`)
-  }
+  const { issues } = await generatePowerPointFromJson(parsed, {
+    baseDir: path.dirname(inputPath),
+    outputPath,
+    compression: true,
+  })
 
   for (const issue of issues.filter((issue) => issue.level === 'warning')) {
     console.warn(`WARNING ${issue.path}: ${issue.message}`)
   }
 
-  const defaultFileName = buildSuggestedFileName(presentation)
-  const outputPath = resolveOutputPath(inputPath, outputArg, defaultFileName)
-  await mkdir(path.dirname(outputPath), { recursive: true })
-
-  const pptx = buildPptxPresentation(presentation)
-  await pptx.writeFile({ fileName: outputPath, compression: true })
-
   console.log(outputPath)
+}
+
+function deriveDefaultFileName(input: unknown) {
+  if (isRecord(input)) {
+    const presentationNode = isRecord(input.presentation) ? input.presentation : input
+    const title = typeof presentationNode.title === 'string' ? presentationNode.title : undefined
+    const stem = title
+      ?.toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+
+    if (stem) {
+      return `${stem}.pptx`
+    }
+  }
+
+  return 'generated-presentation.pptx'
 }
 
 function resolveOutputPath(inputPath: string, outputArg: string | undefined, defaultFileName: string) {
@@ -55,6 +61,10 @@ function resolveOutputPath(inputPath: string, outputArg: string | undefined, def
   }
 
   return path.join(resolved, defaultFileName)
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null
 }
 
 main().catch((error: unknown) => {
