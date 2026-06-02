@@ -46,7 +46,7 @@ export function PromptPage({
   uploadOnlyFileCount,
   uploadOnlyError,
 }: PromptPageProps) {
-  if (isSubmitting) {
+  if (isSubmitting || isUploadOnlySelecting) {
     return <SnailLoader />
   }
 
