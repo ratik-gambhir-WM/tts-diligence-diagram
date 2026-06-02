@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import { Background, ConnectionLineType, Controls, Handle, MiniMap, Position, ReactFlow } from '@xyflow/react'
 import type { Edge, NodeProps } from '@xyflow/react'
@@ -21,35 +21,144 @@ type DiagramCanvasProps = {
 
 type PanelMode = 'prompt' | 'metadata' | null
 
+type JsonPosition = {
+  x: number
+  y: number
+}
+
+type JsonDimensions = {
+  height: number | null
+  width: number | null
+}
+
+type EditableNodeJson = {
+  data: DiagramNodeData
+  height: number | null
+  id: string
+  position: JsonPosition
+  width: number | null
+}
+
+type EditableEdgeJson = Edge & {
+  sourceDimensions?: JsonDimensions
+  sourcePosition?: JsonPosition
+  targetDimensions?: JsonDimensions
+  targetPosition?: JsonPosition
+}
+
 const NODE_TYPES = {
   default: EditableDiagramNode,
 }
 
+function toNumericDimension(value: unknown) {
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value
+  }
+
+  if (typeof value === 'string') {
+    const parsedValue = Number.parseFloat(value)
+    return Number.isFinite(parsedValue) ? parsedValue : null
+  }
+
+  return null
+}
+
+function readNodeDimension(node: DiagramNode, dimension: 'height' | 'width') {
+  return (
+    toNumericDimension(node.measured?.[dimension]) ??
+    toNumericDimension(node[dimension]) ??
+    toNumericDimension(node.style?.[dimension]) ??
+    null
+  )
+}
+
+function readNodeDimensions(node: DiagramNode): JsonDimensions {
+  return {
+    width: readNodeDimension(node, 'width'),
+    height: readNodeDimension(node, 'height'),
+  }
+}
+
 function formatNodeData(nodes: DiagramNode[]) {
-  return JSON.stringify(nodes.map((node) => node.data), null, 2)
+  return JSON.stringify(
+    nodes.map((node) => ({
+      id: node.id,
+      position: node.position,
+      width: readNodeDimension(node, 'width'),
+      height: readNodeDimension(node, 'height'),
+      data: node.data,
+    } satisfies EditableNodeJson)),
+    null,
+    2,
+  )
 }
 
-function formatEdgeData(edges: Edge[]) {
-  return JSON.stringify(edges, null, 2)
+function formatEdgeData(edges: Edge[], nodes: DiagramNode[]) {
+  const positionByNodeId = new Map(nodes.map((node) => [node.id, node.position]))
+  const dimensionsByNodeId = new Map(nodes.map((node) => [node.id, readNodeDimensions(node)]))
+
+  return JSON.stringify(
+    edges.map((edge) => ({
+      ...edge,
+      sourcePosition: positionByNodeId.get(edge.source),
+      sourceDimensions: dimensionsByNodeId.get(edge.source),
+      targetPosition: positionByNodeId.get(edge.target),
+      targetDimensions: dimensionsByNodeId.get(edge.target),
+    } satisfies EditableEdgeJson)),
+    null,
+    2,
+  )
 }
 
-function isEditableNodeDataArray(value: unknown): value is DiagramNodeData[] {
+function isJsonPosition(value: unknown): value is JsonPosition {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'x' in value &&
+    typeof value.x === 'number' &&
+    'y' in value &&
+    typeof value.y === 'number'
+  )
+}
+
+function isEditableNodeData(value: unknown): value is DiagramNodeData {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    'label' in value &&
+    typeof value.label === 'string' &&
+    'metadata' in value &&
+    typeof value.metadata === 'object' &&
+    value.metadata !== null &&
+    'dependencies' in value.metadata &&
+    Array.isArray(value.metadata.dependencies) &&
+    'summary' in value.metadata &&
+    typeof value.metadata.summary === 'string' &&
+    'system' in value.metadata &&
+    typeof value.metadata.system === 'string'
+  )
+}
+
+function isEditableDimension(value: unknown): value is number | null {
+  return value === null || (typeof value === 'number' && Number.isFinite(value))
+}
+
+function isEditableNodeJsonArray(value: unknown): value is EditableNodeJson[] {
   return (
     Array.isArray(value) &&
     value.every((item) => (
       typeof item === 'object' &&
       item !== null &&
-      'label' in item &&
-      typeof item.label === 'string' &&
-      'metadata' in item &&
-      typeof item.metadata === 'object' &&
-      item.metadata !== null &&
-      'dependencies' in item.metadata &&
-      Array.isArray(item.metadata.dependencies) &&
-      'summary' in item.metadata &&
-      typeof item.metadata.summary === 'string' &&
-      'system' in item.metadata &&
-      typeof item.metadata.system === 'string'
+      'id' in item &&
+      typeof item.id === 'string' &&
+      'position' in item &&
+      isJsonPosition(item.position) &&
+      'width' in item &&
+      isEditableDimension(item.width) &&
+      'height' in item &&
+      isEditableDimension(item.height) &&
+      'data' in item &&
+      isEditableNodeData(item.data)
     ))
   )
 }
@@ -119,16 +228,27 @@ type DockButtonProps = {
   onClick: () => void
 }
 
+function getDockButtonClassName({ active = false, iconOnly = false }: {
+  active?: boolean
+  iconOnly?: boolean
+}) {
+  return [
+    iconOnly
+      ? 'grid h-[3.25rem] w-[3.25rem] place-items-center p-0'
+      : 'h-[3.25rem] px-5 text-sm font-semibold',
+    'cursor-pointer rounded-full border border-[#171717]/8 bg-gradient-to-br from-[#f26f21] to-[#c95518] text-white shadow-[0_14px_28px_rgba(242,111,33,0.28)] transition duration-150 ease-out hover:-translate-y-px',
+    iconOnly && 'disabled:cursor-not-allowed disabled:border-[#171717]/6 disabled:from-[#bdbdbd] disabled:to-[#8f8f8f] disabled:shadow-none disabled:transform-none',
+    active && 'ring-2 ring-[#171717]/12 ring-offset-2 ring-offset-white',
+  ]
+    .filter(Boolean)
+    .join(' ')
+}
+
 function DockButton({ active = false, children, disabled, label, onClick }: DockButtonProps) {
   return (
     <button
       type="button"
-      className={[
-        'grid h-[3.25rem] w-[3.25rem] cursor-pointer place-items-center rounded-full border border-[#171717]/8 bg-gradient-to-br from-[#f26f21] to-[#c95518] p-0 text-white shadow-[0_14px_28px_rgba(242,111,33,0.28)] transition duration-150 ease-out hover:-translate-y-px disabled:cursor-not-allowed disabled:border-[#171717]/6 disabled:from-[#bdbdbd] disabled:to-[#8f8f8f] disabled:shadow-none disabled:transform-none',
-        active && 'ring-2 ring-[#171717]/12 ring-offset-2 ring-offset-white',
-      ]
-        .filter(Boolean)
-        .join(' ')}
+      className={getDockButtonClassName({ active, iconOnly: true })}
       onClick={onClick}
       disabled={disabled}
       aria-label={label}
@@ -153,12 +273,7 @@ function DockTextButton({ active = false, children, label, onClick }: DockTextBu
   return (
     <button
       type="button"
-      className={[
-        'h-[3.25rem] cursor-pointer rounded-full border border-[#171717]/8 bg-gradient-to-br from-[#f26f21] to-[#c95518] px-5 text-sm font-semibold text-white shadow-[0_14px_28px_rgba(242,111,33,0.28)] transition duration-150 ease-out hover:-translate-y-px',
-        active && 'ring-2 ring-[#171717]/12 ring-offset-2 ring-offset-white',
-      ]
-        .filter(Boolean)
-        .join(' ')}
+      className={getDockButtonClassName({ active })}
       onClick={onClick}
       aria-label={label}
       aria-pressed={active}
@@ -184,9 +299,14 @@ export function DiagramCanvas({
   })
   const [nodeJsonValue, setNodeJsonValue] = useState(() => formatNodeData(nodes))
   const [nodeJsonError, setNodeJsonError] = useState<string | null>(null)
-  const [edgeJsonValue, setEdgeJsonValue] = useState(() => formatEdgeData(edges))
+  const [edgeJsonValue, setEdgeJsonValue] = useState(() => formatEdgeData(edges, nodes))
   const [edgeJsonError, setEdgeJsonError] = useState<string | null>(null)
   const [flowRenderKey, setFlowRenderKey] = useState(0)
+
+  useMemo(() => {
+    setNodeJsonValue(formatNodeData(nodes))
+    setEdgeJsonValue(formatEdgeData(edges, nodes))
+  }, [edges, nodes])
 
   const closePanel = () => setActivePanel(null)
   const openMetadataPanel = () => setActivePanel('metadata')
@@ -212,8 +332,8 @@ export function DiagramCanvas({
     try {
       const parsedValue: unknown = JSON.parse(value)
 
-      if (!isEditableNodeDataArray(parsedValue)) {
-        setNodeJsonError('JSON must be an array of node data objects with label and metadata.')
+      if (!isEditableNodeJsonArray(parsedValue)) {
+        setNodeJsonError('JSON must be an array of node objects with id, position.x/y, width, height, and data.')
         return false
       }
 
@@ -225,10 +345,20 @@ export function DiagramCanvas({
       setNodeJsonError(null)
 
       setNodes((currentNodes) => (
-        currentNodes.map((node, index) => ({
-          ...node,
-          data: parsedValue[index],
-        }))
+        currentNodes.map((node, index) => {
+          const editedNode = parsedValue.find((item) => item.id === node.id) ?? parsedValue[index]
+
+          return {
+            ...node,
+            data: editedNode.data,
+            position: editedNode.position,
+            style: {
+              ...node.style,
+              ...(editedNode.width === null ? {} : { width: editedNode.width }),
+              ...(editedNode.height === null ? {} : { height: editedNode.height }),
+            },
+          }
+        })
       ))
       return true
     } catch (error) {
@@ -247,7 +377,13 @@ export function DiagramCanvas({
       }
 
       setEdgeJsonError(null)
-      setEdges(parsedValue)
+      setEdges(parsedValue.map(({
+        sourceDimensions,
+        sourcePosition,
+        targetDimensions,
+        targetPosition,
+        ...edge
+      }) => edge))
       return true
     } catch (error) {
       setEdgeJsonError(error instanceof Error ? error.message : 'Invalid JSON.')
@@ -263,15 +399,6 @@ export function DiagramCanvas({
   const handleEdgeJsonChange = (value: string) => {
     setEdgeJsonValue(value)
     applyEdgeJsonToFlow(value)
-  }
-
-  const reloadFlowFromJson = () => {
-    const didApplyNodes = applyNodeJsonToFlow(nodeJsonValue)
-    const didApplyEdges = applyEdgeJsonToFlow(edgeJsonValue)
-
-    if (didApplyNodes && didApplyEdges) {
-      setFlowRenderKey((currentKey) => currentKey + 1)
-    }
   }
 
   return (
@@ -296,13 +423,13 @@ export function DiagramCanvas({
             <aside className="grid min-h-0 grid-cols-2 border-r border-[#171717]/10 bg-white">
               <div className="grid min-h-0 grid-rows-[auto_1fr_auto_auto] border-r border-[#171717]/10">
                 <h2 className="m-0 border-b border-[#171717]/10 px-4 py-3 text-xs font-bold uppercase tracking-wide text-[#171717]/60">
-                  Nodes
+                  Nodes + Coordinates
                 </h2>
                 <textarea
                   className="min-h-0 w-full resize-none border-0 bg-white p-4 font-mono text-xs leading-relaxed text-[#171717] outline-none"
                   value={nodeJsonValue}
                   onChange={(event) => handleNodeJsonChange(event.target.value)}
-                  aria-label="Editable node data JSON"
+                  aria-label="Editable node JSON with x and y coordinates"
                   spellCheck={false}
                 />
                 {nodeJsonError && (
@@ -310,27 +437,17 @@ export function DiagramCanvas({
                     {nodeJsonError}
                   </p>
                 )}
-                <div className="border-t border-[#171717]/10 bg-white p-3">
-                  <button
-                    type="button"
-                    className="w-full rounded-md bg-[#f26f21] px-4 py-2 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(242,111,33,0.24)] transition hover:bg-[#d95f1c] disabled:cursor-not-allowed disabled:bg-[#bdbdbd] disabled:shadow-none"
-                    onClick={reloadFlowFromJson}
-                    disabled={nodeJsonError !== null || edgeJsonError !== null}
-                  >
-                    Reload diagram
-                  </button>
-                </div>
               </div>
 
               <div className="grid min-h-0 grid-rows-[auto_1fr_auto]">
                 <h2 className="m-0 border-b border-[#171717]/10 px-4 py-3 text-xs font-bold uppercase tracking-wide text-[#171717]/60">
-                  Edges
+                  Edges + Coordinates
                 </h2>
                 <textarea
                   className="min-h-0 w-full resize-none border-0 bg-white p-4 font-mono text-xs leading-relaxed text-[#171717] outline-none"
                   value={edgeJsonValue}
                   onChange={(event) => handleEdgeJsonChange(event.target.value)}
-                  aria-label="Editable edges JSON"
+                  aria-label="Editable edge JSON with source and target x and y coordinates"
                   spellCheck={false}
                 />
                 {edgeJsonError && (
