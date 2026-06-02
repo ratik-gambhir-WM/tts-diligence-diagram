@@ -17,6 +17,19 @@ type GenerateDiagramOutputParams = {
 
 const DEFAULT_MODEL = import.meta.env.VITE_OPENAI_MODEL || 'gpt-5.4'
 
+const MIME_BY_EXTENSION: Record<string, string> = {
+  jpeg: 'image/jpeg',
+  jpg: 'image/jpeg',
+  markdown: 'text/markdown',
+  md: 'text/markdown',
+  pdf: 'application/pdf',
+  png: 'image/png',
+  ppt: 'application/vnd.ms-powerpoint',
+  pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+  rtf: 'application/rtf',
+  txt: 'text/plain',
+}
+
 let client: OpenAI | null = null
 
 function getApiKey() {
@@ -39,18 +52,6 @@ function getClient() {
   })
 
   return client
-}
-
-function buildUserInput(prompt: string, attachments: File[]) {
-  const sections = [`Architecture prompt:\n${prompt.trim()}`]
-
-  if (attachments.length > 0) {
-    sections.push(
-      `Attached assets: ${attachments.length}. Use attached file/image contents when extracting architecture components and relationships.`,
-    )
-  }
-
-  return sections.join('\n\n')
 }
 
 function arrayBufferToBase64(buffer: ArrayBuffer) {
@@ -79,19 +80,6 @@ function isImageFile(file: File) {
   return extension === 'png' || extension === 'jpg' || extension === 'jpeg'
 }
 
-const MIME_BY_EXTENSION: Record<string, string> = {
-  jpeg: 'image/jpeg',
-  jpg: 'image/jpeg',
-  markdown: 'text/markdown',
-  md: 'text/markdown',
-  pdf: 'application/pdf',
-  png: 'image/png',
-  ppt: 'application/vnd.ms-powerpoint',
-  pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-  rtf: 'application/rtf',
-  txt: 'text/plain',
-}
-
 function getMimeType(file: File) {
   if (file.type.trim()) {
     return file.type
@@ -109,8 +97,8 @@ async function buildAttachmentContent(file: File): Promise<ResponseInputContent>
   if (isImageFile(file)) {
     return {
       type: 'input_image',
-      detail: 'auto',
       image_url: dataUrl,
+      detail: 'high',
     }
   }
 
@@ -125,7 +113,7 @@ async function buildResponseInput(prompt: string, attachments: File[]): Promise<
   return [
     {
       type: 'input_text',
-      text: buildUserInput(prompt, attachments),
+      text: prompt.trim(),
     },
     ...(await Promise.all(attachments.map(buildAttachmentContent))),
   ]
@@ -135,15 +123,14 @@ export async function generateDiagramOutput({
   attachments = [],
   prompt,
 }: GenerateDiagramOutputParams): Promise<PromptOutput> {
-  const diagramPrompt = prompt.trim()
   const input: ResponseInput = [
     {
       role: 'system',
-      content: diagramInstructions,
+      content: diagramInstructions.trim(),
     },
     {
       role: 'user',
-      content: await buildResponseInput(diagramPrompt, attachments),
+      content: await buildResponseInput(prompt, attachments),
     },
   ]
 
@@ -158,18 +145,11 @@ export async function generateDiagramOutput({
     },
   }
 
-  const response = await getClient().responses.parse(request)
-
-  console.log("RESPONSE", response)
-
-  const promptOutput = response.output_parsed as PromptOutput | null
-
-  if (promptOutput) {
-    return promptOutput
-  }
+  const response = await getClient().responses.create(request)
 
   if (response.output_text) {
     const parsedPromptOutput = JSON.parse(response.output_text) as PromptOutput
+    console.log("Prompt output: ", parsedPromptOutput)
     return parsedPromptOutput
   }
 
