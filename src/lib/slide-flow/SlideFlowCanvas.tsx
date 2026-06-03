@@ -353,6 +353,8 @@ function SlideTextElement({ element }: { element: NormalizedTextElement }) {
 }
 
 function SlideLineElement({ element }: { element: NormalizedLineElement }) {
+  const originX = Math.min(element.x1, element.x2)
+  const originY = Math.min(element.y1, element.y2)
   const width = Math.max(Math.abs(element.x2 - element.x1), Math.max(element.strokeWidth, 1))
   const height = Math.max(Math.abs(element.y2 - element.y1), Math.max(element.strokeWidth, 1))
   const x1 = element.x1 <= element.x2 ? 0 : width
@@ -361,6 +363,8 @@ function SlideLineElement({ element }: { element: NormalizedLineElement }) {
   const y2 = element.y1 <= element.y2 ? height : 0
   const hasEndArrow = element.endArrow !== 'none'
   const markerId = `${element.id}-arrow`
+  const maskId = `${element.id}-occlusion-mask`
+  const hasOcclusionMask = element.occlusionRects.length > 0
 
   return (
     <svg
@@ -374,11 +378,21 @@ function SlideLineElement({ element }: { element: NormalizedLineElement }) {
       }}
     >
       <SlideLineArrowMarker color={toCssColor(element.stroke)} id={markerId} isVisible={hasEndArrow} />
+      <SlideLineOcclusionMask
+        height={height}
+        id={maskId}
+        isVisible={hasOcclusionMask}
+        originX={originX}
+        originY={originY}
+        rects={element.occlusionRects}
+        width={width}
+      />
       <line
         x1={x1}
         x2={x2}
         y1={y1}
         y2={y2}
+        mask={hasOcclusionMask ? `url(#${maskId})` : undefined}
         opacity={element.opacity}
         stroke={toCssColor(element.stroke)}
         strokeDasharray={getStrokeDasharray(element)}
@@ -387,6 +401,48 @@ function SlideLineElement({ element }: { element: NormalizedLineElement }) {
         markerEnd={hasEndArrow ? `url(#${markerId})` : undefined}
       />
     </svg>
+  )
+}
+
+function SlideLineOcclusionMask({
+  height,
+  id,
+  isVisible,
+  originX,
+  originY,
+  rects,
+  width,
+}: {
+  height: number
+  id: string
+  isVisible: boolean
+  originX: number
+  originY: number
+  rects: NormalizedLineElement['occlusionRects']
+  width: number
+}) {
+  if (!isVisible) {
+    return null
+  }
+
+  const occlusionPadding = 1.5
+
+  return (
+    <defs>
+      <mask height={8192} id={id} maskUnits="userSpaceOnUse" width={8192} x={-4096} y={-4096}>
+        <rect fill="white" height={height} width={width} x={0} y={0} />
+        {rects.map((rect, index) => (
+          <rect
+            fill="black"
+            height={rect.h + occlusionPadding * 2}
+            key={`${index}-${rect.x}-${rect.y}`}
+            width={rect.w + occlusionPadding * 2}
+            x={rect.x - originX - occlusionPadding}
+            y={rect.y - originY - occlusionPadding}
+          />
+        ))}
+      </mask>
+    </defs>
   )
 }
 

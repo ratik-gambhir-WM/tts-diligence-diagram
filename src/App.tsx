@@ -153,6 +153,10 @@ export default function App() {
             onUploadOnlyFileChange={handleUploadOnlyFileChange}
             onUploadOnlySubmit={handleUploadOnlySubmit}
             selectedArchitectureDiagramId={modelSelection?.selectedDiagramId ?? ''}
+            uploadOnlyFiles={uploadOnlyAttachments.map((file) => ({
+              name: file.name,
+              size: file.size,
+            }))}
             uploadOnlyFileCount={uploadOnlyAttachments.length}
             uploadOnlyError={modelSelectorError || error}
           />

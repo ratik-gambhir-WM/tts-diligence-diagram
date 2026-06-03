@@ -1,7 +1,13 @@
 import type { ChangeEvent } from 'react'
 
+import { formatFileSize } from '../utils/files'
 import { SnailLoader } from './SnailLoader'
 import { WestMonroeMark } from './WestMonroeMark'
+
+type UploadOnlyFile = {
+  name: string
+  size: number
+}
 
 type PromptPageProps = {
   acceptAttr: string
@@ -10,6 +16,7 @@ type PromptPageProps = {
   onUploadOnlyFileChange: (event: ChangeEvent<HTMLInputElement>) => void
   onUploadOnlySubmit: () => void
   selectedArchitectureDiagramId: string
+  uploadOnlyFiles: UploadOnlyFile[]
   uploadOnlyFileCount: number
   uploadOnlyError: string
 }
@@ -21,6 +28,7 @@ export function PromptPage({
   onUploadOnlyFileChange,
   onUploadOnlySubmit,
   selectedArchitectureDiagramId,
+  uploadOnlyFiles,
   uploadOnlyFileCount,
   uploadOnlyError,
 }: PromptPageProps) {
@@ -83,6 +91,30 @@ export function PromptPage({
 
         {uploadOnlyError && (
           <p className="mt-3 text-center text-[0.92rem] leading-5 text-red-700">{uploadOnlyError}</p>
+        )}
+
+        {uploadOnlyFiles.length > 0 && (
+          <div className="mt-6 border-t border-[#171717]/10 pt-4">
+            <div className="mb-3 flex items-center justify-between gap-3 text-[0.82rem] font-bold text-[#171717]/65">
+              <span>Added files</span>
+              <span>
+                {uploadOnlyFiles.length} file{uploadOnlyFiles.length === 1 ? '' : 's'}
+              </span>
+            </div>
+            <ul className="grid gap-2" aria-label="Added files">
+              {uploadOnlyFiles.map((file, index) => (
+                <li
+                  className="flex min-w-0 items-center justify-between gap-3 rounded-lg border border-[#171717]/10 bg-[#f7f8fb] px-3 py-2 text-left"
+                  key={`${file.name}-${file.size}-${index}`}
+                >
+                  <span className="min-w-0 truncate text-[0.9rem] font-bold text-[#171717]">{file.name}</span>
+                  <span className="shrink-0 text-[0.8rem] font-bold text-[#171717]/55">
+                    {formatFileSize(file.size)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
         )}
       </section>
     </main>
