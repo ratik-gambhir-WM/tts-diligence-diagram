@@ -75,15 +75,17 @@ export function DiagramPicker({
   }
 
   return (
-    <main className="min-h-screen bg-[#f6f3ff] text-[#17164d]">
-      <header className="sticky top-0 z-20 border-b border-[#d8d4e9] bg-[#f9f7ff]/90 backdrop-blur">
+    <main className="min-h-screen bg-[#070a1b] text-[#eef3ff]">
+      <header className="sticky top-0 z-20 border-b border-white/12 bg-[#0b0f24]/92 backdrop-blur">
         <div className="mx-auto flex max-w-[1240px] items-center justify-between px-8 py-5 max-[900px]:px-5">
-          <div className="text-[clamp(1.75rem,3vw,2.4rem)] font-bold tracking-[0.08em]">Diagram Picker</div>
+          <div className="text-[clamp(1.55rem,3vw,2.2rem)] font-bold tracking-[0.08em] text-white">
+            Diagram Picker
+          </div>
           <div className="flex items-center gap-4">
             <button
               type="button"
               onClick={onOpenInputPage}
-              className="cursor-pointer rounded-none border border-[#17164d] bg-transparent px-5 py-2 text-[0.94rem] font-bold tracking-[0.12em] uppercase transition hover:bg-[#17164d] hover:text-white"
+              className="cursor-pointer border border-[#28304a] bg-transparent px-5 py-2 text-[0.94rem] font-bold tracking-[0.12em] text-[#eef3ff] uppercase transition hover:border-[#f3c316] hover:text-[#f3c316]"
             >
               Input Page
             </button>
@@ -94,8 +96,8 @@ export function DiagramPicker({
       <section className="mx-auto grid min-h-[calc(100vh-89px)] max-w-[1340px] grid-cols-[0.95fr_1.05fr] items-center gap-10 px-8 py-10 max-[980px]:grid-cols-1 max-[980px]:gap-12 max-[980px]:px-5">
         <div className="relative flex min-h-[620px] items-center justify-center overflow-visible px-12 max-[980px]:min-h-[420px] max-[980px]:px-8">
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-            <div className="h-[430px] w-[430px] rounded-full border border-[#ddd7ee]" />
-            <div className="absolute h-[510px] w-[510px] rounded-full border border-[#ebe5f5]" />
+            <div className="h-[430px] w-[430px] rounded-full border border-white/10" />
+            <div className="absolute h-[510px] w-[510px] rounded-full border border-white/6" />
           </div>
 
           <button
@@ -134,8 +136,15 @@ export function DiagramPicker({
           </button>
         </div>
 
-        <div className="border border-[#ece7f5] bg-white px-8 py-8 shadow-[0_22px_50px_rgba(80,52,160,0.12)] max-[640px]:px-5">
-          <div className="relative overflow-hidden border border-[#dfe3f3] bg-[#eef2fb] p-4">
+        <div className="relative overflow-hidden border border-white/12 bg-[#0b0f24] px-8 py-8 shadow-[0_28px_90px_rgba(0,0,0,0.34)] max-[640px]:px-5">
+          <div className="pointer-events-none absolute inset-0 opacity-35">
+            <div className="absolute left-[-10%] top-24 h-px w-[120%] rotate-12 bg-white/8" />
+            <div className="absolute left-[-10%] top-72 h-px w-[120%] -rotate-6 bg-white/8" />
+            <div className="absolute left-28 top-[-20%] h-[140%] w-px rotate-[-18deg] bg-white/8" />
+            <div className="absolute right-28 top-[-20%] h-[140%] w-px rotate-[24deg] bg-white/8" />
+          </div>
+
+          <div className="relative overflow-hidden border border-[#28304a] bg-[#080c1c] p-4">
             <img
               src={activeTemplate.image}
               alt={activeTemplate.relatedAlt}
@@ -143,22 +152,26 @@ export function DiagramPicker({
             />
           </div>
 
-          <div className="mt-7">
+          <div className="relative mt-7">
             <div className="flex items-center gap-3">
-              <div className="h-1 w-12 bg-[#7f1be8]" />
-              <span className="text-[0.82rem] uppercase tracking-[0.09em] text-[#7f1be8]">Selection Preview</span>
+              <div className="h-1 w-12 bg-[#f3c316]" />
+              <span className="text-[0.82rem] font-bold uppercase tracking-[0.12em] text-[#f3c316]">
+                Selection Preview
+              </span>
             </div>
 
-            <h1 className="mt-5 text-[clamp(2.8rem,6vw,4.5rem)] leading-[0.94] tracking-[0.03em]">
+            <h1 className="mt-5 text-[clamp(2.5rem,6vw,4.2rem)] leading-[0.94] tracking-[0.03em] text-white">
               {activeTemplate.name}
             </h1>
-            <p className="mt-5 max-w-[38rem] font-sans text-[1.14rem] leading-[1.65] text-[#4e4c6b]">
+            <p className="mt-5 max-w-[38rem] text-[1rem] leading-[1.65] text-[#a8afc4]">
               {activeTemplate.description}
             </p>
           </div>
 
-          <div className="mt-8 border-t border-[#e7e1f0] pt-7">
-            <p className="mb-3 text-[0.82rem] uppercase tracking-[0.09em] text-[#6b6885]">Related Diagrams</p>
+          <div className="relative mt-8 border-t border-white/12 pt-7">
+            <p className="mb-3 text-[0.82rem] font-bold uppercase tracking-[0.12em] text-[#8d93aa]">
+              Related Diagrams
+            </p>
             <div className="flex flex-wrap gap-3">
               {relatedTemplates.map((template) => (
                 <button
@@ -167,7 +180,7 @@ export function DiagramPicker({
                   onClick={() =>
                     setActiveIndex(DIAGRAM_TEMPLATES.findIndex((item) => item.name === template.name))
                   }
-                  className="group h-14 w-24 cursor-pointer overflow-hidden border border-[#ddd8ea] bg-[#f7f4fd] p-0 transition hover:border-[#7f1be8]"
+                  className="group h-14 w-24 cursor-pointer overflow-hidden border border-[#28304a] bg-[#080c1c] p-0 transition hover:border-[#f3c316]"
                 >
                   <img
                     src={template.image}
@@ -179,10 +192,10 @@ export function DiagramPicker({
             </div>
           </div>
 
-          <div className="mt-10">
+          <div className="relative mt-10">
             <label
               htmlFor={inputId}
-              className="inline-flex cursor-pointer items-center justify-center bg-[#f3c316] px-12 py-4 text-[1.05rem] font-bold uppercase tracking-[0.12em] text-[#17164d] transition hover:brightness-105"
+              className="inline-flex cursor-pointer items-center justify-center border border-[#f3c316] bg-[#f3c316] px-12 py-4 text-[1rem] font-bold uppercase tracking-[0.12em] text-[#070a1b] transition hover:brightness-105"
             >
               Add Context Files
             </label>
@@ -195,18 +208,18 @@ export function DiagramPicker({
               disabled={isSubmitting}
               className="sr-only"
             />
-            <p className="mt-3 font-sans text-[0.98rem] text-[#5c5974]">
+            <p className="mt-3 text-[0.92rem] text-[#8d93aa]">
               {attachmentCountLabel}
             </p>
             <button
               type="button"
               onClick={() => onSelectTemplate(activeTemplate)}
               disabled={isSubmitting}
-              className="mt-5 inline-flex items-center justify-center bg-[#17164d] px-12 py-4 text-[1.05rem] font-bold uppercase tracking-[0.12em] text-white transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-70"
+              className="mt-5 inline-flex items-center justify-center border border-[#28304a] bg-[#080c1c] px-12 py-4 text-[1rem] font-bold uppercase tracking-[0.12em] text-[#eef3ff] transition hover:border-[#f3c316] hover:text-[#f3c316] disabled:cursor-not-allowed disabled:opacity-70"
             >
               {isSubmitting ? 'Generating...' : 'Submit'}
             </button>
-            {error && <p className="mt-3 font-sans text-[0.98rem] text-red-700">{error}</p>}
+            {error && <p className="mt-3 text-[0.92rem] text-[#ffb5b5]">{error}</p>}
           </div>
 
           {attachments.length > 0 && (
@@ -214,16 +227,16 @@ export function DiagramPicker({
               {attachments.map((file, index) => (
                 <li
                   key={`${file.name}-${file.size}-${index}`}
-                  className="flex items-center justify-between gap-3 border border-[#e4deef] bg-[#faf8ff] px-3 py-3"
+                  className="flex items-center justify-between gap-3 border border-[#28304a] bg-[#080c1c] px-3 py-3"
                 >
-                  <span className="min-w-0 flex-1 truncate font-sans text-[0.95rem] text-[#403d60]">
+                  <span className="min-w-0 flex-1 truncate text-[0.9rem] text-[#eef3ff]">
                     {file.name} ({renderFileSize(file.size)})
                   </span>
                   <button
                     type="button"
                     onClick={() => onRemoveAttachment(index)}
                     disabled={isSubmitting}
-                    className="cursor-pointer border-0 bg-transparent text-[0.88rem] font-bold uppercase tracking-[0.08em] text-[#17164d] transition hover:text-[#7f1be8]"
+                    className="cursor-pointer border-0 bg-transparent text-[0.82rem] font-bold uppercase tracking-[0.1em] text-[#8d93aa] transition hover:text-[#f3c316]"
                   >
                     Remove
                   </button>

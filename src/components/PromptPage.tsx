@@ -37,12 +37,19 @@ export function PromptPage({
   }
 
   return (
-    <main className="grid min-h-screen place-items-center p-8 max-[640px]:p-4">
-      <section className="w-full max-w-[780px] rounded-[28px] border border-[#171717]/10 bg-white/95 p-6 shadow-[0_28px_90px_rgba(23,23,23,0.12)] backdrop-blur-xl max-[640px]:p-4">
-        <div className="mx-auto flex flex-wrap items-center justify-center gap-5">
-          <WestMonroeMark className="h-20 w-20 max-[480px]:h-16 max-[480px]:w-16" />
+    <main className="grid min-h-screen place-items-center bg-[#070a1b] p-8 text-[#eef3ff] max-[640px]:p-4">
+      <section className="relative w-full max-w-[780px] overflow-hidden border border-white/12 bg-[#0b0f24] p-7 shadow-[0_28px_90px_rgba(0,0,0,0.34)] max-[640px]:p-5">
+        <div className="pointer-events-none absolute inset-0 opacity-45">
+          <div className="absolute left-[-10%] top-14 h-px w-[120%] rotate-12 bg-white/8" />
+          <div className="absolute left-[-10%] top-48 h-px w-[120%] -rotate-6 bg-white/8" />
+          <div className="absolute left-24 top-[-20%] h-[140%] w-px rotate-[-18deg] bg-white/8" />
+          <div className="absolute right-24 top-[-20%] h-[140%] w-px rotate-[24deg] bg-white/8" />
+        </div>
+
+        <div className="relative mx-auto flex flex-wrap items-center justify-center gap-5">
+          <WestMonroeMark className="h-20 w-20 max-[480px]:h-16 max-[480px]:w-16 [&_rect]:fill-[#f3c316]" />
           <span
-            className="whitespace-nowrap text-[3rem] font-bold leading-none tracking-normal text-[#040047] max-[480px]:text-[2rem]"
+            className="whitespace-nowrap text-[3rem] font-bold leading-none tracking-normal text-white max-[480px]:text-[2rem]"
             style={{ fontFamily: 'Inter, Arial, Helvetica, sans-serif' }}
           >
             west monroe
@@ -50,11 +57,11 @@ export function PromptPage({
         </div>
 
         <div
-          className="mt-8 flex flex-wrap items-center justify-center gap-3"
+          className="relative mt-8 flex flex-wrap items-center justify-center gap-3"
           data-selected-diagram-id={selectedArchitectureDiagramId}
         >
           <label
-            className={`rounded-full border-0 bg-[#171717] px-4 py-2.5 text-[0.95rem] font-bold text-white transition duration-150 ease-out hover:bg-[#2a2a2a] ${
+            className={`border border-[#28304a] bg-[#080c1c] px-4 py-2.5 text-[0.9rem] font-bold tracking-[0.12em] text-[#eef3ff] uppercase transition duration-150 ease-out hover:border-[#f3c316] ${
               isUploadOnlySelecting ? 'cursor-wait opacity-70' : 'cursor-pointer'
             }`}
             htmlFor="upload-only-attachments"
@@ -66,14 +73,14 @@ export function PromptPage({
             type="button"
             onClick={onUploadOnlySubmit}
             disabled={isUploadOnlySelecting || uploadOnlyFileCount === 0}
-            className="cursor-pointer rounded-full border-0 bg-gradient-to-br from-[#f26f21] to-[#c95518] px-4 py-2.5 text-[0.95rem] font-bold text-white shadow-[0_12px_24px_rgba(242,111,33,0.24)] transition duration-150 ease-out hover:-translate-y-px disabled:cursor-not-allowed disabled:opacity-50"
+            className="cursor-pointer border border-[#f3c316] bg-[#f3c316] px-4 py-2.5 text-[0.9rem] font-bold tracking-[0.12em] text-[#070a1b] uppercase transition duration-150 ease-out hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isUploadOnlySelecting ? 'Selecting...' : 'Submit files'}
           </button>
           <button
             type="button"
             onClick={onOpenDiagramPicker}
-            className="cursor-pointer rounded-full border border-[#171717]/14 bg-white px-4 py-2.5 text-[0.95rem] font-bold text-[#171717] transition duration-150 ease-out hover:border-[#171717] hover:bg-[#f6f6f6]"
+            className="cursor-pointer border border-[#28304a] bg-transparent px-4 py-2.5 text-[0.9rem] font-bold tracking-[0.12em] text-[#eef3ff] uppercase transition duration-150 ease-out hover:border-[#f3c316] hover:text-[#f3c316]"
           >
             Browse templates
           </button>
@@ -90,12 +97,12 @@ export function PromptPage({
         </div>
 
         {uploadOnlyError && (
-          <p className="mt-3 text-center text-[0.92rem] leading-5 text-red-700">{uploadOnlyError}</p>
+          <p className="relative mt-3 text-center text-[0.92rem] leading-5 text-[#ffb5b5]">{uploadOnlyError}</p>
         )}
 
         {uploadOnlyFiles.length > 0 && (
-          <div className="mt-6 border-t border-[#171717]/10 pt-4">
-            <div className="mb-3 flex items-center justify-between gap-3 text-[0.82rem] font-bold text-[#171717]/65">
+          <div className="relative mt-6 border-t border-white/12 pt-4">
+            <div className="mb-3 flex items-center justify-between gap-3 text-[0.82rem] font-bold tracking-[0.12em] text-[#8d93aa] uppercase">
               <span>Added files</span>
               <span>
                 {uploadOnlyFiles.length} file{uploadOnlyFiles.length === 1 ? '' : 's'}
@@ -104,11 +111,11 @@ export function PromptPage({
             <ul className="grid gap-2" aria-label="Added files">
               {uploadOnlyFiles.map((file, index) => (
                 <li
-                  className="flex min-w-0 items-center justify-between gap-3 rounded-lg border border-[#171717]/10 bg-[#f7f8fb] px-3 py-2 text-left"
+                  className="flex min-w-0 items-center justify-between gap-3 border border-[#28304a] bg-[#080c1c] px-3 py-2 text-left"
                   key={`${file.name}-${file.size}-${index}`}
                 >
-                  <span className="min-w-0 truncate text-[0.9rem] font-bold text-[#171717]">{file.name}</span>
-                  <span className="shrink-0 text-[0.8rem] font-bold text-[#171717]/55">
+                  <span className="min-w-0 truncate text-[0.9rem] font-bold text-[#eef3ff]">{file.name}</span>
+                  <span className="shrink-0 text-[0.8rem] font-bold text-[#8d93aa]">
                     {formatFileSize(file.size)}
                   </span>
                 </li>

@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { ChangeEvent } from 'react'
-import { Route, Routes, useNavigate } from 'react-router-dom'
+import { Navigate, Route, Routes, useNavigate } from 'react-router-dom'
 import '@xyflow/react/dist/style.css'
 
 import { DiagramPicker } from './components/DiagramPicker'
+import { LoginPage } from './components/LoginPage'
 import { PromptPage } from './components/PromptPage'
 import { ACCEPT_ATTR } from './lib/diagram'
 import { getDefaultDiagramTemplate, type DiagramTemplate } from './lib/diagramTemplates'
@@ -21,9 +22,12 @@ import { formatFileSize } from './utils/files'
 const EXPORTER_ROUTE = '/'
 const DIAGRAM_PICKER_ROUTE = '/diagram-picker'
 const DIAGRAM_CANVAS_ROUTE = '/diagram-template'
+const LOGIN_ROUTE = '/login'
+const EMAIL_SESSION_STORAGE_KEY = 'tts-mermaid-email'
 
 export default function App() {
   const navigate = useNavigate()
+  const [session, setSession] = useState(() => getStoredSession())
   const [canvasTemplate, setCanvasTemplate] = useState<DiagramTemplate>(() => getDefaultDiagramTemplate())
   const [templateStatusMessage, setTemplateStatusMessage] = useState('')
   const [templateError, setTemplateError] = useState('')
@@ -40,6 +44,12 @@ export default function App() {
     removeAttachment,
     uploadOnlyAttachments,
   } = useDiagramSession()
+
+  function handleLogin(credentials: { email: string }) {
+    storeSession(credentials)
+    setSession(credentials)
+    navigate(EXPORTER_ROUTE)
+  }
 
   function handleUploadOnlyFileChange(event: ChangeEvent<HTMLInputElement>) {
     const uploadedFiles = handleFiles(event, 'upload-only')
@@ -144,61 +154,116 @@ export default function App() {
   return (
     <Routes>
       <Route
+        path={LOGIN_ROUTE}
+        element={
+          session ? (
+            <Navigate replace to={EXPORTER_ROUTE} />
+          ) : (
+            <LoginPage
+              initialEmailLocalPart={getEmailLocalPart(getStoredEmail())}
+              onSubmit={handleLogin}
+            />
+          )
+        }
+      />
+      <Route
         path={EXPORTER_ROUTE}
         element={
-          <PromptPage
-            acceptAttr={ACCEPT_ATTR}
-            isUploadOnlySelecting={isModelSelecting}
-            onOpenDiagramPicker={() => navigate(DIAGRAM_PICKER_ROUTE)}
-            onUploadOnlyFileChange={handleUploadOnlyFileChange}
-            onUploadOnlySubmit={handleUploadOnlySubmit}
-            selectedArchitectureDiagramId={modelSelection?.selectedDiagramId ?? ''}
-            uploadOnlyFiles={uploadOnlyAttachments.map((file) => ({
-              name: file.name,
-              size: file.size,
-            }))}
-            uploadOnlyFileCount={uploadOnlyAttachments.length}
-            uploadOnlyError={modelSelectorError || error}
-          />
+          session ? (
+            <PromptPage
+              acceptAttr={ACCEPT_ATTR}
+              isUploadOnlySelecting={isModelSelecting}
+              onOpenDiagramPicker={() => navigate(DIAGRAM_PICKER_ROUTE)}
+              onUploadOnlyFileChange={handleUploadOnlyFileChange}
+              onUploadOnlySubmit={handleUploadOnlySubmit}
+              selectedArchitectureDiagramId={modelSelection?.selectedDiagramId ?? ''}
+              uploadOnlyFiles={uploadOnlyAttachments.map((file) => ({
+                name: file.name,
+                size: file.size,
+              }))}
+              uploadOnlyFileCount={uploadOnlyAttachments.length}
+              uploadOnlyError={modelSelectorError || error}
+            />
+          ) : (
+            <Navigate replace to={LOGIN_ROUTE} />
+          )
         }
       />
       <Route
         path={DIAGRAM_PICKER_ROUTE}
         element={
-          <DiagramPicker
-            acceptAttr={ACCEPT_ATTR}
-            attachmentCountLabel={attachmentCountLabel}
-            attachments={attachments}
-            error={templateError}
-            isSubmitting={isTemplateSubmitting}
-            onFileChange={handleFiles}
-            onOpenInputPage={() => navigate(EXPORTER_ROUTE)}
-            onRemoveAttachment={removeAttachment}
-            onSelectTemplate={handleSubmitTemplate}
-            renderFileSize={formatFileSize}
-          />
+          session ? (
+            <DiagramPicker
+              acceptAttr={ACCEPT_ATTR}
+              attachmentCountLabel={attachmentCountLabel}
+              attachments={attachments}
+              error={templateError}
+              isSubmitting={isTemplateSubmitting}
+              onFileChange={handleFiles}
+              onOpenInputPage={() => navigate(EXPORTER_ROUTE)}
+              onRemoveAttachment={removeAttachment}
+              onSelectTemplate={handleSubmitTemplate}
+              renderFileSize={formatFileSize}
+            />
+          ) : (
+            <Navigate replace to={LOGIN_ROUTE} />
+          )
         }
       />
       <Route
         path={DIAGRAM_CANVAS_ROUTE}
         element={
-          <TemplateCanvasPage
-            template={canvasTemplate}
-            statusMessage={templateStatusMessage}
-            showJsonByDefault={isTemplateJsonOpenOnLoad}
-            onTemplateJsonChange={(jsonSpec) =>
-              setCanvasTemplate((currentTemplate) => ({
-                ...currentTemplate,
-                jsonSpec,
-              }))
-            }
-            onOpenPicker={() => navigate(DIAGRAM_PICKER_ROUTE)}
-            onOpenInputPage={() => navigate(EXPORTER_ROUTE)}
-          />
+          session ? (
+            <TemplateCanvasPage
+              template={canvasTemplate}
+              statusMessage={templateStatusMessage}
+              showJsonByDefault={isTemplateJsonOpenOnLoad}
+              onTemplateJsonChange={(jsonSpec) =>
+                setCanvasTemplate((currentTemplate) => ({
+                  ...currentTemplate,
+                  jsonSpec,
+                }))
+              }
+              onOpenPicker={() => navigate(DIAGRAM_PICKER_ROUTE)}
+              onOpenInputPage={() => navigate(EXPORTER_ROUTE)}
+            />
+          ) : (
+            <Navigate replace to={LOGIN_ROUTE} />
+          )
         }
       />
     </Routes>
   )
+}
+
+function getStoredSession() {
+  if (typeof window === 'undefined') {
+    return null
+  }
+
+  const email = window.sessionStorage.getItem(EMAIL_SESSION_STORAGE_KEY)
+
+  if (!email) {
+    return null
+  }
+
+  return { email }
+}
+
+function storeSession(credentials: { email: string }) {
+  window.sessionStorage.setItem(EMAIL_SESSION_STORAGE_KEY, credentials.email)
+}
+
+function getStoredEmail() {
+  if (typeof window === 'undefined') {
+    return ''
+  }
+
+  return window.sessionStorage.getItem(EMAIL_SESSION_STORAGE_KEY) ?? ''
+}
+
+function getEmailLocalPart(email: string) {
+  return email.replace(/@westmonroe\.com$/i, '')
 }
 
 type TemplateCanvasPageProps = {
@@ -248,17 +313,17 @@ function TemplateCanvasPage({
   }
 
   return (
-    <main className="min-h-screen bg-[#f6f3ff] px-6 py-5 text-[#17164d]">
+    <main className="min-h-screen bg-[#070a1b] px-6 py-5 text-[#eef3ff]">
       <div className="mx-auto flex h-[calc(100vh-40px)] max-w-[1440px] flex-col">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <p className="text-[0.78rem] font-bold uppercase tracking-[0.16em] text-[#7f1be8]">
+            <p className="text-[0.78rem] font-bold uppercase tracking-[0.16em] text-[#f3c316]">
               Template Canvas
             </p>
-            <h1 className="mt-2 text-[clamp(1.9rem,3vw,2.8rem)] font-bold leading-none">
+            <h1 className="mt-2 text-[clamp(1.9rem,3vw,2.8rem)] font-bold leading-none text-white">
               {template.name}
             </h1>
-            <p className="mt-2 max-w-3xl font-sans text-[1rem] leading-6 text-[#4e4c6b]">
+            <p className="mt-2 max-w-3xl text-[0.95rem] leading-6 text-[#a8afc4]">
               {statusMessage || 'Template JSON is rendered in React Flow.'}
             </p>
           </div>
@@ -268,21 +333,21 @@ function TemplateCanvasPage({
               type="button"
               onClick={handleExportPowerPoint}
               disabled={isExporting}
-              className="cursor-pointer rounded-none border border-[#17164d] bg-[#f3c316] px-5 py-2 text-[0.94rem] font-bold tracking-[0.12em] text-[#17164d] uppercase transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-70"
+              className="cursor-pointer border border-[#f3c316] bg-[#f3c316] px-5 py-2 text-[0.9rem] font-bold tracking-[0.12em] text-[#070a1b] uppercase transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-70"
             >
               {isExporting ? 'Exporting' : 'Export PPTX'}
             </button>
             <button
               type="button"
               onClick={onOpenPicker}
-              className="cursor-pointer rounded-none border border-[#17164d] bg-transparent px-5 py-2 text-[0.94rem] font-bold tracking-[0.12em] uppercase transition hover:bg-[#17164d] hover:text-white"
+              className="cursor-pointer border border-[#28304a] bg-transparent px-5 py-2 text-[0.9rem] font-bold tracking-[0.12em] text-[#eef3ff] uppercase transition hover:border-[#f3c316] hover:text-[#f3c316]"
             >
               Back to Picker
             </button>
             <button
               type="button"
               onClick={onOpenInputPage}
-              className="cursor-pointer rounded-none border border-[#17164d] bg-[#17164d] px-5 py-2 text-[0.94rem] font-bold tracking-[0.12em] text-white uppercase transition hover:brightness-110"
+              className="cursor-pointer border border-[#28304a] bg-[#080c1c] px-5 py-2 text-[0.9rem] font-bold tracking-[0.12em] text-[#eef3ff] uppercase transition hover:border-[#f3c316] hover:text-[#f3c316]"
             >
               Input Page
             </button>
@@ -290,12 +355,12 @@ function TemplateCanvasPage({
         </div>
 
         {exportError && (
-          <p className="mt-3 max-w-4xl font-sans text-[0.92rem] leading-5 text-red-700">
+          <p className="mt-3 max-w-4xl text-[0.92rem] leading-5 text-[#ffb5b5]">
             {exportError}
           </p>
         )}
 
-        <div className="relative mt-5 min-h-0 flex-1 overflow-hidden border border-[#d8d4e9] bg-white">
+        <div className="relative mt-5 min-h-0 flex-1 overflow-hidden border border-white/12 bg-[#0b0f24]">
           <SlideFlowCanvas
             input={template.jsonSpec}
             onChange={onTemplateJsonChange}
@@ -308,7 +373,7 @@ function TemplateCanvasPage({
             aria-controls="template-json-panel"
             aria-expanded={isJsonPanelOpen}
             className={[
-              'absolute bottom-[7.25rem] z-30 cursor-pointer border border-[#17164d] bg-white px-4 py-2 text-[0.78rem] font-bold tracking-[0.12em] text-[#17164d] uppercase shadow-[0_10px_24px_rgba(23,22,77,0.18)] transition hover:bg-[#17164d] hover:text-white',
+              'absolute bottom-[7.25rem] z-30 cursor-pointer border border-[#f3c316] bg-[#f3c316] px-4 py-2 text-[0.78rem] font-bold tracking-[0.12em] text-[#070a1b] uppercase shadow-[0_10px_24px_rgba(0,0,0,0.22)] transition hover:brightness-105',
               isJsonPanelOpen ? 'right-[27.5rem]' : 'right-4',
             ]
               .filter(Boolean)
@@ -320,7 +385,7 @@ function TemplateCanvasPage({
           <aside
             id="template-json-panel"
             className={[
-              'absolute inset-y-0 right-0 z-20 flex w-full max-w-[26rem] flex-col border-l border-[#d8d4e9] bg-[#0e1234] text-white shadow-[-18px_0_45px_rgba(23,22,77,0.18)] transition-transform duration-200 ease-out',
+              'absolute inset-y-0 right-0 z-20 flex w-full max-w-[26rem] flex-col border-l border-white/12 bg-[#0b0f24] text-white shadow-[-18px_0_45px_rgba(0,0,0,0.28)] transition-transform duration-200 ease-out',
               isJsonPanelOpen ? 'translate-x-0' : 'translate-x-full',
             ].join(' ')}
             aria-hidden={!isJsonPanelOpen}
@@ -335,13 +400,13 @@ function TemplateCanvasPage({
               <button
                 type="button"
                 onClick={() => setIsJsonPanelOpen(false)}
-                className="cursor-pointer border border-white/30 bg-transparent px-3 py-1.5 text-[0.72rem] font-bold tracking-[0.12em] text-white uppercase transition hover:bg-white hover:text-[#0e1234]"
+                className="cursor-pointer border border-[#28304a] bg-transparent px-3 py-1.5 text-[0.72rem] font-bold tracking-[0.12em] text-white uppercase transition hover:border-[#f3c316] hover:text-[#f3c316]"
               >
                 Close
               </button>
             </div>
 
-            <pre className="min-h-0 flex-1 overflow-auto p-5 font-mono text-[0.78rem] leading-5 whitespace-pre text-[#d9e4ff]">
+            <pre className="min-h-0 flex-1 overflow-auto border-t border-white/8 bg-[#080c1c] p-5 font-mono text-[0.78rem] leading-5 whitespace-pre text-[#d9e4ff]">
               {currentTemplateJson}
             </pre>
           </aside>
