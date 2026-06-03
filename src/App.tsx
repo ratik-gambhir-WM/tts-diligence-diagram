@@ -1,10 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { ChangeEvent } from 'react'
-import { ReactFlowProvider } from '@xyflow/react'
-import { Navigate, Route, Routes, useNavigate } from 'react-router-dom'
+import { Route, Routes, useNavigate } from 'react-router-dom'
 import '@xyflow/react/dist/style.css'
 
-import { DiagramCanvas } from './components/DiagramCanvas'
 import { DiagramPicker } from './components/DiagramPicker'
 import { PromptPage } from './components/PromptPage'
 import { ACCEPT_ATTR } from './lib/diagram'
@@ -22,7 +20,6 @@ import { formatFileSize } from './utils/files'
 
 const EXPORTER_ROUTE = '/'
 const DIAGRAM_PICKER_ROUTE = '/diagram-picker'
-const GENERATED_DIAGRAM_ROUTE = '/diagram'
 const DIAGRAM_CANVAS_ROUTE = '/diagram-template'
 
 export default function App() {
@@ -36,23 +33,13 @@ export default function App() {
   const [isModelSelecting, setIsModelSelecting] = useState(false)
   const [isTemplateJsonOpenOnLoad, setIsTemplateJsonOpenOnLoad] = useState(false)
   const {
-    attachmentMode,
     attachmentCountLabel,
     attachments,
     error,
     handleFiles,
-    handleMessageChange,
-    handleSubmit,
-    isSubmitting,
-    message,
-    promptOutput,
     removeAttachment,
-    submittedMessage,
-    updateSubmittedMessage,
     uploadOnlyAttachments,
-  } = useDiagramSession({
-    onGenerated: () => navigate(GENERATED_DIAGRAM_ROUTE),
-  })
+  } = useDiagramSession()
 
   function handleUploadOnlyFileChange(event: ChangeEvent<HTMLInputElement>) {
     const uploadedFiles = handleFiles(event, 'upload-only')
@@ -159,24 +146,13 @@ export default function App() {
         element={
           <PromptPage
             acceptAttr={ACCEPT_ATTR}
-            attachmentMode={attachmentMode}
-            attachmentCountLabel={attachmentCountLabel}
-            attachments={attachments}
-            error={error}
-            isSubmitting={isSubmitting}
             isUploadOnlySelecting={isModelSelecting}
-            message={message}
-            onFileChange={handleFiles}
-            onMessageChange={handleMessageChange}
             onOpenDiagramPicker={() => navigate(DIAGRAM_PICKER_ROUTE)}
-            onRemoveAttachment={removeAttachment}
-            onSubmit={handleSubmit}
             onUploadOnlyFileChange={handleUploadOnlyFileChange}
             onUploadOnlySubmit={handleUploadOnlySubmit}
-            renderFileSize={formatFileSize}
             selectedArchitectureDiagramId={modelSelection?.selectedDiagramId ?? ''}
             uploadOnlyFileCount={uploadOnlyAttachments.length}
-            uploadOnlyError={modelSelectorError}
+            uploadOnlyError={modelSelectorError || error}
           />
         }
       />
@@ -190,28 +166,11 @@ export default function App() {
             error={templateError}
             isSubmitting={isTemplateSubmitting}
             onFileChange={handleFiles}
-            onOpenPromptPage={() => navigate(EXPORTER_ROUTE)}
+            onOpenInputPage={() => navigate(EXPORTER_ROUTE)}
             onRemoveAttachment={removeAttachment}
             onSelectTemplate={handleSubmitTemplate}
             renderFileSize={formatFileSize}
           />
-        }
-      />
-      <Route
-        path={GENERATED_DIAGRAM_ROUTE}
-        element={
-          submittedMessage && promptOutput ? (
-            <ReactFlowProvider>
-              <DiagramCanvas
-                message={submittedMessage}
-                onBack={() => navigate(EXPORTER_ROUTE)}
-                onUpdateMessage={updateSubmittedMessage}
-                promptOutput={promptOutput}
-              />
-            </ReactFlowProvider>
-          ) : (
-            <Navigate to={EXPORTER_ROUTE} replace />
-          )
         }
       />
       <Route
@@ -222,7 +181,7 @@ export default function App() {
             statusMessage={templateStatusMessage}
             showJsonByDefault={isTemplateJsonOpenOnLoad}
             onOpenPicker={() => navigate(DIAGRAM_PICKER_ROUTE)}
-            onOpenPromptPage={() => navigate(EXPORTER_ROUTE)}
+            onOpenInputPage={() => navigate(EXPORTER_ROUTE)}
           />
         }
       />
@@ -232,7 +191,7 @@ export default function App() {
 
 type TemplateCanvasPageProps = {
   onOpenPicker: () => void
-  onOpenPromptPage: () => void
+  onOpenInputPage: () => void
   showJsonByDefault: boolean
   statusMessage: string
   template: DiagramTemplate
@@ -240,7 +199,7 @@ type TemplateCanvasPageProps = {
 
 function TemplateCanvasPage({
   onOpenPicker,
-  onOpenPromptPage,
+  onOpenInputPage,
   showJsonByDefault,
   statusMessage,
   template,
@@ -308,10 +267,10 @@ function TemplateCanvasPage({
             </button>
             <button
               type="button"
-              onClick={onOpenPromptPage}
+              onClick={onOpenInputPage}
               className="cursor-pointer rounded-none border border-[#17164d] bg-[#17164d] px-5 py-2 text-[0.94rem] font-bold tracking-[0.12em] text-white uppercase transition hover:brightness-110"
             >
-              Prompt Page
+              Input Page
             </button>
           </div>
         </div>

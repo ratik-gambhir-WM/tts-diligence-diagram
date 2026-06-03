@@ -15,7 +15,7 @@ type DiagramPickerProps = {
   error: string
   isSubmitting: boolean
   onFileChange: (event: ChangeEvent<HTMLInputElement>) => void
-  onOpenPromptPage: () => void
+  onOpenInputPage: () => void
   onRemoveAttachment: (index: number) => void
   onSelectTemplate: (template: DiagramTemplate) => void
   renderFileSize: (bytes: number) => string
@@ -40,7 +40,7 @@ export function DiagramPicker({
   error,
   isSubmitting,
   onFileChange,
-  onOpenPromptPage,
+  onOpenInputPage,
   onRemoveAttachment,
   onSelectTemplate,
   renderFileSize,
@@ -82,10 +82,10 @@ export function DiagramPicker({
           <div className="flex items-center gap-4">
             <button
               type="button"
-              onClick={onOpenPromptPage}
+              onClick={onOpenInputPage}
               className="cursor-pointer rounded-none border border-[#17164d] bg-transparent px-5 py-2 text-[0.94rem] font-bold tracking-[0.12em] uppercase transition hover:bg-[#17164d] hover:text-white"
             >
-              Prompt Page
+              Input Page
             </button>
           </div>
         </div>
