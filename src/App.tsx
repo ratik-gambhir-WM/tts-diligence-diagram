@@ -186,6 +186,12 @@ export default function App() {
             template={canvasTemplate}
             statusMessage={templateStatusMessage}
             showJsonByDefault={isTemplateJsonOpenOnLoad}
+            onTemplateJsonChange={(jsonSpec) =>
+              setCanvasTemplate((currentTemplate) => ({
+                ...currentTemplate,
+                jsonSpec,
+              }))
+            }
             onOpenPicker={() => navigate(DIAGRAM_PICKER_ROUTE)}
             onOpenInputPage={() => navigate(EXPORTER_ROUTE)}
           />
@@ -196,16 +202,18 @@ export default function App() {
 }
 
 type TemplateCanvasPageProps = {
-  onOpenPicker: () => void
   onOpenInputPage: () => void
+  onOpenPicker: () => void
+  onTemplateJsonChange: (jsonSpec: unknown) => void
   showJsonByDefault: boolean
   statusMessage: string
   template: DiagramTemplate
 }
 
 function TemplateCanvasPage({
-  onOpenPicker,
   onOpenInputPage,
+  onOpenPicker,
+  onTemplateJsonChange,
   showJsonByDefault,
   statusMessage,
   template,
@@ -288,7 +296,11 @@ function TemplateCanvasPage({
         )}
 
         <div className="relative mt-5 min-h-0 flex-1 overflow-hidden border border-[#d8d4e9] bg-white">
-          <SlideFlowCanvas input={template.jsonSpec} className="h-full" />
+          <SlideFlowCanvas
+            input={template.jsonSpec}
+            onChange={onTemplateJsonChange}
+            className="h-full"
+          />
 
           <button
             type="button"

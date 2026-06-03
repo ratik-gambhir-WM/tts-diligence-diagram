@@ -1,14 +1,17 @@
 import {
   Background,
   Controls,
+  NodeResizer,
   ReactFlow,
   ReactFlowProvider,
+  useReactFlow,
   useNodesState,
   type Node,
+  type NodeMouseHandler,
   type NodeProps,
   type NodeTypes,
 } from '@xyflow/react'
-import { useMemo, type CSSProperties, type ReactNode } from 'react'
+import { useMemo, useState, type ChangeEvent, type CSSProperties, type ReactNode } from 'react'
 import '@xyflow/react/dist/style.css'
 
 import type {
@@ -23,7 +26,21 @@ import './slide-flow.css'
 export interface SlideFlowCanvasProps {
   className?: string
   input: unknown
+  onChange?: (input: unknown) => void
   slideIndex?: number
+}
+
+type ElementEdit = {
+  h?: number
+  text?: string
+  w?: number
+  x?: number
+  y?: number
+}
+
+type SlideFlowNode = Node<SlideFlowNodeData>
+type SlideElementNodeData = Extract<SlideFlowNodeData, { kind: 'element' }> & {
+  commitElementEdit?: (elementId: string, edit: ElementEdit) => void
 }
 
 const nodeTypes: NodeTypes = {
@@ -31,10 +48,19 @@ const nodeTypes: NodeTypes = {
   slideElement: SlideElementNode,
 }
 
-export function SlideFlowCanvas({ className, input, slideIndex = 0 }: SlideFlowCanvasProps) {
+export function SlideFlowCanvas({ className, input, onChange, slideIndex = 0 }: SlideFlowCanvasProps) {
   const model = useMemo(() => buildSlideFlowModel(input, { slideIndex }), [input, slideIndex])
   const slide = model.slide
   const flowKey = useMemo(() => getFlowKey(model.nodes), [model.nodes])
+  const handleInputChange = useMemo(() => {
+    if (!onChange) {
+      return undefined
+    }
+
+    return (elementId: string, edit: ElementEdit) => {
+      onChange(applyElementEditToInput(input, elementId, edit))
+    }
+  }, [input, onChange])
 
   if (!slide) {
     return (
@@ -50,14 +76,50 @@ export function SlideFlowCanvas({ className, input, slideIndex = 0 }: SlideFlowC
       style={{ '--slide-flow-bg': toCssColor(slide.backgroundColor) } as CSSProperties}
     >
       <ReactFlowProvider>
-        <SlideFlowGraph key={flowKey} initialNodes={model.nodes} />
+        <SlideFlowGraph
+          key={flowKey}
+          initialNodes={model.nodes}
+          onElementEdit={handleInputChange}
+        />
       </ReactFlowProvider>
     </div>
   )
 }
 
-function SlideFlowGraph({ initialNodes }: { initialNodes: Node<SlideFlowNodeData>[] }) {
-  const [nodes, , onNodesChange] = useNodesState(initialNodes)
+function SlideFlowGraph({
+  initialNodes,
+  onElementEdit,
+}: {
+  initialNodes: SlideFlowNode[]
+  onElementEdit?: (elementId: string, edit: ElementEdit) => void
+}) {
+  const editableNodes = useMemo(
+    () =>
+      initialNodes.map((node) =>
+        node.data.kind === 'element'
+          ? {
+              ...node,
+              data: {
+                ...node.data,
+                commitElementEdit: onElementEdit,
+              },
+            }
+          : node,
+      ),
+    [initialNodes, onElementEdit],
+  )
+  const [nodes, , onNodesChange] = useNodesState(editableNodes)
+
+  const handleNodeDragStop: NodeMouseHandler<SlideFlowNode> = (_, node) => {
+    if (node.data.kind !== 'element' || node.data.element.kind === 'line') {
+      return
+    }
+
+    onElementEdit?.(node.id, {
+      x: roundCoordinate(node.position.x),
+      y: roundCoordinate(node.position.y),
+    })
+  }
 
   return (
     <ReactFlow
@@ -69,8 +131,12 @@ function SlideFlowGraph({ initialNodes }: { initialNodes: Node<SlideFlowNodeData
       minZoom={0.15}
       maxZoom={4}
       onNodesChange={onNodesChange}
+      onNodeDragStop={handleNodeDragStop}
       nodesConnectable={false}
       nodesDraggable
+      nodeDragThreshold={8}
+      noDragClassName="nodrag"
+      noPanClassName="nopan"
       proOptions={{ hideAttribution: true }}
     >
       <Background color="#d9deea" gap={32} size={1} />
@@ -111,25 +177,115 @@ function SlideBackgroundNode({ data }: NodeProps) {
   )
 }
 
-function SlideElementNode({ data }: NodeProps) {
-  const nodeData = data as SlideFlowNodeData
+function SlideElementNode({ data, id, selected }: NodeProps<SlideFlowNode>) {
+  const reactFlow = useReactFlow<SlideFlowNode>()
+  const [isEditingText, setIsEditingText] = useState(false)
+  const nodeData = data as SlideElementNodeData
 
   if (nodeData.kind !== 'element') {
     return null
   }
 
   const element = nodeData.element
+  const canResize = element.kind !== 'line'
+  const canEditText = element.kind === 'shape' || element.kind === 'text'
+  const commitElementEdit = (edit: ElementEdit) => nodeData.commitElementEdit?.(id, edit)
+  const updateElement = (edit: ElementEdit) => {
+    reactFlow.setNodes((currentNodes) =>
+      currentNodes.map((node) => {
+        if (node.id !== id || node.data.kind !== 'element') {
+          return node
+        }
+
+        return {
+          ...node,
+          data: {
+            ...node.data,
+            element: applyElementEdit(node.data.element, edit),
+          },
+          position: {
+            x: edit.x ?? node.position.x,
+            y: edit.y ?? node.position.y,
+          },
+          style: {
+            ...node.style,
+            height: edit.h ?? node.style?.height,
+            width: edit.w ?? node.style?.width,
+          },
+        }
+      }),
+    )
+  }
+  const handleTextChange = (text: string) => {
+    updateElement({ text })
+  }
+  const handleTextCommit = (text: string) => {
+    setIsEditingText(false)
+    updateElement({ text })
+    commitElementEdit({ text })
+  }
+  const handleResize = (
+    _: unknown,
+    params: { height: number; width: number; x: number; y: number },
+  ) => {
+    updateElement({
+      h: roundCoordinate(params.height),
+      w: roundCoordinate(params.width),
+      x: roundCoordinate(params.x),
+      y: roundCoordinate(params.y),
+    })
+  }
+  const handleResizeEnd = (
+    _: unknown,
+    params: { height: number; width: number; x: number; y: number },
+  ) => {
+    commitElementEdit({
+      h: roundCoordinate(params.height),
+      w: roundCoordinate(params.width),
+      x: roundCoordinate(params.x),
+      y: roundCoordinate(params.y),
+    })
+  }
+
+  const controls = canResize ? (
+    <NodeResizer
+      color="#1451e1"
+      handleClassName="slide-flow-resize-handle"
+      isVisible={selected}
+      lineClassName="slide-flow-resize-line"
+      minHeight={24}
+      minWidth={36}
+      onResize={handleResize}
+      onResizeEnd={handleResizeEnd}
+    />
+  ) : null
+  const wrapElement = (content: ReactNode) => (
+    <div
+      className="slide-flow-element-shell"
+      onDoubleClick={canEditText ? () => setIsEditingText(true) : undefined}
+    >
+      {controls}
+      {content}
+    </div>
+  )
 
   if (element.kind === 'line') {
-    return <SlideLineElement element={element} />
+    return wrapElement(<SlideLineElement element={element} />)
   }
 
   if (element.kind === 'text') {
-    return <SlideTextElement element={element} />
+    return wrapElement(
+      <SlideTextElement
+        element={element}
+        isEditable={canEditText && isEditingText}
+        onTextChange={handleTextChange}
+        onTextCommit={handleTextCommit}
+      />,
+    )
   }
 
   if (element.kind === 'image') {
-    return (
+    return wrapElement(
       <img
         className="slide-flow-image-element"
         src={element.src}
@@ -142,14 +298,31 @@ function SlideElementNode({ data }: NodeProps) {
           transform: `rotate(${element.rotate}deg)`,
           width: element.w,
         }}
-      />
+      />,
     )
   }
 
-  return <SlideShapeElement element={element} />
+  return wrapElement(
+    <SlideShapeElement
+      element={element}
+      isEditable={canEditText && isEditingText}
+      onTextChange={handleTextChange}
+      onTextCommit={handleTextCommit}
+    />,
+  )
 }
 
-function SlideShapeElement({ element }: { element: NormalizedShapeElement }) {
+function SlideShapeElement({
+  element,
+  isEditable,
+  onTextChange,
+  onTextCommit,
+}: {
+  element: NormalizedShapeElement
+  isEditable: boolean
+  onTextChange: (text: string) => void
+  onTextCommit: (text: string) => void
+}) {
   const shapeStyle = getSharedBoxStyle(element)
   const textStyle = getTextBoxStyle(element)
   const shouldStackRuns = element.shape === 'rect'
@@ -157,14 +330,24 @@ function SlideShapeElement({ element }: { element: NormalizedShapeElement }) {
     <SlideTextRuns
       fallbackText={element.label}
       maxStackedFontSizePt={shouldStackRuns ? getMaxStackedFontSizePt(element) : undefined}
+      onTextChange={onTextChange}
+      onTextCommit={onTextCommit}
       runs={element.textRuns}
       stackVertically={shouldStackRuns}
+      text={element.label}
+      isEditable={isEditable}
     />
   )
 
   if (element.shape === 'ellipse') {
     return (
-      <SlideSvgShapeFrame element={element} label={label} shapeStyle={shapeStyle} textStyle={textStyle}>
+      <SlideSvgShapeFrame
+        element={element}
+        isEditable={isEditable}
+        label={label}
+        shapeStyle={shapeStyle}
+        textStyle={textStyle}
+      >
         <SlideEllipseShape element={element} />
       </SlideSvgShapeFrame>
     )
@@ -172,7 +355,13 @@ function SlideShapeElement({ element }: { element: NormalizedShapeElement }) {
 
   if (element.shape === 'diamond') {
     return (
-      <SlideSvgShapeFrame element={element} label={label} shapeStyle={shapeStyle} textStyle={textStyle}>
+      <SlideSvgShapeFrame
+        element={element}
+        isEditable={isEditable}
+        label={label}
+        shapeStyle={shapeStyle}
+        textStyle={textStyle}
+      >
         <SlideDiamondShape element={element} />
       </SlideSvgShapeFrame>
     )
@@ -180,7 +369,13 @@ function SlideShapeElement({ element }: { element: NormalizedShapeElement }) {
 
   if (element.shape === 'chevron') {
     return (
-      <SlideSvgShapeFrame element={element} label={label} shapeStyle={shapeStyle} textStyle={textStyle}>
+      <SlideSvgShapeFrame
+        element={element}
+        isEditable={isEditable}
+        label={label}
+        shapeStyle={shapeStyle}
+        textStyle={textStyle}
+      >
         <SlideChevronShape element={element} />
       </SlideSvgShapeFrame>
     )
@@ -188,7 +383,13 @@ function SlideShapeElement({ element }: { element: NormalizedShapeElement }) {
 
   if (element.shape === 'flowChartMagneticDisk') {
     return (
-      <SlideSvgShapeFrame element={element} label={label} shapeStyle={shapeStyle} textStyle={textStyle}>
+      <SlideSvgShapeFrame
+        element={element}
+        isEditable={isEditable}
+        label={label}
+        shapeStyle={shapeStyle}
+        textStyle={textStyle}
+      >
         <SlideMagneticDiskShape element={element} />
       </SlideSvgShapeFrame>
     )
@@ -197,6 +398,7 @@ function SlideShapeElement({ element }: { element: NormalizedShapeElement }) {
   return (
     <SlideRectShape
       element={element}
+      isEditable={isEditable}
       label={label}
       shapeStyle={shapeStyle}
       textStyle={getStackedTextBoxStyle(element)}
@@ -207,12 +409,14 @@ function SlideShapeElement({ element }: { element: NormalizedShapeElement }) {
 function SlideSvgShapeFrame({
   children,
   element,
+  isEditable,
   label,
   shapeStyle,
   textStyle,
 }: {
   children: ReactNode
   element: NormalizedShapeElement
+  isEditable: boolean
   label: ReactNode
   shapeStyle: CSSProperties
   textStyle: CSSProperties
@@ -222,25 +426,39 @@ function SlideSvgShapeFrame({
       <svg className="slide-flow-shape-svg" viewBox={`0 0 ${element.w} ${element.h}`}>
         {children}
       </svg>
-      <SlideShapeLabel className="slide-flow-shape-label" element={element} label={label} style={textStyle} />
+      <SlideShapeLabel
+        className="slide-flow-shape-label"
+        element={element}
+        isEditable={isEditable}
+        label={label}
+        style={textStyle}
+      />
     </div>
   )
 }
 
 function SlideRectShape({
   element,
+  isEditable,
   label,
   shapeStyle,
   textStyle,
 }: {
   element: NormalizedShapeElement
+  isEditable: boolean
   label: ReactNode
   shapeStyle: CSSProperties
   textStyle: CSSProperties
 }) {
   return (
     <div className="slide-flow-rect-element" style={{ ...shapeStyle, ...getShapePaintStyle(element) }}>
-      <SlideShapeLabel className="slide-flow-rect-label" element={element} label={label} style={textStyle} />
+      <SlideShapeLabel
+        className="slide-flow-rect-label"
+        element={element}
+        isEditable={isEditable}
+        label={label}
+        style={textStyle}
+      />
     </div>
   )
 }
@@ -248,15 +466,17 @@ function SlideRectShape({
 function SlideShapeLabel({
   className,
   element,
+  isEditable,
   label,
   style,
 }: {
   className: string
   element: NormalizedShapeElement
+  isEditable: boolean
   label: ReactNode
   style: CSSProperties
 }) {
-  if (!element.label.trim()) {
+  if (!isEditable && !element.label.trim()) {
     return null
   }
 
@@ -335,8 +555,19 @@ function SlideMagneticDiskShape({ element }: { element: NormalizedShapeElement }
   )
 }
 
-function SlideTextElement({ element }: { element: NormalizedTextElement }) {
+function SlideTextElement({
+  element,
+  isEditable,
+  onTextChange,
+  onTextCommit,
+}: {
+  element: NormalizedTextElement
+  isEditable: boolean
+  onTextChange: (text: string) => void
+  onTextCommit: (text: string) => void
+}) {
   const paintStyle = getTextPaintStyle(element)
+  const textStyle = getTextBoxStyle(element)
 
   return (
     <div
@@ -344,10 +575,18 @@ function SlideTextElement({ element }: { element: NormalizedTextElement }) {
       style={{
         ...getSharedBoxStyle(element),
         ...paintStyle,
-        ...getTextBoxStyle(element),
+        ...(isEditable ? undefined : textStyle),
       }}
     >
-      <SlideTextRuns runs={element.runs} fallbackText={element.text} />
+      <SlideTextRuns
+        fallbackText={element.text}
+        isEditable={isEditable}
+        onTextChange={onTextChange}
+        onTextCommit={onTextCommit}
+        runs={element.runs}
+        text={element.text}
+        textStyle={textStyle}
+      />
     </div>
   )
 }
@@ -478,15 +717,36 @@ function SlideLineArrowMarker({
 
 function SlideTextRuns({
   fallbackText,
+  isEditable = false,
   maxStackedFontSizePt,
+  onTextChange,
+  onTextCommit,
   runs,
   stackVertically = false,
+  text,
+  textStyle,
 }: {
   fallbackText: string
+  isEditable?: boolean
   maxStackedFontSizePt?: number
+  onTextChange?: (text: string) => void
+  onTextCommit?: (text: string) => void
   runs: NormalizedTextRun[]
   stackVertically?: boolean
+  text?: string
+  textStyle?: CSSProperties
 }) {
+  if (isEditable) {
+    return (
+      <EditableNodeText
+        onTextChange={onTextChange}
+        onTextCommit={onTextCommit}
+        text={text ?? fallbackText}
+        textStyle={textStyle}
+      />
+    )
+  }
+
   if (!runs.length) {
     return <>{fallbackText}</>
   }
@@ -515,6 +775,230 @@ function SlideTextRuns({
       ))}
     </>
   )
+}
+
+function EditableNodeText({
+  onTextChange,
+  onTextCommit,
+  text,
+  textStyle,
+}: {
+  onTextChange?: (text: string) => void
+  onTextCommit?: (text: string) => void
+  text: string
+  textStyle?: CSSProperties
+}) {
+  const [draft, setDraft] = useState(text)
+  const handleChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
+    setDraft(event.currentTarget.value)
+    onTextChange?.(event.currentTarget.value)
+  }
+  const handleBlur = () => {
+    onTextCommit?.(draft)
+  }
+
+  return (
+    <textarea
+      aria-label="Edit node text"
+      className="slide-flow-editable-text nodrag nopan"
+      onChange={handleChange}
+      onBlur={handleBlur}
+      onKeyDown={(event) => event.stopPropagation()}
+      spellCheck={false}
+      style={textStyle}
+      value={draft}
+    />
+  )
+}
+
+function applyElementEditToInput(input: unknown, elementId: string, edit: ElementEdit) {
+  const nextInput = cloneJsonValue(input)
+
+  updateRawElementById(nextInput, elementId, edit)
+
+  return nextInput
+}
+
+function updateRawElementById(value: unknown, elementId: string, edit: ElementEdit): boolean {
+  if (Array.isArray(value)) {
+    return value.some((item) => updateRawElementById(item, elementId, edit))
+  }
+
+  if (!isRecord(value)) {
+    return false
+  }
+
+  if (value.id === elementId) {
+    applyRawElementEdit(value, edit)
+    return true
+  }
+
+  return Object.values(value).some((item) => updateRawElementById(item, elementId, edit))
+}
+
+function applyRawElementEdit(element: Record<string, unknown>, edit: ElementEdit) {
+  if (edit.x !== undefined) {
+    element.x = edit.x
+    if ('left' in element) {
+      element.left = edit.x
+    }
+  }
+
+  if (edit.y !== undefined) {
+    element.y = edit.y
+    if ('top' in element) {
+      element.top = edit.y
+    }
+  }
+
+  if (edit.w !== undefined) {
+    element.w = edit.w
+    if ('width' in element) {
+      element.width = edit.w
+    }
+  }
+
+  if (edit.h !== undefined) {
+    element.h = edit.h
+    if ('height' in element) {
+      element.height = edit.h
+    }
+  }
+
+  if (edit.text !== undefined) {
+    element.text = edit.text
+    if ('label' in element) {
+      element.label = edit.text
+    }
+    element.runs = buildRawTextRuns(element, edit.text)
+  }
+}
+
+function applyElementEdit(
+  element: SlideElementNodeData['element'],
+  edit: ElementEdit,
+): SlideElementNodeData['element'] {
+  if (element.kind === 'line') {
+    return element
+  }
+
+  const geometryEdit = {
+    ...(edit.h !== undefined ? { h: edit.h } : undefined),
+    ...(edit.w !== undefined ? { w: edit.w } : undefined),
+    ...(edit.x !== undefined ? { x: edit.x } : undefined),
+    ...(edit.y !== undefined ? { y: edit.y } : undefined),
+  }
+
+  if (element.kind === 'image') {
+    return {
+      ...element,
+      ...geometryEdit,
+    }
+  }
+
+  if (element.kind === 'text') {
+    const text = edit.text ?? element.text
+
+    return {
+      ...element,
+      ...geometryEdit,
+      ...(edit.text !== undefined
+        ? {
+            runs: buildNormalizedTextRuns(element, text),
+            text,
+          }
+        : undefined),
+    }
+  }
+
+  const text = edit.text ?? element.label
+
+  return {
+    ...element,
+    ...geometryEdit,
+    ...(edit.text !== undefined
+      ? {
+          label: text,
+          textRuns: buildNormalizedTextRuns(element, text),
+        }
+      : undefined),
+  }
+}
+
+function buildNormalizedTextRuns(
+  element: NormalizedShapeElement | NormalizedTextElement,
+  text: string,
+): NormalizedTextRun[] {
+  const firstRun = element.kind === 'shape' ? element.textRuns[0] : element.runs[0]
+  const lines = text.split('\n')
+
+  return lines.map((line, index) => ({
+    bold: firstRun?.bold ?? element.bold,
+    breakLine: index < lines.length - 1,
+    color: firstRun?.color ?? ('color' in element ? element.color : element.textColor),
+    fontFace: firstRun?.fontFace ?? element.fontFace,
+    fontSize: firstRun?.fontSize ?? element.fontSize,
+    italic: firstRun?.italic ?? ('italic' in element ? element.italic : false),
+    text: line,
+    underline: firstRun?.underline ?? false,
+  }))
+}
+
+function buildRawTextRuns(element: Record<string, unknown>, text: string) {
+  const existingRuns = Array.isArray(element.runs) ? element.runs.filter(isRecord) : []
+  const firstRun = existingRuns[0]
+  const lines = text.split('\n')
+  const color = asString(firstRun?.color) || asString(element.textColor) || asString(element.color)
+  const fontFace = asString(firstRun?.fontFace) || asString(element.fontFace)
+  const fontSize = asNumber(firstRun?.fontSize) ?? asNumber(element.fontSize)
+  const bold = asBoolean(firstRun?.bold) ?? asBoolean(element.bold)
+  const italic = asBoolean(firstRun?.italic) ?? asBoolean(element.italic)
+  const underline = asBoolean(firstRun?.underline)
+
+  return lines.map((line, index) => ({
+    ...(bold !== undefined ? { bold } : undefined),
+    breakLine: index < lines.length - 1,
+    ...(color ? { color } : undefined),
+    ...(fontFace ? { fontFace } : undefined),
+    ...(fontSize !== undefined ? { fontSize } : undefined),
+    ...(italic !== undefined ? { italic } : undefined),
+    text: line,
+    ...(underline !== undefined ? { underline } : undefined),
+  }))
+}
+
+function cloneJsonValue<T>(value: T): T {
+  if (Array.isArray(value)) {
+    return value.map((item) => cloneJsonValue(item)) as T
+  }
+
+  if (isRecord(value)) {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, entry]) => [key, cloneJsonValue(entry)]),
+    ) as T
+  }
+
+  return value
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function asString(value: unknown) {
+  return typeof value === 'string' ? value : ''
+}
+
+function asNumber(value: unknown) {
+  return typeof value === 'number' && Number.isFinite(value) ? value : undefined
+}
+
+function asBoolean(value: unknown) {
+  return typeof value === 'boolean' ? value : undefined
+}
+
+function roundCoordinate(value: number) {
+  return Math.round(value * 100) / 100
 }
 
 function getStackedTextBoxStyle(element: NormalizedShapeElement): CSSProperties {
