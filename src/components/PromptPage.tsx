@@ -1,7 +1,7 @@
 import type { ChangeEvent } from 'react'
 
-import westMonroeLogo from '../assets/west-monroe-logo.svg'
 import { SnailLoader } from './SnailLoader'
+import { WestMonroeMark } from './WestMonroeMark'
 
 type PromptPageProps = {
   acceptAttr: string
@@ -31,14 +31,18 @@ export function PromptPage({
   return (
     <main className="grid min-h-screen place-items-center p-8 max-[640px]:p-4">
       <section className="w-full max-w-[780px] rounded-[28px] border border-[#171717]/10 bg-white/95 p-6 shadow-[0_28px_90px_rgba(23,23,23,0.12)] backdrop-blur-xl max-[640px]:p-4">
-        <img
-          src={westMonroeLogo}
-          alt="West Monroe"
-          className="mx-auto h-auto w-full max-w-[399px]"
-        />
+        <div className="mx-auto flex flex-wrap items-center justify-center gap-5">
+          <WestMonroeMark className="h-20 w-20 max-[480px]:h-16 max-[480px]:w-16" />
+          <span
+            className="whitespace-nowrap text-[3rem] font-bold leading-none tracking-normal text-[#040047] max-[480px]:text-[2rem]"
+            style={{ fontFamily: 'Inter, Arial, Helvetica, sans-serif' }}
+          >
+            west monroe
+          </span>
+        </div>
 
         <div
-          className="mt-6 flex flex-wrap items-center justify-center gap-3"
+          className="mt-8 flex flex-wrap items-center justify-center gap-3"
           data-selected-diagram-id={selectedArchitectureDiagramId}
         >
           <label

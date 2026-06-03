@@ -63,6 +63,8 @@ export default function App() {
 
     try {
       const selection = await selectArchitectureDiagramModel({ uploadedFiles: uploadOnlyAttachments })
+      console.log("SELECTION: ")
+      console.log(selection);
       const selectedTemplate = getSelectedArchitectureTemplate(selection)
 
       if (!selectedTemplate) {
