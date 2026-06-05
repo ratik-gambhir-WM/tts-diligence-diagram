@@ -2,6 +2,129 @@
 @import "tailwindcss";
 
 @layer base {
+  :root,
+  [data-theme="dark"],
+  .theme-dark {
+    color-scheme: dark;
+
+    --font-ui: "Space Mono", "Avenir Next", Avenir, "Segoe UI", sans-serif;
+
+    --theme-page-bg: #070a1b;
+    --theme-page-text: #eef3ff;
+    --theme-panel-bg: #0b0f24;
+    --theme-surface-bg: #080c1c;
+    --theme-panel-border: #28304a;
+    --theme-border-subtle: rgba(255, 255, 255, 0.12);
+    --theme-border-faint: rgba(255, 255, 255, 0.08);
+    --theme-heading: #ffffff;
+    --theme-muted: #a8afc4;
+    --theme-subtle: #8d93aa;
+    --theme-accent: #f3c316;
+    --theme-accent-strong: #e2b11d;
+    --theme-error: #ffb5b5;
+    --theme-input-bg: #dfe8fb;
+    --theme-input-text: #070a1b;
+
+    --slide-flow-canvas-bg: #eef2f8;
+    --slide-flow-grid-line: rgba(20, 29, 54, 0.05);
+    --slide-flow-selection: rgba(20, 81, 225, 0.55);
+    --slide-flow-edit-outline: rgba(20, 81, 225, 0.85);
+    --slide-flow-resize: #1451e1;
+    --slide-flow-shadow-strong: rgba(26, 32, 56, 0.18);
+    --slide-flow-shadow-border: rgba(27, 39, 67, 0.12);
+    --slide-flow-empty-bg: #f8fafc;
+    --slide-flow-empty-border: rgba(20, 29, 54, 0.22);
+    --slide-flow-empty-text: #5f6b7a;
+
+    --diagram-node-text: #060150;
+    --diagram-node-fill: #ffffff;
+    --diagram-node-fill-soft: #eef2f8;
+    --diagram-node-fill-muted: #dce4ef;
+    --diagram-node-shadow: rgba(6, 1, 80, 0.14);
+  }
+
+  [data-theme="light"],
+  .theme-light {
+    color-scheme: light;
+
+    --font-ui: "Space Mono", "Avenir Next", Avenir, "Segoe UI", sans-serif;
+
+    --theme-page-bg: #f8fafc;
+    --theme-page-text: #060150;
+    --theme-panel-bg: #ffffff;
+    --theme-surface-bg: #eef2f8;
+    --theme-panel-border: #cfd8e6;
+    --theme-border-subtle: rgba(6, 1, 80, 0.14);
+    --theme-border-faint: rgba(6, 1, 80, 0.08);
+    --theme-heading: #060150;
+    --theme-muted: #5f6b7a;
+    --theme-subtle: #6f7a90;
+    --theme-accent: #f3c316;
+    --theme-accent-strong: #e2b11d;
+    --theme-error: #b42318;
+    --theme-input-bg: #ffffff;
+    --theme-input-text: #060150;
+
+    --slide-flow-canvas-bg: #eef2f8;
+    --slide-flow-grid-line: rgba(20, 29, 54, 0.05);
+    --slide-flow-selection: rgba(20, 81, 225, 0.55);
+    --slide-flow-edit-outline: rgba(20, 81, 225, 0.85);
+    --slide-flow-resize: #1451e1;
+    --slide-flow-shadow-strong: rgba(26, 32, 56, 0.18);
+    --slide-flow-shadow-border: rgba(27, 39, 67, 0.12);
+    --slide-flow-empty-bg: #f8fafc;
+    --slide-flow-empty-border: rgba(20, 29, 54, 0.22);
+    --slide-flow-empty-text: #5f6b7a;
+
+    --diagram-node-text: #060150;
+    --diagram-node-fill: #ffffff;
+    --diagram-node-fill-soft: #eef2f8;
+    --diagram-node-fill-muted: #dce4ef;
+    --diagram-node-shadow: rgba(6, 1, 80, 0.14);
+  }
+
+  /*
+  [data-theme="future-theme-name"],
+  .theme-future-theme-name {
+    color-scheme: light;
+
+    --font-ui: "Space Mono", "Avenir Next", Avenir, "Segoe UI", sans-serif;
+
+    --theme-page-bg: #ffffff;
+    --theme-page-text: #000000;
+    --theme-panel-bg: #ffffff;
+    --theme-surface-bg: #f4f6fb;
+    --theme-panel-border: #d5dbe8;
+    --theme-border-subtle: rgba(0, 0, 0, 0.12);
+    --theme-border-faint: rgba(0, 0, 0, 0.08);
+    --theme-heading: #000000;
+    --theme-muted: #5f6b7a;
+    --theme-subtle: #8d93aa;
+    --theme-accent: #f3c316;
+    --theme-accent-strong: #e2b11d;
+    --theme-error: #b42318;
+    --theme-input-bg: #ffffff;
+    --theme-input-text: #000000;
+
+    --slide-flow-canvas-bg: #eef2f8;
+    --slide-flow-grid-line: rgba(20, 29, 54, 0.05);
+    --slide-flow-selection: rgba(20, 81, 225, 0.55);
+    --slide-flow-edit-outline: rgba(20, 81, 225, 0.85);
+    --slide-flow-resize: #1451e1;
+    --slide-flow-shadow-strong: rgba(26, 32, 56, 0.18);
+    --slide-flow-shadow-border: rgba(27, 39, 67, 0.12);
+    --slide-flow-empty-bg: #f8fafc;
+    --slide-flow-empty-border: rgba(20, 29, 54, 0.22);
+    --slide-flow-empty-text: #5f6b7a;
+
+    --diagram-node-text: #060150;
+    --diagram-node-fill: #ffffff;
+    --diagram-node-fill-soft: #eef2f8;
+    --diagram-node-fill-muted: #dce4ef;
+    --diagram-node-shadow: rgba(6, 1, 80, 0.14);
+  }
+  */
+
   html,
   body,
   #root {
@@ -10,9 +133,9 @@
 
   body {
     margin: 0;
-    color: #eef3ff;
-    font-family: "Space Mono", "Avenir Next", Avenir, "Segoe UI", sans-serif;
-    background: #070a1b;
+    color: var(--theme-page-text);
+    font-family: var(--font-ui);
+    background: var(--theme-page-bg);
   }
 
   button,
@@ -62,7 +185,7 @@
     overflow: visible !important;
     border: 0 !important;
     background: transparent !important;
-    color: #060150 !important;
+    color: var(--diagram-node-text) !important;
     box-shadow: none !important;
     line-height: 1.15;
     text-align: center;
@@ -73,8 +196,8 @@
     box-sizing: border-box;
     position: relative;
     text-align: center;
-    font-family: "Space Mono", "Avenir Next", Avenir, "Segoe UI", sans-serif;
-    filter: drop-shadow(0 10px 18px rgba(6, 1, 80, 0.14));
+    font-family: var(--font-ui);
+    filter: drop-shadow(0 10px 18px var(--diagram-node-shadow));
   }
 
   .database-node .top,
@@ -82,15 +205,15 @@
     height: 20px;
     box-sizing: border-box;
     position: relative;
-    border: 2px solid #060150;
+    border: 2px solid var(--diagram-node-text);
     border-radius: 50%;
-    background: #fff;
+    background: var(--diagram-node-fill);
   }
 
   .database-node .top {
     z-index: 3;
     margin-bottom: -10px;
-    background: linear-gradient(180deg, #ffffff 0%, #eef2f8 100%);
+    background: linear-gradient(180deg, var(--diagram-node-fill) 0%, var(--diagram-node-fill-soft) 100%);
   }
 
   .database-node .body {
@@ -99,7 +222,7 @@
     z-index: 2;
     min-height: 58px;
     border: 0;
-    background: linear-gradient(180deg, #ffffff 0%, #eef2f8 100%);
+    background: linear-gradient(180deg, var(--diagram-node-fill) 0%, var(--diagram-node-fill-soft) 100%);
     padding: 20px 12px 18px;
     display: grid;
     align-content: center;
@@ -110,6 +233,6 @@
   .database-node .bottom {
     z-index: 1;
     margin-top: -10px;
-    background: linear-gradient(180deg, #eef2f8 0%, #dce4ef 100%);
+    background: linear-gradient(180deg, var(--diagram-node-fill-soft) 0%, var(--diagram-node-fill-muted) 100%);
   }
 }
