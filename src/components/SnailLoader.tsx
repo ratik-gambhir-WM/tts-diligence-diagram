@@ -19,25 +19,25 @@ export function SnailLoader() {
 
   return (
     <main
-      className="grid min-h-screen content-center justify-items-center gap-9 p-8 max-[640px]:gap-7 max-[640px]:p-6"
+      className="grid min-h-screen content-center justify-items-center gap-9 bg-[#070a1b] p-8 text-[#eef3ff] max-[640px]:gap-7 max-[640px]:p-6"
       aria-busy="true"
       aria-live="polite"
     >
       <section className="w-full max-w-[48rem] text-center">
-        <h1 className="mb-3 text-[2rem] font-bold uppercase tracking-[0.14em] text-[#c95518]">
+        <h1 className="mb-3 text-[2rem] font-bold uppercase tracking-[0.14em] text-[#f3c316]">
           Generating diagram
           <span className="inline-block min-w-[3ch] text-left" aria-hidden="true">
             {'.'.repeat(dotCount)}
           </span>
         </h1>
-        <p className="mx-auto mt-[0.9rem] max-w-[38rem] text-base text-[#171717]/70">
+        <p className="mx-auto mt-[0.9rem] max-w-[38rem] text-base text-[#a8afc4]">
           While you're waiting, enjoy the snail race below
         </p>
       </section>
 
       <div className="relative h-[17rem] w-[min(100vw,78rem)] overflow-hidden max-[640px]:h-[13.5rem]" role="status" aria-label="Loading">
         <div
-          className="absolute top-1/2 right-0 left-0 h-[2px] -translate-y-1/2 bg-[linear-gradient(90deg,rgba(23,23,23,0),rgba(23,23,23,0.18)_12%,rgba(23,23,23,0.18)_88%,rgba(23,23,23,0)),linear-gradient(90deg,rgba(242,111,33,0.14),rgba(201,85,24,0.18))] shadow-[0_0_0_8px_rgba(255,255,255,0.35)]"
+          className="absolute top-1/2 right-0 left-0 h-[2px] -translate-y-1/2 bg-[linear-gradient(90deg,rgba(243,195,22,0),rgba(243,195,22,0.2)_12%,rgba(243,195,22,0.2)_88%,rgba(243,195,22,0)),linear-gradient(90deg,rgba(255,255,255,0.04),rgba(255,255,255,0.1))]"
           aria-hidden="true"
         />
 

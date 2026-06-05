@@ -83,6 +83,7 @@ export interface NormalizedLineElement extends BaseElement {
   strokeWidth: number
   dash: DashStyle
   endArrow: 'none' | 'triangle' | 'arrow' | 'diamond' | 'oval' | 'stealth'
+  occlusionRects: LineOcclusionRect[]
 }
 
 export interface NormalizedImageElement extends BaseElement {
@@ -103,6 +104,13 @@ export type NormalizedElement =
   | NormalizedLineElement
   | NormalizedImageElement
 
+export interface LineOcclusionRect {
+  x: number
+  y: number
+  w: number
+  h: number
+}
+
 export interface NormalizedSlide {
   id: string
   name: string
@@ -121,6 +129,8 @@ export interface NormalizedPresentation {
   }
   slides: NormalizedSlide[]
 }
+
+type SlideForElementLayering = Pick<NormalizedSlide, 'elements' | 'height' | 'width'>
 
 export interface NormalizationOptions {
   baseDir?: string
@@ -242,7 +252,7 @@ export function buildPptxPresentation(presentation: NormalizedPresentation) {
     const slide = pptx.addSlide()
     slide.background = { color: cleanHex(slideSpec.backgroundColor, 'FFFFFF') }
 
-    for (const element of slideSpec.elements) {
+    for (const element of getConnectorAwareElementOrder(slideSpec)) {
       if (element.kind === 'line') {
         slide.addShape('line', {
           x: pxToInches(element.x1),
@@ -303,7 +313,7 @@ export function buildPptxPresentation(presentation: NormalizedPresentation) {
       })
 
       if (element.label.trim()) {
-        slide.addText(toPptxTextRuns(element.textRuns), {
+        slide.addText(toPptxTextRuns(element.textRuns, { stackVertically: element.shape === 'rect' }), {
           x: pxToInches(element.x),
           y: pxToInches(element.y),
           w: pxToInches(element.w),
@@ -327,6 +337,75 @@ export function buildPptxPresentation(presentation: NormalizedPresentation) {
   }
 
   return pptx
+}
+
+export function getConnectorAwareElementOrder(slide: SlideForElementLayering) {
+  return slide.elements
+    .map((element, index) => ({
+      element,
+      index,
+      layer: getConnectorAwareLayer(element, slide),
+    }))
+    .sort((a, b) => a.layer - b.layer || a.index - b.index)
+    .map(({ element }) => element)
+}
+
+function getConnectorAwareLayer(element: NormalizedElement, slide: SlideForElementLayering) {
+  if (isSlideContainerElement(element, slide)) {
+    return 10
+  }
+
+  if (element.kind === 'line') {
+    return 20
+  }
+
+  return 30
+}
+
+function isSlideContainerElement(element: NormalizedElement, slide: SlideForElementLayering) {
+  if (element.kind !== 'shape' || element.shape !== 'rect') {
+    return false
+  }
+
+  const slideArea = Math.max(slide.width * slide.height, 1)
+  const elementArea = Math.max(element.w * element.h, 0)
+  const coversLargeRegion = elementArea / slideArea >= 0.08
+  const coversTallLane = element.h / slide.height >= 0.45 && element.w / slide.width >= 0.12
+
+  return coversLargeRegion || coversTallLane
+}
+
+function addConnectorOcclusionRects(
+  elements: NormalizedElement[],
+  slide: Pick<NormalizedSlide, 'height' | 'width'>,
+): NormalizedElement[] {
+  const occlusionRects = elements
+    .filter((element) => element.kind !== 'line' && !isSlideContainerElement(element, { ...slide, elements }))
+    .map(getElementBounds)
+
+  if (occlusionRects.length === 0) {
+    return elements
+  }
+
+  return elements.map((element) => {
+    if (element.kind !== 'line') {
+      return element
+    }
+
+    return {
+      ...element,
+      occlusionRects,
+    }
+  })
+}
+
+function getElementBounds(element: Exclude<NormalizedElement, NormalizedLineElement>): LineOcclusionRect {
+  return {
+    h: element.h,
+    w: element.w,
+    x: element.x,
+    y: element.y,
+  }
 }
 
 function normalizeNativePresentation(
@@ -450,7 +529,7 @@ function normalizeNativeSlide(
     .map((item, elementIndex) =>
       normalizeNativeElement(item, width, height, issues, `slides[${index}].elements[${elementIndex}]`, options),
     )
-  const elements = mappedElements.filter(isDefined)
+  const elements = addConnectorOcclusionRects(mappedElements.filter(isDefined), { height, width })
 
   return {
     id: asString(slideSource.id) || `slide-${index + 1}`,
@@ -509,7 +588,7 @@ function normalizeNativeElement(
       id: asString(input.id) || pathLabel,
       sourcePath: pathLabel,
       opacity: clamp01(coerceNumber(input.opacity, 1)),
-      rotate: coerceNumber(input.rotate, 0),
+      rotate: 0,
       valign: 'middle',
       x1,
       y1,
@@ -519,6 +598,7 @@ function normalizeNativeElement(
       strokeWidth: coerceNumber(input.strokeWidth, 1.5),
       dash: normalizeDash(asString(input.dash)),
       endArrow: normalizeArrow(asString(input.endArrow) || asString(input.arrow)),
+      occlusionRects: [],
     }
     return element
   }
@@ -739,14 +819,17 @@ function buildImageOptions(element: NormalizedImageElement) {
   }
 }
 
-function toPptxTextRuns(runs: NormalizedTextRun[]) {
-  return runs.map((run) => ({
+function toPptxTextRuns(
+  runs: NormalizedTextRun[],
+  options: { stackVertically?: boolean } = {},
+) {
+  return runs.map((run, index) => ({
     text: run.text,
     options: {
       bold: run.bold,
       italic: run.italic,
       underline: run.underline ? {} : undefined,
-      breakLine: run.breakLine,
+      breakLine: options.stackVertically ? index < runs.length - 1 : run.breakLine,
       color: cleanHex(run.color, '111827'),
       fontFace: run.fontFace,
       fontSize: run.fontSize,

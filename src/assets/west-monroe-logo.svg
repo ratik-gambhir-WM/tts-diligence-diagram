@@ -1,0 +1,22 @@
+<svg width="420" height="112" viewBox="0 0 420 112" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title">
+  <title id="title">West Monroe</title>
+  <g fill="#08094f" transform="translate(26 14)">
+    <rect x="36" y="4" width="13" height="13"/>
+    <rect x="57.5" y="12.5" width="13" height="13"/>
+    <rect x="66" y="34" width="13" height="13"/>
+    <rect x="57.5" y="55.5" width="13" height="13"/>
+    <rect x="36" y="64" width="13" height="13"/>
+    <rect x="14.5" y="55.5" width="13" height="13"/>
+    <rect x="6" y="34" width="13" height="13"/>
+    <rect x="14.5" y="12.5" width="13" height="13"/>
+  </g>
+  <text
+    x="116"
+    y="65"
+    fill="#08094f"
+    font-family="Inter, Arial, Helvetica, sans-serif"
+    font-size="36"
+    font-weight="700"
+    letter-spacing="-0.7"
+  >west monroe</text>
+</svg>

@@ -46,7 +46,8 @@ let client: OpenAIClient | null = null
 
 function getApiKey() {
   const apiKey =
-    import.meta.env.VITE_OPENAI_API_KEY?.trim() || import.meta.env.VITE_OPENAI_SECRET_KEY?.trim()
+    import.meta.env.VITE_OPENAI_API_KEY?.trim() ||
+    import.meta.env.VITE_OPENAI_SECRET_KEY?.trim()
 
   if (!apiKey) {
     throw new Error(

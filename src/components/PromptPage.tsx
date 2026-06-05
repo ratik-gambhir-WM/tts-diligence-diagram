@@ -1,125 +1,127 @@
-import type { ChangeEvent, FormEvent } from 'react'
+import type { ChangeEvent } from 'react'
 
+import { formatFileSize } from '../utils/files'
 import { SnailLoader } from './SnailLoader'
+import { WestMonroeMark } from './WestMonroeMark'
+
+type UploadOnlyFile = {
+  name: string
+  size: number
+}
 
 type PromptPageProps = {
   acceptAttr: string
-  attachmentCountLabel: string
-  attachments: File[]
-  error: string
-  isSubmitting: boolean
-  message: string
-  onFileChange: (event: ChangeEvent<HTMLInputElement>) => void
-  onMessageChange: (value: string) => void
+  isUploadOnlySelecting: boolean
   onOpenDiagramPicker: () => void
-  onRemoveAttachment: (index: number) => void
-  onSubmit: (event: FormEvent<HTMLFormElement>) => void
-  renderFileSize: (bytes: number) => string
+  onUploadOnlyFileChange: (event: ChangeEvent<HTMLInputElement>) => void
+  onUploadOnlySubmit: () => void
+  selectedArchitectureDiagramId: string
+  uploadOnlyFiles: UploadOnlyFile[]
+  uploadOnlyFileCount: number
+  uploadOnlyError: string
 }
 
 export function PromptPage({
   acceptAttr,
-  attachmentCountLabel,
-  attachments,
-  error,
-  isSubmitting,
-  message,
-  onFileChange,
-  onMessageChange,
+  isUploadOnlySelecting,
   onOpenDiagramPicker,
-  onRemoveAttachment,
-  onSubmit,
-  renderFileSize,
+  onUploadOnlyFileChange,
+  onUploadOnlySubmit,
+  selectedArchitectureDiagramId,
+  uploadOnlyFiles,
+  uploadOnlyFileCount,
+  uploadOnlyError,
 }: PromptPageProps) {
-  if (isSubmitting) {
+  if (isUploadOnlySelecting) {
     return <SnailLoader />
   }
 
   return (
-    <main className="grid min-h-screen place-items-center p-8 max-[640px]:p-4">
-      <section className="w-full max-w-[780px] rounded-[28px] border border-[#171717]/10 bg-white/95 p-6 shadow-[0_28px_90px_rgba(23,23,23,0.12)] backdrop-blur-xl max-[640px]:p-4">
-        <header>
-          <p className="mb-2 text-[0.78rem] font-bold uppercase tracking-[0.12em] text-[#c95518]">Diagram Prompt</p>
-          <h1 className="m-0 text-[clamp(1.8rem,4vw,3rem)] leading-[1.05]">Architecture Input</h1>
-          <p className="mt-3 max-w-[42rem] text-[#4f4f4f]">
-            Enter any prompt text, then jump into a canvas-based React Flow diagram page.
-          </p>
-        </header>
+    <main className="grid min-h-screen place-items-center bg-[#070a1b] p-8 text-[#eef3ff] max-[640px]:p-4">
+      <section className="relative w-full max-w-[780px] overflow-hidden border border-white/12 bg-[#0b0f24] p-7 shadow-[0_28px_90px_rgba(0,0,0,0.34)] max-[640px]:p-5">
+        <div className="pointer-events-none absolute inset-0 opacity-45">
+          <div className="absolute left-[-10%] top-14 h-px w-[120%] rotate-12 bg-white/8" />
+          <div className="absolute left-[-10%] top-48 h-px w-[120%] -rotate-6 bg-white/8" />
+          <div className="absolute left-24 top-[-20%] h-[140%] w-px rotate-[-18deg] bg-white/8" />
+          <div className="absolute right-24 top-[-20%] h-[140%] w-px rotate-[24deg] bg-white/8" />
+        </div>
 
-        <form className="mt-6" onSubmit={onSubmit}>
-          <label htmlFor="message" className="sr-only">
-            Message
+        <div className="relative mx-auto flex flex-wrap items-center justify-center gap-5">
+          <WestMonroeMark className="h-20 w-20 max-[480px]:h-16 max-[480px]:w-16 [&_rect]:fill-[#f3c316]" />
+          <span
+            className="whitespace-nowrap text-[3rem] font-bold leading-none tracking-normal text-white max-[480px]:text-[2rem]"
+            style={{ fontFamily: 'Inter, Arial, Helvetica, sans-serif' }}
+          >
+            west monroe
+          </span>
+        </div>
+
+        <div
+          className="relative mt-8 flex flex-wrap items-center justify-center gap-3"
+          data-selected-diagram-id={selectedArchitectureDiagramId}
+        >
+          <label
+            className={`border border-[#28304a] bg-[#080c1c] px-4 py-2.5 text-[0.9rem] font-bold tracking-[0.12em] text-[#eef3ff] uppercase transition duration-150 ease-out hover:border-[#f3c316] ${
+              isUploadOnlySelecting ? 'cursor-wait opacity-70' : 'cursor-pointer'
+            }`}
+            htmlFor="upload-only-attachments"
+            aria-disabled={isUploadOnlySelecting}
+          >
+            {isUploadOnlySelecting ? 'Selecting...' : 'Upload file'}
           </label>
-          <textarea
-            id="message"
-            name="message"
-            value={message}
-            onChange={(event) => onMessageChange(event.target.value)}
-            disabled={isSubmitting}
-            placeholder="Sketch a payment platform with an API gateway, worker queue, and reporting database."
-            rows={4}
-            spellCheck={false}
-            className="min-h-[130px] w-full resize-y rounded-[20px] border border-[#171717]/12 bg-white px-[1.1rem] py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] outline-none transition focus:border-[#f26f21] focus:outline-[3px] focus:outline-[#f26f21]/20"
+          <button
+            type="button"
+            onClick={onUploadOnlySubmit}
+            disabled={isUploadOnlySelecting || uploadOnlyFileCount === 0}
+            className="cursor-pointer border border-[#f3c316] bg-[#f3c316] px-4 py-2.5 text-[0.9rem] font-bold tracking-[0.12em] text-[#070a1b] uppercase transition duration-150 ease-out hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {isUploadOnlySelecting ? 'Selecting...' : 'Submit files'}
+          </button>
+          <button
+            type="button"
+            onClick={onOpenDiagramPicker}
+            className="cursor-pointer border border-[#28304a] bg-transparent px-4 py-2.5 text-[0.9rem] font-bold tracking-[0.12em] text-[#eef3ff] uppercase transition duration-150 ease-out hover:border-[#f3c316] hover:text-[#f3c316]"
+          >
+            Browse templates
+          </button>
+          <input
+            id="upload-only-attachments"
+            name="upload-only-attachments"
+            type="file"
+            multiple
+            accept={acceptAttr}
+            onChange={onUploadOnlyFileChange}
+            disabled={isUploadOnlySelecting}
+            className="sr-only"
           />
+        </div>
 
-          <div className="mt-4 flex flex-wrap items-center gap-3">
-            <label
-              className="cursor-pointer rounded-full border-0 bg-[#171717] px-4 py-2.5 text-[0.95rem] font-bold text-white transition duration-150 ease-out hover:bg-[#2a2a2a]"
-              htmlFor="attachments"
-            >
-              Attach files
-            </label>
-            <input
-              id="attachments"
-              name="attachments"
-              type="file"
-              multiple
-              accept={acceptAttr}
-              onChange={onFileChange}
-              disabled={isSubmitting}
-              className="sr-only"
-            />
-            <span className="text-[0.92rem] text-[#5c5c5c]">{attachmentCountLabel}</span>
-            <button
-              type="button"
-              onClick={onOpenDiagramPicker}
-              className="cursor-pointer rounded-full border border-[#171717]/14 bg-white px-4 py-2.5 text-[0.95rem] font-bold text-[#171717] transition duration-150 ease-out hover:border-[#171717] hover:bg-[#f6f6f6]"
-            >
-              Browse templates
-            </button>
-            <button
-              type="submit"
-              className="ml-auto cursor-pointer rounded-full border-0 bg-gradient-to-br from-[#f26f21] to-[#c95518] px-4 py-2.5 text-[0.95rem] font-bold text-white shadow-[0_12px_24px_rgba(242,111,33,0.28)] transition duration-150 ease-out hover:-translate-y-px disabled:cursor-not-allowed max-[640px]:ml-0"
-              disabled={isSubmitting}
-            >
-              {isSubmitting ? 'Generating...' : 'Open canvas'}
-            </button>
-          </div>
-        </form>
+        {uploadOnlyError && (
+          <p className="relative mt-3 text-center text-[0.92rem] leading-5 text-[#ffb5b5]">{uploadOnlyError}</p>
+        )}
 
-        {error && <p className="mt-3 text-red-700">{error}</p>}
-
-        {attachments.length > 0 && (
-          <ul className="mt-4 grid list-none gap-2 p-0" aria-label="Attached files">
-            {attachments.map((file, index) => (
-              <li
-                key={`${file.name}-${file.size}-${index}`}
-                className="flex items-center justify-between gap-2 rounded-[14px] border border-[#171717]/10 bg-[#fafafa] px-3 py-2.5"
-              >
-                <span>
-                  {file.name} ({renderFileSize(file.size)})
-                </span>
-                <button
-                  type="button"
-                  onClick={() => onRemoveAttachment(index)}
-                  disabled={isSubmitting}
-                  className="cursor-pointer border-0 bg-transparent font-bold text-[#171717] transition hover:text-[#c95518]"
+        {uploadOnlyFiles.length > 0 && (
+          <div className="relative mt-6 border-t border-white/12 pt-4">
+            <div className="mb-3 flex items-center justify-between gap-3 text-[0.82rem] font-bold tracking-[0.12em] text-[#8d93aa] uppercase">
+              <span>Added files</span>
+              <span>
+                {uploadOnlyFiles.length} file{uploadOnlyFiles.length === 1 ? '' : 's'}
+              </span>
+            </div>
+            <ul className="grid gap-2" aria-label="Added files">
+              {uploadOnlyFiles.map((file, index) => (
+                <li
+                  className="flex min-w-0 items-center justify-between gap-3 border border-[#28304a] bg-[#080c1c] px-3 py-2 text-left"
+                  key={`${file.name}-${file.size}-${index}`}
                 >
-                  Remove
-                </button>
-              </li>
-            ))}
-          </ul>
+                  <span className="min-w-0 truncate text-[0.9rem] font-bold text-[#eef3ff]">{file.name}</span>
+                  <span className="shrink-0 text-[0.8rem] font-bold text-[#8d93aa]">
+                    {formatFileSize(file.size)}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
         )}
       </section>
     </main>

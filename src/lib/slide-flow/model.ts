@@ -1,6 +1,7 @@
 import type { Node } from '@xyflow/react'
 
 import {
+  getConnectorAwareElementOrder,
   normalizePresentationSpec,
   type NormalizedElement,
   type NormalizedPresentation,
@@ -82,7 +83,7 @@ function buildNodes(slide: NormalizedSlide): Node<SlideFlowNodeData>[] {
       },
       zIndex: 0,
     },
-    ...slide.elements.map((element, index) => {
+    ...getConnectorAwareElementOrder(slide).map((element, index) => {
       const geometry = getElementGeometry(element)
       const zIndex = index + 1
 
