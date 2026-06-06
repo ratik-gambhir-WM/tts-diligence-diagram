@@ -238,6 +238,17 @@ export interface PowerPointWriteOptions {
   compression?: boolean
   insertAfterSlide?: number
   targetFile?: File
+  targetFileHandle?: PowerPointFileHandle
+  writeMode?: 'copy' | 'overwrite'
+}
+
+export interface PowerPointFileHandle {
+  name: string
+  getFile: () => Promise<File>
+  createWritable: () => Promise<{
+    write: (data: Blob | Uint8Array) => Promise<void>
+    close: () => Promise<void>
+  }>
 }
 
 const DEFAULT_WIDTH_PX = 1280
@@ -372,8 +383,9 @@ export async function writePptxPresentation(
   const themed = await buildThemedPptxBytes(presentation, {
     compression: options.compression,
   })
-  const output = options.targetFile
-    ? await insertPptxBytesIntoExistingDeck(themed, options.targetFile, {
+  const targetFile = options.targetFile ?? (await options.targetFileHandle?.getFile())
+  const output = targetFile
+    ? await insertPptxBytesIntoExistingDeck(themed, targetFile, {
         compression: options.compression,
         insertAfterSlide: options.insertAfterSlide,
       })
@@ -381,6 +393,15 @@ export async function writePptxPresentation(
         bytes: themed,
         fileName: options.fileName,
       }
+
+  if (options.writeMode === 'overwrite') {
+    if (!options.targetFileHandle) {
+      throw new Error('Direct editing requires choosing the .pptx with browser write access.')
+    }
+
+    await writePptxBytesToFileHandle(output.bytes, options.targetFileHandle)
+    return
+  }
 
   downloadPptxBytes(output.bytes, output.fileName)
 }
@@ -547,6 +568,15 @@ function downloadPptxBytes(themed: Uint8Array, fileName: string) {
   browser.URL.revokeObjectURL(link.href)
 }
 
+async function writePptxBytesToFileHandle(bytes: Uint8Array, fileHandle: PowerPointFileHandle) {
+  const writable = await fileHandle.createWritable()
+  try {
+    await writable.write(bytes)
+  } finally {
+    await writable.close()
+  }
+}
+
 async function applyDefaultThemeToPptx(raw: unknown, options: Pick<PowerPointWriteOptions, 'compression'>) {
   const bytes = await toUint8Array(raw)
   const zip = await JSZip.loadAsync(bytes)
@@ -602,6 +632,7 @@ async function insertPptxBytesIntoExistingDeck(
   let presentationRels = parseRelationships(presentationRelsXml)
   let contentTypes = contentTypesXml
   const insertedSlideIdEntries: string[] = []
+  const insertedSlideIds: number[] = []
 
   for (const sourceSlideNumber of sourceSlideNumbers) {
     const sourceSlidePath = `ppt/slides/slide${sourceSlideNumber}.xml`
@@ -640,13 +671,18 @@ async function insertPptxBytesIntoExistingDeck(
     )
     contentTypes = ensureMediaContentTypes(contentTypes)
     insertedSlideIdEntries.push(`<p:sldId id="${newSlideId}" r:id="${newPresentationRelId}"/>`)
+    insertedSlideIds.push(newSlideId)
   }
 
   if (!insertedSlideIdEntries.length) {
     throw new Error('No generated slide could be copied into the selected PowerPoint file.')
   }
 
-  targetZip.file(presentationPath, insertSlideIdEntries(presentationXml, insertedSlideIdEntries, insertAfterSlide))
+  const insertedPresentationXml = insertSlideIdEntries(presentationXml, insertedSlideIdEntries, insertAfterSlide)
+  targetZip.file(
+    presentationPath,
+    insertSectionSlideIds(insertedPresentationXml, insertedSlideIds, targetSlideIds, insertAfterSlide),
+  )
   targetZip.file(presentationRelsPath, buildRelationshipsXml(presentationRels))
   targetZip.file(contentTypesPath, contentTypes)
 
@@ -724,13 +760,51 @@ function insertSlideIdEntries(
   )}`
 }
 
+function insertSectionSlideIds(
+  presentationXml: string,
+  insertedSlideIds: number[],
+  existingSlideIds: Array<{ id: number; relationshipId: string }>,
+  insertAfterSlide: number,
+) {
+  if (!insertedSlideIds.length || !presentationXml.includes(':sectionLst')) {
+    return presentationXml
+  }
+
+  const anchorSlideId = insertAfterSlide > 0 ? existingSlideIds[insertAfterSlide - 1]?.id : undefined
+  const sectionSlideIds = insertedSlideIds.map((id) => `<p14:sldId id="${id}"/>`).join('')
+
+  if (anchorSlideId !== undefined) {
+    const anchorPattern = new RegExp(`(<p14:sldId\\b[^>]*\\bid="${anchorSlideId}"[^>]*/>)`, 'u')
+    if (anchorPattern.test(presentationXml)) {
+      return presentationXml.replace(anchorPattern, `$1${sectionSlideIds}`)
+    }
+  }
+
+  const firstSectionListOpening = presentationXml.match(/<p14:sldIdLst\b[^>]*>/u)
+  if (firstSectionListOpening?.index !== undefined) {
+    const insertionPoint = firstSectionListOpening.index + firstSectionListOpening[0].length
+    return `${presentationXml.slice(0, insertionPoint)}${sectionSlideIds}${presentationXml.slice(insertionPoint)}`
+  }
+
+  return presentationXml
+}
+
 function parseRelationships(xml: string): PptxRelationship[] {
   return Array.from(xml.matchAll(/<Relationship\b([^>]*)\/>/gu))
-    .map((match) => parseXmlAttributes(match[1]))
-    .filter(
-      (attributes): attributes is PptxRelationship =>
-        !!attributes.Id && !!attributes.Type && !!attributes.Target,
-    )
+    .map((match) => {
+      const attributes = parseXmlAttributes(match[1])
+      if (!attributes.Id || !attributes.Type || !attributes.Target) {
+        return undefined
+      }
+
+      return {
+        Id: attributes.Id,
+        Type: attributes.Type,
+        Target: attributes.Target,
+        TargetMode: attributes.TargetMode,
+      }
+    })
+    .filter(isDefined)
 }
 
 function buildRelationshipsXml(relationships: PptxRelationship[]) {
@@ -801,6 +875,10 @@ async function rewriteSlideRelationships(
         ...relationship,
         Target: targetLayout,
       })
+      continue
+    }
+
+    if (relationship.Type.endsWith('/notesSlide')) {
       continue
     }
 
@@ -2257,6 +2335,15 @@ function escapeXml(input: string) {
     .replace(/"/g, '&quot;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
+}
+
+function unescapeXmlAttribute(input: string) {
+  return input
+    .replace(/&quot;/g, '"')
+    .replace(/&apos;/g, "'")
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&amp;/g, '&')
 }
 
 function coerceNumber(value: unknown, fallback: number) {

@@ -1,18 +1,63 @@
 import { useEffect, useState } from 'react'
 
+import { WestMonroeMark } from './WestMonroeMark'
+
 const snailOffsets = [
   { delay: '0s', duration: '12s', top: 'calc(50% - 34px)' },
   { delay: '-4s', duration: '13.5s', top: '50%' },
   { delay: '-8s', duration: '15s', top: 'calc(50% + 30px)' },
 ]
 
+const loadingPhrases = [
+  'Checking if Kubernetes is the strategy...',
+  'Looking for the database everyone shares...',
+  'Asking why the auth service knows everything...',
+  'Detecting whether Kafka is being used as therapy...',
+  'Seeing if the cache is now the source of truth...',
+  'Wondering why production is named "final-final-v2"...',
+  'Confirming whether the API gateway is actually a gateway...',
+  'Finding the cron job holding the company together...',
+  'Checking if the ETL pipeline has feelings...',
+  'Seeing if observability means "we check logs sometimes"...',
+  'Looking for the Excel file in the critical path...',
+  'Identifying which service became a lifestyle...',
+  'Determining if "event-driven" means "we hope events arrive"...',
+  'Asking the legacy system to please be cool...',
+  'Checking if the staging environment is decorative...',
+  'Finding the Lambda nobody remembers deploying...',
+  'Seeing whether the data lake has become a data swamp...',
+  'Determining if the diagram matches production...',
+  'Looking for hardcoded secrets and soft commitments...',
+  'Checking whether "temporary" is older than the company...',
+  'Mapping the spaghetti...',
+  'Finding the hidden monolith...',
+  'Looking for surprise dependencies...',
+  'Interviewing the boxes and arrows...',
+  'Asking the architecture diagram what it is hiding...',
+  'Checking whether "microservices" means "distributed monolith"...',
+  'Following the data flows into the basement...',
+  'Looking for the system nobody owns...',
+  'Translating whiteboard chaos into diligence-ready insight...',
+  'Separating architecture from aspiration...',
+  'Counting integrations and regretting it...',
+  'Looking for the single point of "oh no"...',
+  'Checking if the roadmap is doing load-bearing work...',
+  'Finding where scalability goes to die...',
+  'Detecting tactical duct tape...',
+  'Verifying whether the platform is actually a platform...',
+  'Turning tribal knowledge into diagram labels...',
+  'Looking for the service named "misc"...',
+  'Inspecting the blast radius...',
+  'Checking if "cloud-native" survived contact with reality...',
+]
+
 export function SnailLoader() {
-  const [dotCount, setDotCount] = useState(0)
+  const [phraseIndex, setPhraseIndex] = useState(() => randomPhraseIndex())
 
   useEffect(() => {
     const intervalId = window.setInterval(() => {
-      setDotCount((currentCount) => (currentCount + 1) % 4)
-    }, 450)
+      setPhraseIndex((currentIndex) => randomPhraseIndex(currentIndex))
+    }, 5000)
 
     return () => window.clearInterval(intervalId)
   }, [])
@@ -24,14 +69,14 @@ export function SnailLoader() {
       aria-live="polite"
     >
       <section className="w-full max-w-[48rem] text-center">
-        <h1 className="mb-3 text-[2rem] font-bold uppercase tracking-[0.14em] text-[#f3c316]">
-          Generating diagram
-          <span className="inline-block min-w-[3ch] text-left" aria-hidden="true">
-            {'.'.repeat(dotCount)}
-          </span>
-        </h1>
-        <p className="mx-auto mt-[0.9rem] max-w-[38rem] text-base text-[#a8afc4]">
-          While you're waiting, enjoy the snail race below
+        <div className="mx-auto mb-5 grid h-24 w-24 place-items-center rounded-full border border-white/12 bg-[#0b0f24] shadow-[0_18px_45px_rgba(0,0,0,0.22)]">
+          <WestMonroeMark className="h-14 w-14 [animation:loader-mark-spin_1.2s_linear_infinite] [&_rect]:fill-[#f3c316]" />
+        </div>
+        <p
+          key={loadingPhrases[phraseIndex]}
+          className="loader-phrase mx-auto mt-[0.9rem] min-h-[3rem] max-w-[42rem] text-base leading-6 text-[#a8afc4]"
+        >
+          {loadingPhrases[phraseIndex]}
         </p>
       </section>
 
@@ -72,4 +117,16 @@ export function SnailLoader() {
       </div>
     </main>
   )
+}
+
+function randomPhraseIndex(currentIndex?: number) {
+  if (loadingPhrases.length <= 1) {
+    return 0
+  }
+
+  let nextIndex = Math.floor(Math.random() * loadingPhrases.length)
+  while (nextIndex === currentIndex) {
+    nextIndex = Math.floor(Math.random() * loadingPhrases.length)
+  }
+  return nextIndex
 }

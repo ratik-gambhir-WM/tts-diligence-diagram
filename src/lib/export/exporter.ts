@@ -5,6 +5,7 @@ import {
   writePptxPresentation,
   type NormalizationOptions,
   type NormalizedPresentation,
+  type PowerPointFileHandle,
   type ValidationIssue,
 } from './PowerpointGenerator.ts'
 
@@ -12,12 +13,17 @@ export { buildSuggestedFileName } from './PowerpointGenerator.ts'
 export type {
   NormalizationOptions,
   NormalizedPresentation,
+  PowerPointFileHandle,
   ValidationIssue,
 } from './PowerpointGenerator.ts'
 
 export interface GeneratePowerPointOptions {
   outputPath?: string
   compression?: boolean
+  insertAfterSlide?: number
+  targetFile?: File
+  targetFileHandle?: PowerPointFileHandle
+  writeMode?: 'copy' | 'overwrite'
 }
 
 export interface GeneratePowerPointFromJsonOptions
@@ -86,6 +92,10 @@ async function writePowerPoint(
   await writePptxPresentation(presentation, {
     fileName: outputPath,
     compression: options.compression,
+    insertAfterSlide: options.insertAfterSlide,
+    targetFile: options.targetFile,
+    targetFileHandle: options.targetFileHandle,
+    writeMode: options.writeMode,
   })
 
   return {

@@ -1,6 +1,7 @@
 import type { ChangeEvent } from 'react'
 
 import { formatFileSize } from '../utils/files'
+import { AppNav } from './AppNav'
 import { SnailLoader } from './SnailLoader'
 import { WestMonroeMark } from './WestMonroeMark'
 
@@ -13,6 +14,7 @@ type PromptPageProps = {
   acceptAttr: string
   isUploadOnlySelecting: boolean
   onOpenDiagramPicker: () => void
+  onOpenInputPage: () => void
   onUploadOnlyFileChange: (event: ChangeEvent<HTMLInputElement>) => void
   onUploadOnlySubmit: () => void
   selectedArchitectureDiagramId: string
@@ -25,6 +27,7 @@ export function PromptPage({
   acceptAttr,
   isUploadOnlySelecting,
   onOpenDiagramPicker,
+  onOpenInputPage,
   onUploadOnlyFileChange,
   onUploadOnlySubmit,
   selectedArchitectureDiagramId,
@@ -37,8 +40,15 @@ export function PromptPage({
   }
 
   return (
-    <main className="grid min-h-screen place-items-center bg-[#070a1b] p-8 text-[#eef3ff] max-[640px]:p-4">
-      <section className="relative w-full max-w-[780px] overflow-hidden border border-white/12 bg-[#0b0f24] p-7 shadow-[0_28px_90px_rgba(0,0,0,0.34)] max-[640px]:p-5">
+    <main className="flex min-h-screen flex-col bg-[#070a1b] p-8 text-[#eef3ff] max-[640px]:p-4">
+      <AppNav
+        activePage="diagramming"
+        onOpenDiagramPicker={onOpenDiagramPicker}
+        onOpenInputPage={onOpenInputPage}
+      />
+
+      <div className="grid min-h-0 flex-1 place-items-center pt-8">
+      <section className="relative w-full max-w-[780px] overflow-hidden rounded-[2rem] border border-white/12 bg-[#0b0f24] p-7 shadow-[0_28px_90px_rgba(0,0,0,0.34)] max-[640px]:rounded-[1.5rem] max-[640px]:p-5">
         <div className="pointer-events-none absolute inset-0 opacity-45">
           <div className="absolute left-[-10%] top-14 h-px w-[120%] rotate-12 bg-white/8" />
           <div className="absolute left-[-10%] top-48 h-px w-[120%] -rotate-6 bg-white/8" />
@@ -50,7 +60,6 @@ export function PromptPage({
           <WestMonroeMark className="h-20 w-20 max-[480px]:h-16 max-[480px]:w-16 [&_rect]:fill-[#f3c316]" />
           <span
             className="whitespace-nowrap text-[3rem] font-bold leading-none tracking-normal text-white max-[480px]:text-[2rem]"
-            style={{ fontFamily: 'Inter, Arial, Helvetica, sans-serif' }}
           >
             west monroe
           </span>
@@ -76,13 +85,6 @@ export function PromptPage({
             className="cursor-pointer border border-[#f3c316] bg-[#f3c316] px-4 py-2.5 text-[0.9rem] font-bold tracking-[0.12em] text-[#070a1b] uppercase transition duration-150 ease-out hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {isUploadOnlySelecting ? 'Selecting...' : 'Submit files'}
-          </button>
-          <button
-            type="button"
-            onClick={onOpenDiagramPicker}
-            className="cursor-pointer border border-[#28304a] bg-transparent px-4 py-2.5 text-[0.9rem] font-bold tracking-[0.12em] text-[#eef3ff] uppercase transition duration-150 ease-out hover:border-[#f3c316] hover:text-[#f3c316]"
-          >
-            Browse templates
           </button>
           <input
             id="upload-only-attachments"
@@ -124,6 +126,7 @@ export function PromptPage({
           </div>
         )}
       </section>
+      </div>
     </main>
   )
 }

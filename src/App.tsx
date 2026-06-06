@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ChangeEvent } from 'react'
-import { Navigate, Route, Routes, useNavigate } from 'react-router-dom'
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
+import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 import '@xyflow/react/dist/style.css'
 
 import { DiagramPicker } from './components/DiagramPicker'
@@ -8,7 +9,7 @@ import { LoginPage } from './components/LoginPage'
 import { PromptPage } from './components/PromptPage'
 import { ACCEPT_ATTR } from './lib/diagram'
 import { getDefaultDiagramTemplate, type DiagramTemplate } from './lib/diagramTemplates'
-import { generatePowerPointFromJson } from './lib/export/exporter'
+import { generatePowerPointFromJson, type PowerPointFileHandle } from './lib/export/exporter'
 import {
   getSelectedArchitectureTemplate,
   selectArchitectureDiagramModel,
@@ -24,9 +25,13 @@ const DIAGRAM_PICKER_ROUTE = '/diagram-picker'
 const DIAGRAM_CANVAS_ROUTE = '/diagram-template'
 const LOGIN_ROUTE = '/login'
 const EMAIL_SESSION_STORAGE_KEY = 'tts-mermaid-email'
+const POWERPOINT_ACCEPT_ATTR =
+  '.pptx,application/vnd.openxmlformats-officedocument.presentationml.presentation'
 
 export default function App() {
+  const location = useLocation()
   const navigate = useNavigate()
+  const shouldReduceMotion = useReducedMotion()
   const [session, setSession] = useState(() => getStoredSession())
   const [canvasTemplate, setCanvasTemplate] = useState<DiagramTemplate>(() => getDefaultDiagramTemplate())
   const [templateStatusMessage, setTemplateStatusMessage] = useState('')
@@ -152,87 +157,101 @@ export default function App() {
   }
 
   return (
-    <Routes>
-      <Route
-        path={LOGIN_ROUTE}
-        element={
-          session ? (
-            <Navigate replace to={EXPORTER_ROUTE} />
-          ) : (
-            <LoginPage
-              initialEmailLocalPart={getEmailLocalPart(getStoredEmail())}
-              onSubmit={handleLogin}
-            />
-          )
-        }
-      />
-      <Route
-        path={EXPORTER_ROUTE}
-        element={
-          session ? (
-            <PromptPage
-              acceptAttr={ACCEPT_ATTR}
-              isUploadOnlySelecting={isModelSelecting}
-              onOpenDiagramPicker={() => navigate(DIAGRAM_PICKER_ROUTE)}
-              onUploadOnlyFileChange={handleUploadOnlyFileChange}
-              onUploadOnlySubmit={handleUploadOnlySubmit}
-              selectedArchitectureDiagramId={modelSelection?.selectedDiagramId ?? ''}
-              uploadOnlyFiles={uploadOnlyAttachments.map((file) => ({
-                name: file.name,
-                size: file.size,
-              }))}
-              uploadOnlyFileCount={uploadOnlyAttachments.length}
-              uploadOnlyError={modelSelectorError || error}
-            />
-          ) : (
-            <Navigate replace to={LOGIN_ROUTE} />
-          )
-        }
-      />
-      <Route
-        path={DIAGRAM_PICKER_ROUTE}
-        element={
-          session ? (
-            <DiagramPicker
-              acceptAttr={ACCEPT_ATTR}
-              attachmentCountLabel={attachmentCountLabel}
-              attachments={attachments}
-              error={templateError}
-              isSubmitting={isTemplateSubmitting}
-              onFileChange={handleFiles}
-              onOpenInputPage={() => navigate(EXPORTER_ROUTE)}
-              onRemoveAttachment={removeAttachment}
-              onSelectTemplate={handleSubmitTemplate}
-              renderFileSize={formatFileSize}
-            />
-          ) : (
-            <Navigate replace to={LOGIN_ROUTE} />
-          )
-        }
-      />
-      <Route
-        path={DIAGRAM_CANVAS_ROUTE}
-        element={
-          session ? (
-            <TemplateCanvasPage
-              template={canvasTemplate}
-              statusMessage={templateStatusMessage}
-              showJsonByDefault={isTemplateJsonOpenOnLoad}
-              onTemplateJsonChange={(jsonSpec) =>
-                setCanvasTemplate((currentTemplate) => ({
-                  ...currentTemplate,
-                  jsonSpec,
-                }))
-              }
-              onOpenPicker={() => navigate(DIAGRAM_PICKER_ROUTE)}
-              onOpenInputPage={() => navigate(EXPORTER_ROUTE)}
-            />
-          ) : (
-            <Navigate replace to={LOGIN_ROUTE} />
-          )
-        }
-      />
-    </Routes>
+    <div className="min-h-screen overflow-x-hidden bg-[#070a1b]">
+      <AnimatePresence mode="popLayout" initial={false}>
+        <motion.div
+          key={location.pathname}
+          className="min-h-screen bg-[#070a1b] will-change-transform"
+          initial={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, x: 140 }}
+          animate={shouldReduceMotion ? { opacity: 1 } : { opacity: 1, x: 0 }}
+          exit={shouldReduceMotion ? { opacity: 0 } : { opacity: 0, x: -140 }}
+          transition={{ duration: shouldReduceMotion ? 0.12 : 0.46, ease: [0.22, 1, 0.36, 1] }}
+        >
+          <Routes location={location}>
+          <Route
+            path={LOGIN_ROUTE}
+            element={
+              session ? (
+                <Navigate replace to={EXPORTER_ROUTE} />
+              ) : (
+                <LoginPage
+                  initialEmailLocalPart={getEmailLocalPart(getStoredEmail())}
+                  onSubmit={handleLogin}
+                />
+              )
+            }
+          />
+          <Route
+            path={EXPORTER_ROUTE}
+            element={
+              session ? (
+                <PromptPage
+                  acceptAttr={ACCEPT_ATTR}
+                  isUploadOnlySelecting={isModelSelecting}
+                  onOpenDiagramPicker={() => navigate(DIAGRAM_PICKER_ROUTE)}
+                  onOpenInputPage={() => navigate(EXPORTER_ROUTE)}
+                  onUploadOnlyFileChange={handleUploadOnlyFileChange}
+                  onUploadOnlySubmit={handleUploadOnlySubmit}
+                  selectedArchitectureDiagramId={modelSelection?.selectedDiagramId ?? ''}
+                  uploadOnlyFiles={uploadOnlyAttachments.map((file) => ({
+                    name: file.name,
+                    size: file.size,
+                  }))}
+                  uploadOnlyFileCount={uploadOnlyAttachments.length}
+                  uploadOnlyError={modelSelectorError || error}
+                />
+              ) : (
+                <Navigate replace to={LOGIN_ROUTE} />
+              )
+            }
+          />
+          <Route
+            path={DIAGRAM_PICKER_ROUTE}
+            element={
+              session ? (
+                <DiagramPicker
+                  acceptAttr={ACCEPT_ATTR}
+                  attachmentCountLabel={attachmentCountLabel}
+                  attachments={attachments}
+                  error={templateError}
+                  isSubmitting={isTemplateSubmitting}
+                  onFileChange={handleFiles}
+                  onOpenInputPage={() => navigate(EXPORTER_ROUTE)}
+                  onRemoveAttachment={removeAttachment}
+                  onSelectTemplate={handleSubmitTemplate}
+                  renderFileSize={formatFileSize}
+                />
+              ) : (
+                <Navigate replace to={LOGIN_ROUTE} />
+              )
+            }
+          />
+          <Route
+            path={DIAGRAM_CANVAS_ROUTE}
+            element={
+              session ? (
+                <TemplateCanvasPage
+                  template={canvasTemplate}
+                  statusMessage={templateStatusMessage}
+                  showJsonByDefault={isTemplateJsonOpenOnLoad}
+                  onTemplateJsonChange={(jsonSpec) =>
+                    setCanvasTemplate((currentTemplate) => ({
+                      ...currentTemplate,
+                      jsonSpec,
+                    }))
+                  }
+                  onOpenPicker={() => navigate(DIAGRAM_PICKER_ROUTE)}
+                  onOpenInputPage={() => navigate(EXPORTER_ROUTE)}
+                />
+              ) : (
+                <Navigate replace to={LOGIN_ROUTE} />
+              )
+            }
+          />
+          </Routes>
+        </motion.div>
+      </AnimatePresence>
+    </div>
   )
 }
 
@@ -286,6 +305,12 @@ function TemplateCanvasPage({
   const [isJsonPanelOpen, setIsJsonPanelOpen] = useState(showJsonByDefault)
   const [isExporting, setIsExporting] = useState(false)
   const [exportError, setExportError] = useState('')
+  const [exportStatus, setExportStatus] = useState('')
+  const [selectedPowerPointFile, setSelectedPowerPointFile] = useState<File | null>(null)
+  const [selectedPowerPointHandle, setSelectedPowerPointHandle] = useState<PowerPointFileHandle | null>(null)
+  const [insertAfterSlide, setInsertAfterSlide] = useState('1')
+  const [createNewEditedCopy, setCreateNewEditedCopy] = useState(true)
+  const powerpointFileInputRef = useRef<HTMLInputElement>(null)
   const currentTemplateJson = useMemo(
     () => JSON.stringify(template.jsonSpec, null, 2),
     [template.jsonSpec],
@@ -295,12 +320,95 @@ function TemplateCanvasPage({
     setIsJsonPanelOpen(showJsonByDefault)
   }, [showJsonByDefault, template.id])
 
-  async function handleExportPowerPoint() {
+  async function handleChoosePowerPointFile() {
     setExportError('')
+    setExportStatus('')
+
+    const fileHandle = await chooseWritablePowerPointFile()
+    if (fileHandle) {
+      const file = await fileHandle.getFile()
+      setSelectedPowerPointFile(file)
+      setSelectedPowerPointHandle(fileHandle)
+      return
+    }
+
+    powerpointFileInputRef.current?.click()
+  }
+
+  function handlePowerPointFileChange(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.currentTarget.files?.[0]
+
+    if (!file) {
+      return
+    }
+
+    if (!isPowerPointFile(file)) {
+      setSelectedPowerPointFile(null)
+      setSelectedPowerPointHandle(null)
+      setExportError('Choose a .pptx PowerPoint file.')
+      event.currentTarget.value = ''
+      return
+    }
+
+    setSelectedPowerPointFile(file)
+    setSelectedPowerPointHandle(null)
+    setExportError('')
+    setExportStatus('')
+  }
+
+  async function handleAddSlideToPowerPoint() {
+    setExportError('')
+    setExportStatus('')
+
+    if (!selectedPowerPointFile) {
+      await handleChoosePowerPointFile()
+      return
+    }
+
+    const parsedInsertAfterSlide = Number(insertAfterSlide)
+    if (!Number.isInteger(parsedInsertAfterSlide) || parsedInsertAfterSlide < 0) {
+      setExportError('Enter a whole slide number. Use 0 to insert before the first slide.')
+      return
+    }
+
+    if (!createNewEditedCopy && !selectedPowerPointHandle) {
+      setExportError('Direct editing requires the browser file picker with write access. Select the .pptx again or create a new copy.')
+      return
+    }
+
+    setIsExporting(true)
+
+    try {
+      await generatePowerPointFromJson(template.jsonSpec, {
+        targetFile: selectedPowerPointFile,
+        targetFileHandle: selectedPowerPointHandle ?? undefined,
+        insertAfterSlide: parsedInsertAfterSlide,
+        writeMode: createNewEditedCopy ? 'copy' : 'overwrite',
+      })
+      setExportStatus(
+        createNewEditedCopy
+          ? 'Created a new PowerPoint copy with the slide added.'
+          : `Updated ${selectedPowerPointFile.name}. Open the file from Finder to view the edited presentation.`,
+      )
+    } catch (error) {
+      setExportError(
+        error instanceof Error
+          ? error.message
+          : 'Failed to add the current slide to the selected PowerPoint file.',
+      )
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
+  async function handleCreateNewPowerPoint() {
+    setExportError('')
+    setExportStatus('')
     setIsExporting(true)
 
     try {
       await generatePowerPointFromJson(template.jsonSpec)
+      setExportStatus('Created a new PowerPoint deck.')
     } catch (error) {
       setExportError(
         error instanceof Error
@@ -328,14 +436,65 @@ function TemplateCanvasPage({
             </p>
           </div>
 
-          <div className="flex flex-wrap gap-3">
+          <div className="flex max-w-[48rem] flex-wrap items-end justify-end gap-3">
+            <input
+              ref={powerpointFileInputRef}
+              type="file"
+              accept={POWERPOINT_ACCEPT_ATTR}
+              onChange={handlePowerPointFileChange}
+              className="hidden"
+            />
+            <label className="grid gap-1">
+              <span className="text-[0.68rem] font-bold tracking-[0.14em] text-[#8d93aa] uppercase">
+                After slide
+              </span>
+              <input
+                type="number"
+                min="0"
+                step="1"
+                value={insertAfterSlide}
+                onChange={(event) => setInsertAfterSlide(event.currentTarget.value)}
+                className="w-24 border border-[#28304a] bg-[#080c1c] px-3 py-2 text-[0.86rem] font-bold text-[#eef3ff] outline-none focus:border-[#f3c316]"
+                aria-label="Slide number to insert after"
+              />
+            </label>
             <button
               type="button"
-              onClick={handleExportPowerPoint}
+              onClick={handleAddSlideToPowerPoint}
               disabled={isExporting}
               className="cursor-pointer border border-[#f3c316] bg-[#f3c316] px-5 py-2 text-[0.9rem] font-bold tracking-[0.12em] text-[#070a1b] uppercase transition hover:brightness-105 disabled:cursor-not-allowed disabled:opacity-70"
             >
-              {isExporting ? 'Exporting' : 'Export PPTX'}
+              {isExporting
+                ? 'Exporting'
+                : selectedPowerPointFile
+                  ? 'Add Slide'
+                  : 'Choose PPTX'}
+            </button>
+            <button
+              type="button"
+              onClick={handleChoosePowerPointFile}
+              disabled={isExporting}
+              className="max-w-[14rem] cursor-pointer truncate border border-[#28304a] bg-[#080c1c] px-4 py-2 text-[0.78rem] font-bold tracking-[0.08em] text-[#eef3ff] uppercase transition hover:border-[#f3c316] hover:text-[#f3c316] disabled:cursor-not-allowed disabled:opacity-70"
+              title={selectedPowerPointFile?.name || 'Choose an existing .pptx file'}
+            >
+              {selectedPowerPointFile ? selectedPowerPointFile.name : 'Select PPTX'}
+            </button>
+            <label className="flex max-w-[15rem] cursor-pointer items-center gap-2 border border-[#28304a] bg-[#080c1c] px-3 py-2 text-[0.72rem] font-bold tracking-[0.08em] text-[#eef3ff] uppercase">
+              <input
+                type="checkbox"
+                checked={createNewEditedCopy}
+                onChange={(event) => setCreateNewEditedCopy(event.currentTarget.checked)}
+                className="h-4 w-4 accent-[#f3c316]"
+              />
+              Create new copy
+            </label>
+            <button
+              type="button"
+              onClick={handleCreateNewPowerPoint}
+              disabled={isExporting}
+              className="cursor-pointer border border-[#28304a] bg-transparent px-4 py-2 text-[0.78rem] font-bold tracking-[0.12em] text-[#eef3ff] uppercase transition hover:border-[#f3c316] hover:text-[#f3c316] disabled:cursor-not-allowed disabled:opacity-70"
+            >
+              Create New
             </button>
             <button
               type="button"
@@ -357,6 +516,11 @@ function TemplateCanvasPage({
         {exportError && (
           <p className="mt-3 max-w-4xl text-[0.92rem] leading-5 text-[#ffb5b5]">
             {exportError}
+          </p>
+        )}
+        {exportStatus && !exportError && (
+          <p className="mt-3 max-w-4xl text-[0.92rem] leading-5 text-[#a8afc4]">
+            {exportStatus}
           </p>
         )}
 
@@ -413,5 +577,60 @@ function TemplateCanvasPage({
         </div>
       </div>
     </main>
+  )
+}
+
+interface PowerPointPickerWindow extends Window {
+  showOpenFilePicker?: (options?: {
+    excludeAcceptAllOption?: boolean
+    multiple?: boolean
+    types?: Array<{
+      accept: Record<string, string[]>
+      description: string
+    }>
+  }) => Promise<PowerPointFileHandle[]>
+}
+
+async function chooseWritablePowerPointFile() {
+  const browser = window as PowerPointPickerWindow
+
+  if (!browser.showOpenFilePicker) {
+    return undefined
+  }
+
+  try {
+    const [fileHandle] = await browser.showOpenFilePicker({
+      excludeAcceptAllOption: true,
+      multiple: false,
+      types: [
+        {
+          description: 'PowerPoint presentations',
+          accept: {
+            'application/vnd.openxmlformats-officedocument.presentationml.presentation': ['.pptx'],
+          },
+        },
+      ],
+    })
+
+    if (!fileHandle) {
+      return undefined
+    }
+
+    const file = await fileHandle.getFile()
+    return isPowerPointFile(file) ? fileHandle : undefined
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      return undefined
+    }
+
+    throw error
+  }
+}
+
+function isPowerPointFile(file: File) {
+  return (
+    file.name.toLowerCase().endsWith('.pptx') &&
+    (!file.type ||
+      file.type === 'application/vnd.openxmlformats-officedocument.presentationml.presentation')
   )
 }

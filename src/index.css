@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Oxanium:wght@400;600;700&display=swap');
 @import "tailwindcss";
 
 @layer base {
@@ -7,7 +7,7 @@
   .theme-dark {
     color-scheme: dark;
 
-    --font-ui: "Space Mono", "Avenir Next", Avenir, "Segoe UI", sans-serif;
+    --font-ui: "Oxanium", "Avenir Next", Avenir, "Segoe UI", sans-serif;
 
     --theme-page-bg: #070a1b;
     --theme-page-text: #eef3ff;
@@ -47,7 +47,7 @@
   .theme-light {
     color-scheme: light;
 
-    --font-ui: "Space Mono", "Avenir Next", Avenir, "Segoe UI", sans-serif;
+    --font-ui: "Oxanium", "Avenir Next", Avenir, "Segoe UI", sans-serif;
 
     --theme-page-bg: #f8fafc;
     --theme-page-text: #060150;
@@ -88,7 +88,7 @@
   .theme-future-theme-name {
     color-scheme: light;
 
-    --font-ui: "Space Mono", "Avenir Next", Avenir, "Segoe UI", sans-serif;
+    --font-ui: "Oxanium", "Avenir Next", Avenir, "Segoe UI", sans-serif;
 
     --theme-page-bg: #ffffff;
     --theme-page-text: #000000;
@@ -179,7 +179,39 @@
   }
 }
 
+@keyframes loader-mark-spin {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes loader-phrase-cycle {
+  0% {
+    opacity: 0;
+    transform: translateY(0.65rem);
+  }
+
+  12%,
+  82% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(-0.65rem);
+  }
+}
+
 @layer components {
+  .loader-phrase {
+    animation: loader-phrase-cycle 5s ease-in-out both;
+  }
+
   .react-flow__node.rf-cylinder-node {
     position: relative;
     overflow: visible !important;

@@ -6,6 +6,7 @@ import {
   DIAGRAM_TEMPLATES,
 } from '../lib/diagramTemplates'
 import type { DiagramTemplate } from '../lib/diagramTemplates'
+import { AppNav } from './AppNav'
 import { SnailLoader } from './SnailLoader'
 
 type DiagramPickerProps = {
@@ -75,25 +76,13 @@ export function DiagramPicker({
   }
 
   return (
-    <main className="min-h-screen bg-[#070a1b] text-[#eef3ff]">
-      <header className="sticky top-0 z-20 border-b border-white/12 bg-[#0b0f24]/92 backdrop-blur">
-        <div className="mx-auto flex max-w-[1240px] items-center justify-between px-8 py-5 max-[900px]:px-5">
-          <div className="text-[clamp(1.55rem,3vw,2.2rem)] font-bold tracking-[0.08em] text-white">
-            Diagram Picker
-          </div>
-          <div className="flex items-center gap-4">
-            <button
-              type="button"
-              onClick={onOpenInputPage}
-              className="cursor-pointer border border-[#28304a] bg-transparent px-5 py-2 text-[0.94rem] font-bold tracking-[0.12em] text-[#eef3ff] uppercase transition hover:border-[#f3c316] hover:text-[#f3c316]"
-            >
-              Input Page
-            </button>
-          </div>
-        </div>
-      </header>
+    <main className="flex min-h-screen flex-col bg-[#070a1b] p-8 text-[#eef3ff] max-[640px]:p-4">
+      <AppNav
+        activePage="commentary"
+        onOpenInputPage={onOpenInputPage}
+      />
 
-      <section className="mx-auto grid min-h-[calc(100vh-89px)] max-w-[1340px] grid-cols-[0.95fr_1.05fr] items-center gap-10 px-8 py-10 max-[980px]:grid-cols-1 max-[980px]:gap-12 max-[980px]:px-5">
+      <section className="mx-auto grid min-h-0 w-full max-w-[1340px] flex-1 grid-cols-[0.95fr_1.05fr] items-center gap-10 pt-10 max-[980px]:grid-cols-1 max-[980px]:gap-12">
         <div className="relative flex min-h-[620px] items-center justify-center overflow-visible px-12 max-[980px]:min-h-[420px] max-[980px]:px-8">
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
             <div className="h-[430px] w-[430px] rounded-full border border-white/10" />
