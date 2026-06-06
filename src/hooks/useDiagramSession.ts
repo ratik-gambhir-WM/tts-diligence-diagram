@@ -1,10 +1,41 @@
 import { useState } from 'react'
 import type { ChangeEvent } from 'react'
 
-import { ALLOWED_EXTENSIONS } from '../lib/diagram'
 import { getExtension } from '../utils/files'
 
 export type AttachmentMode = 'template-context' | 'upload-only'
+
+const ALLOWED_EXTENSIONS = new Set([
+  'pdf',
+  'ppt',
+  'pptx',
+  'png',
+  'jpg',
+  'jpeg',
+  'md',
+  'markdown',
+  'txt',
+  'rtf',
+])
+
+export const ACCEPT_ATTR = [
+  '.ppt',
+  '.rtf',
+  '.pdf',
+  '.pptx',
+  '.png',
+  '.jpg',
+  '.jpeg',
+  '.md',
+  '.markdown',
+  '.txt',
+  'text/plain',
+  'image/png',
+  'image/jpeg',
+  'application/pdf',
+  'application/vnd.ms-powerpoint',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+].join(',')
 
 type AttachmentRecord = {
   file: File

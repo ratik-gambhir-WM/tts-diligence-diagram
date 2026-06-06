@@ -1,15 +1,20 @@
 import { useId, useMemo, useState } from 'react'
 import type { ChangeEvent } from 'react'
 
+import { AppNav } from '../components/AppNav'
+import { Button } from '../components/Button'
+import { FileList } from '../components/FileList'
+import { FileUploadButton } from '../components/FileUploadButton'
+import { PageShell } from '../components/PageShell'
+import { PatternOverlay } from '../components/PatternOverlay'
+import { SnailLoader } from '../components/SnailLoader'
 import {
   DEFAULT_DIAGRAM_TEMPLATE_ID,
   DIAGRAM_TEMPLATES,
 } from '../lib/diagramTemplates'
 import type { DiagramTemplate } from '../lib/diagramTemplates'
-import { AppNav } from './AppNav'
-import { SnailLoader } from './SnailLoader'
 
-type DiagramPickerProps = {
+type SlidePickerPageProps = {
   acceptAttr: string
   attachmentCountLabel: string
   attachments: File[]
@@ -34,7 +39,7 @@ function getWheelItemClasses(distanceFromActive: number) {
   return 'scale-[0.62] text-[#e2deeb] opacity-55'
 }
 
-export function DiagramPicker({
+export function SlidePickerPage({
   acceptAttr,
   attachmentCountLabel,
   attachments,
@@ -45,7 +50,7 @@ export function DiagramPicker({
   onRemoveAttachment,
   onSelectTemplate,
   renderFileSize,
-}: DiagramPickerProps) {
+}: SlidePickerPageProps) {
   const [activeIndex, setActiveIndex] = useState(() => {
     const defaultIndex = DIAGRAM_TEMPLATES.findIndex(
       (template) => template.id === DEFAULT_DIAGRAM_TEMPLATE_ID,
@@ -76,7 +81,7 @@ export function DiagramPicker({
   }
 
   return (
-    <main className="flex min-h-screen flex-col bg-[#070a1b] p-8 text-[#eef3ff] max-[640px]:p-4">
+    <PageShell>
       <AppNav
         activePage="commentary"
         onOpenInputPage={onOpenInputPage}
@@ -126,12 +131,7 @@ export function DiagramPicker({
         </div>
 
         <div className="relative overflow-hidden border border-white/12 bg-[#0b0f24] px-8 py-8 shadow-[0_28px_90px_rgba(0,0,0,0.34)] max-[640px]:px-5">
-          <div className="pointer-events-none absolute inset-0 opacity-35">
-            <div className="absolute left-[-10%] top-24 h-px w-[120%] rotate-12 bg-white/8" />
-            <div className="absolute left-[-10%] top-72 h-px w-[120%] -rotate-6 bg-white/8" />
-            <div className="absolute left-28 top-[-20%] h-[140%] w-px rotate-[-18deg] bg-white/8" />
-            <div className="absolute right-28 top-[-20%] h-[140%] w-px rotate-[24deg] bg-white/8" />
-          </div>
+          <PatternOverlay className="opacity-35" />
 
           <div className="relative overflow-hidden border border-[#28304a] bg-[#080c1c] p-4">
             <img
@@ -182,59 +182,39 @@ export function DiagramPicker({
           </div>
 
           <div className="relative mt-10">
-            <label
-              htmlFor={inputId}
-              className="inline-flex cursor-pointer items-center justify-center border border-[#f3c316] bg-[#f3c316] px-12 py-4 text-[1rem] font-bold uppercase tracking-[0.12em] text-[#070a1b] transition hover:brightness-105"
-            >
-              Add Context Files
-            </label>
-            <input
+            <FileUploadButton
               id={inputId}
-              type="file"
-              multiple
               accept={acceptAttr}
               onChange={onFileChange}
               disabled={isSubmitting}
-              className="sr-only"
-            />
+              className="px-12 py-4 text-[1rem]"
+            >
+              Add Context Files
+            </FileUploadButton>
             <p className="mt-3 text-[0.92rem] text-[#8d93aa]">
               {attachmentCountLabel}
             </p>
-            <button
+            <Button
               type="button"
               onClick={() => onSelectTemplate(activeTemplate)}
               disabled={isSubmitting}
-              className="mt-5 inline-flex items-center justify-center border border-[#28304a] bg-[#080c1c] px-12 py-4 text-[1rem] font-bold uppercase tracking-[0.12em] text-[#eef3ff] transition hover:border-[#f3c316] hover:text-[#f3c316] disabled:cursor-not-allowed disabled:opacity-70"
+              variant="secondary"
+              className="mt-5 inline-flex items-center justify-center px-12 py-4 text-[1rem]"
             >
               {isSubmitting ? 'Generating...' : 'Submit'}
-            </button>
+            </Button>
             {error && <p className="mt-3 text-[0.92rem] text-[#ffb5b5]">{error}</p>}
           </div>
 
-          {attachments.length > 0 && (
-            <ul className="mt-5 grid list-none gap-2 p-0" aria-label="Diagram context files">
-              {attachments.map((file, index) => (
-                <li
-                  key={`${file.name}-${file.size}-${index}`}
-                  className="flex items-center justify-between gap-3 border border-[#28304a] bg-[#080c1c] px-3 py-3"
-                >
-                  <span className="min-w-0 flex-1 truncate text-[0.9rem] text-[#eef3ff]">
-                    {file.name} ({renderFileSize(file.size)})
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => onRemoveAttachment(index)}
-                    disabled={isSubmitting}
-                    className="cursor-pointer border-0 bg-transparent text-[0.82rem] font-bold uppercase tracking-[0.1em] text-[#8d93aa] transition hover:text-[#f3c316]"
-                  >
-                    Remove
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
+          <FileList
+            files={attachments}
+            formatFileSize={renderFileSize}
+            label="Diagram context files"
+            onRemove={onRemoveAttachment}
+            removeDisabled={isSubmitting}
+          />
         </div>
       </section>
-    </main>
+    </PageShell>
   )
 }
