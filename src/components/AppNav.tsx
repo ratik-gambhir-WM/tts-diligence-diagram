@@ -1,16 +1,18 @@
 import { WestMonroeMark } from './WestMonroeMark'
 
-type AppNavPage = 'diagramming' | 'commentary'
+type AppNavPage = 'diagramming' | 'commentary' | 'json-input'
 
 type AppNavProps = {
   activePage: AppNavPage
   onOpenDiagramPicker?: () => void
   onOpenInputPage?: () => void
+  onOpenJsonInput?: () => void
 }
 
 const navItems = [
   { id: 'diagramming', label: 'Diagramming' },
   { id: 'commentary', label: 'Commentary' },
+  { id: 'json-input', label: 'JSON Input' },
   { id: 'industries', label: 'Industries' },
   { id: 'about', label: 'About' },
   { id: 'how-to', label: 'How-to' },
@@ -20,6 +22,7 @@ export function AppNav({
   activePage,
   onOpenDiagramPicker,
   onOpenInputPage,
+  onOpenJsonInput,
 }: AppNavProps) {
   function getNavAction(itemId: (typeof navItems)[number]['id']) {
     if (itemId === 'diagramming') {
@@ -28,6 +31,10 @@ export function AppNav({
 
     if (itemId === 'commentary') {
       return onOpenDiagramPicker
+    }
+
+    if (itemId === 'json-input') {
+      return onOpenJsonInput
     }
 
     return undefined

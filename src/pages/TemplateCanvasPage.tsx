@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ChangeEvent } from 'react'
 
 import type { DiagramTemplate } from '../lib/diagramTemplates'
+import { addBrandedSlideFrame } from '../lib/export/PowerpointBranding'
 import { generatePowerPointFromJson, type PowerPointFileHandle } from '../lib/export/exporter'
 import { buildSlideFlowModel, SlideFlowCanvas } from '../lib/slide-flow'
 
@@ -118,7 +119,7 @@ export function TemplateCanvasPage({
     setIsExporting(true)
 
     try {
-      await generatePowerPointFromJson(template.jsonSpec, {
+      await generatePowerPointFromJson(addBrandedSlideFrame(template.jsonSpec), {
         targetFile: selectedPowerPointFile,
         targetFileHandle: selectedPowerPointHandle ?? undefined,
         insertAfterSlide: parsedInsertAfterSlide,
@@ -146,7 +147,7 @@ export function TemplateCanvasPage({
     setIsExporting(true)
 
     try {
-      await generatePowerPointFromJson(template.jsonSpec)
+      await generatePowerPointFromJson(addBrandedSlideFrame(template.jsonSpec))
       setExportStatus('Created a new PowerPoint deck.')
     } catch (error) {
       setExportError(
@@ -246,7 +247,7 @@ export function TemplateCanvasPage({
               disabled={isExporting}
               className="cursor-pointer border border-[#28304a] bg-transparent px-4 py-2 text-[0.78rem] font-bold tracking-[0.12em] text-[#eef3ff] uppercase transition hover:border-[#f3c316] hover:text-[#f3c316] disabled:cursor-not-allowed disabled:opacity-70"
             >
-              Create New
+              Export
             </button>
             <button
               type="button"

@@ -7,15 +7,17 @@ import {
   type NormalizedPresentation,
   type PowerPointFileHandle,
   type ValidationIssue,
-} from './PowerpointGenerator.ts'
+} from './PowerpointGenerator'
+import { resolveBundledSlideAssetImageSources } from './PowerpointAssetResolver'
 
-export { buildSuggestedFileName } from './PowerpointGenerator.ts'
+export { buildSuggestedFileName } from './PowerpointGenerator'
+export { resolveBundledSlideAssetImageSources } from './PowerpointAssetResolver'
 export type {
   NormalizationOptions,
   NormalizedPresentation,
   PowerPointFileHandle,
   ValidationIssue,
-} from './PowerpointGenerator.ts'
+} from './PowerpointGenerator'
 
 export interface GeneratePowerPointOptions {
   outputPath?: string
@@ -68,7 +70,10 @@ export function normalizeJsonToPresentation(
   options: NormalizationOptions = {},
 ) {
   const parsed = typeof json === 'string' ? (JSON.parse(json) as unknown) : json
-  const { presentation, issues } = normalizePresentationSpec(parsed, options)
+  const { presentation, issues } = normalizePresentationSpec(
+    resolveBundledSlideAssetImageSources(parsed),
+    options,
+  )
   const errors = issues.filter((issue) => issue.level === 'error')
 
   if (!presentation || errors.length > 0) {

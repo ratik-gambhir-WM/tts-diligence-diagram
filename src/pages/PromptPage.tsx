@@ -20,6 +20,7 @@ type PromptPageProps = {
   isUploadOnlySelecting: boolean
   onOpenDiagramPicker: () => void
   onOpenInputPage: () => void
+  onOpenJsonInput: () => void
   onUploadOnlyFileChange: (event: ChangeEvent<HTMLInputElement>) => void
   onUploadOnlySubmit: () => void
   selectedArchitectureDiagramId: string
@@ -33,6 +34,7 @@ export function PromptPage({
   isUploadOnlySelecting,
   onOpenDiagramPicker,
   onOpenInputPage,
+  onOpenJsonInput,
   onUploadOnlyFileChange,
   onUploadOnlySubmit,
   selectedArchitectureDiagramId,
@@ -50,6 +52,7 @@ export function PromptPage({
         activePage="diagramming"
         onOpenDiagramPicker={onOpenDiagramPicker}
         onOpenInputPage={onOpenInputPage}
+        onOpenJsonInput={onOpenJsonInput}
       />
 
       <div className="grid min-h-0 flex-1 place-items-center pt-8">

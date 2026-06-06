@@ -1,6 +1,5 @@
 import {
   Background,
-  Controls,
   NodeResizer,
   ReactFlow,
   ReactFlowProvider,
@@ -162,7 +161,6 @@ function SlideFlowGraph({
       proOptions={{ hideAttribution: true }}
     >
       <Background color="#d9deea" gap={32} size={1} />
-      <Controls position="bottom-right" showInteractive={false} />
     </ReactFlow>
   )
 }

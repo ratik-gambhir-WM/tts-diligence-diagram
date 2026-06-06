@@ -11,6 +11,7 @@ import {
 } from './lib/modelSelector'
 import { generateSlidePromptOutput } from './lib/OpenAI'
 import { ACCEPT_ATTR, useDiagramSession } from './hooks/useDiagramSession'
+import { JsonInputPage } from './pages/JsonInputPage'
 import { LoginPage } from './pages/LoginPage'
 import { PromptPage } from './pages/PromptPage'
 import { SlidePickerPage } from './pages/SlidePickerPage'
@@ -21,6 +22,7 @@ import { formatFileSize } from './utils/files'
 const EXPORTER_ROUTE = '/'
 const DIAGRAM_PICKER_ROUTE = '/diagram-picker'
 const DIAGRAM_CANVAS_ROUTE = '/diagram-template'
+const JSON_INPUT_ROUTE = '/json-input'
 const LOGIN_ROUTE = '/login'
 const EMAIL_SESSION_STORAGE_KEY = 'tts-mermaid-email'
 
@@ -186,6 +188,7 @@ export default function App() {
                     isUploadOnlySelecting={isModelSelecting}
                     onOpenDiagramPicker={() => navigate(DIAGRAM_PICKER_ROUTE)}
                     onOpenInputPage={() => navigate(EXPORTER_ROUTE)}
+                    onOpenJsonInput={() => navigate(JSON_INPUT_ROUTE)}
                     onUploadOnlyFileChange={handleUploadOnlyFileChange}
                     onUploadOnlySubmit={handleUploadOnlySubmit}
                     selectedArchitectureDiagramId={modelSelection?.selectedDiagramId ?? ''}
@@ -213,9 +216,24 @@ export default function App() {
                     isSubmitting={isTemplateSubmitting}
                     onFileChange={handleFiles}
                     onOpenInputPage={() => navigate(EXPORTER_ROUTE)}
+                    onOpenJsonInput={() => navigate(JSON_INPUT_ROUTE)}
                     onRemoveAttachment={removeAttachment}
                     onSelectTemplate={handleSubmitTemplate}
                     renderFileSize={formatFileSize}
+                  />
+                ) : (
+                  <Navigate replace to={LOGIN_ROUTE} />
+                )
+              }
+            />
+            <Route
+              path={JSON_INPUT_ROUTE}
+              element={
+                session ? (
+                  <JsonInputPage
+                    onOpenDiagramPicker={() => navigate(DIAGRAM_PICKER_ROUTE)}
+                    onOpenInputPage={() => navigate(EXPORTER_ROUTE)}
+                    onOpenJsonInput={() => navigate(JSON_INPUT_ROUTE)}
                   />
                 ) : (
                   <Navigate replace to={LOGIN_ROUTE} />

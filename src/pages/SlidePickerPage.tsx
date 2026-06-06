@@ -22,6 +22,7 @@ type SlidePickerPageProps = {
   isSubmitting: boolean
   onFileChange: (event: ChangeEvent<HTMLInputElement>) => void
   onOpenInputPage: () => void
+  onOpenJsonInput: () => void
   onRemoveAttachment: (index: number) => void
   onSelectTemplate: (template: DiagramTemplate) => void
   renderFileSize: (bytes: number) => string
@@ -47,6 +48,7 @@ export function SlidePickerPage({
   isSubmitting,
   onFileChange,
   onOpenInputPage,
+  onOpenJsonInput,
   onRemoveAttachment,
   onSelectTemplate,
   renderFileSize,
@@ -85,6 +87,7 @@ export function SlidePickerPage({
       <AppNav
         activePage="commentary"
         onOpenInputPage={onOpenInputPage}
+        onOpenJsonInput={onOpenJsonInput}
       />
 
       <section className="mx-auto grid min-h-0 w-full max-w-[1340px] flex-1 grid-cols-[0.95fr_1.05fr] items-center gap-10 pt-10 max-[980px]:grid-cols-1 max-[980px]:gap-12">
