@@ -93,7 +93,7 @@ function buildNodes(slide: NormalizedSlide): Node<SlideFlowNodeData>[] {
         position: { x: geometry.x, y: geometry.y },
         selectable: true,
         draggable: true,
-        deletable: false,
+        deletable: true,
         data: {
           element,
           kind: 'element' as const,

@@ -61,6 +61,15 @@ export function SlideFlowCanvas({ className, input, onChange, slideIndex = 0 }: 
       onChange(applyElementEditToInput(input, elementId, edit))
     }
   }, [input, onChange])
+  const handleInputDelete = useMemo(() => {
+    if (!onChange) {
+      return undefined
+    }
+
+    return (elementIds: string[]) => {
+      onChange(deleteElementsFromInput(input, elementIds))
+    }
+  }, [input, onChange])
 
   if (!slide) {
     return (
@@ -79,6 +88,7 @@ export function SlideFlowCanvas({ className, input, onChange, slideIndex = 0 }: 
         <SlideFlowGraph
           key={flowKey}
           initialNodes={model.nodes}
+          onElementDelete={handleInputDelete}
           onElementEdit={handleInputChange}
         />
       </ReactFlowProvider>
@@ -88,9 +98,11 @@ export function SlideFlowCanvas({ className, input, onChange, slideIndex = 0 }: 
 
 function SlideFlowGraph({
   initialNodes,
+  onElementDelete,
   onElementEdit,
 }: {
   initialNodes: SlideFlowNode[]
+  onElementDelete?: (elementIds: string[]) => void
   onElementEdit?: (elementId: string, edit: ElementEdit) => void
 }) {
   const editableNodes = useMemo(
@@ -120,6 +132,15 @@ function SlideFlowGraph({
       y: roundCoordinate(node.position.y),
     })
   }
+  const handleNodesDelete = (deletedNodes: SlideFlowNode[]) => {
+    const deletedElementIds = deletedNodes
+      .filter((node) => node.data.kind === 'element')
+      .map((node) => node.id)
+
+    if (deletedElementIds.length > 0) {
+      onElementDelete?.(deletedElementIds)
+    }
+  }
 
   return (
     <ReactFlow
@@ -131,6 +152,7 @@ function SlideFlowGraph({
       minZoom={0.15}
       maxZoom={4}
       onNodesChange={onNodesChange}
+      onNodesDelete={handleNodesDelete}
       onNodeDragStop={handleNodeDragStop}
       nodesConnectable={false}
       nodesDraggable
@@ -817,6 +839,41 @@ function applyElementEditToInput(input: unknown, elementId: string, edit: Elemen
   updateRawElementById(nextInput, elementId, edit)
 
   return nextInput
+}
+
+function deleteElementsFromInput(input: unknown, elementIds: string[]) {
+  const nextInput = cloneJsonValue(input)
+  const elementIdSet = new Set(elementIds)
+
+  deleteRawElementsById(nextInput, elementIdSet)
+
+  return nextInput
+}
+
+function deleteRawElementsById(value: unknown, elementIds: Set<string>): boolean {
+  if (Array.isArray(value)) {
+    let didDelete = false
+
+    for (let index = value.length - 1; index >= 0; index -= 1) {
+      const item = value[index]
+
+      if (isRecord(item) && typeof item.id === 'string' && elementIds.has(item.id)) {
+        value.splice(index, 1)
+        didDelete = true
+        continue
+      }
+
+      didDelete = deleteRawElementsById(item, elementIds) || didDelete
+    }
+
+    return didDelete
+  }
+
+  if (!isRecord(value)) {
+    return false
+  }
+
+  return Object.values(value).some((item) => deleteRawElementsById(item, elementIds))
 }
 
 function updateRawElementById(value: unknown, elementId: string, edit: ElementEdit): boolean {

@@ -15,7 +15,7 @@ import {
   selectArchitectureDiagramModel,
 } from './lib/modelSelector'
 import { generateSlidePromptOutput } from './lib/OpenAI'
-import { SlideFlowCanvas } from './lib/slide-flow'
+import { buildSlideFlowModel, SlideFlowCanvas } from './lib/slide-flow'
 import { useDiagramSession } from './hooks/useDiagramSession'
 import type { ModelSelectorOutput } from './types/ModelSelectorOutput'
 import { formatFileSize } from './utils/files'
@@ -27,6 +27,16 @@ const LOGIN_ROUTE = '/login'
 const EMAIL_SESSION_STORAGE_KEY = 'tts-mermaid-email'
 const POWERPOINT_ACCEPT_ATTR =
   '.pptx,application/vnd.openxmlformats-officedocument.presentationml.presentation'
+const ADD_NODE_COLORS = [
+  { label: 'Navy', value: '070154' },
+  { label: 'Light Gray', value: 'E8EEF8' },
+  { label: 'Blue', value: '00A3FF' },
+  { label: 'Gold', value: 'FFC700' },
+  { label: 'Green', value: '1DD566' },
+  { label: 'Magenta', value: 'F900D3' },
+]
+
+type AddNodeShape = 'arrow' | 'database' | 'rectangle' | 'square'
 
 export default function App() {
   const location = useLocation()
@@ -310,9 +320,15 @@ function TemplateCanvasPage({
   const [selectedPowerPointHandle, setSelectedPowerPointHandle] = useState<PowerPointFileHandle | null>(null)
   const [insertAfterSlide, setInsertAfterSlide] = useState('1')
   const [createNewEditedCopy, setCreateNewEditedCopy] = useState(true)
+  const [isAddNodeMenuOpen, setIsAddNodeMenuOpen] = useState(false)
+  const [addNodeColor, setAddNodeColor] = useState(ADD_NODE_COLORS[0].value)
   const powerpointFileInputRef = useRef<HTMLInputElement>(null)
   const currentTemplateJson = useMemo(
     () => JSON.stringify(template.jsonSpec, null, 2),
+    [template.jsonSpec],
+  )
+  const canvasSlide = useMemo(
+    () => buildSlideFlowModel(template.jsonSpec).slide,
     [template.jsonSpec],
   )
 
@@ -418,6 +434,19 @@ function TemplateCanvasPage({
     } finally {
       setIsExporting(false)
     }
+  }
+
+  function handleAddCanvasNode(shape: AddNodeShape) {
+    const updatedTemplateJson = addCanvasNodeToTemplateJson(template.jsonSpec, {
+      color: addNodeColor,
+      shape,
+      slideHeight: canvasSlide?.height,
+      slideWidth: canvasSlide?.width,
+    })
+
+    onTemplateJsonChange(updatedTemplateJson)
+    setIsAddNodeMenuOpen(false)
+    setIsJsonPanelOpen(false)
   }
 
   return (
@@ -531,6 +560,92 @@ function TemplateCanvasPage({
             className="h-full"
           />
 
+          <div
+            className={[
+              'absolute bottom-[10.5rem] z-40',
+              isJsonPanelOpen ? 'right-[27.5rem]' : 'right-4',
+            ].join(' ')}
+          >
+            <button
+              type="button"
+              onClick={() => setIsAddNodeMenuOpen((isOpen) => !isOpen)}
+              aria-controls="add-canvas-node-menu"
+              aria-expanded={isAddNodeMenuOpen}
+              className="grid h-11 w-11 cursor-pointer place-items-center rounded-full border border-[#f3c316] bg-[#f3c316] text-2xl font-bold leading-none text-[#070a1b] shadow-[0_10px_24px_rgba(0,0,0,0.22)] transition hover:brightness-105"
+              title="Add node"
+            >
+              +
+            </button>
+
+            {isAddNodeMenuOpen && (
+              <div
+                id="add-canvas-node-menu"
+                className="absolute right-0 bottom-14 w-[18rem] rounded-[1rem] border border-white/12 bg-[#0b0f24] p-4 text-[#eef3ff] shadow-[0_18px_45px_rgba(0,0,0,0.34)]"
+                role="dialog"
+                aria-label="Add node to canvas"
+              >
+                <div className="mb-3">
+                  <p className="text-[0.68rem] font-bold tracking-[0.16em] text-[#f3c316] uppercase">
+                    Add Shape
+                  </p>
+                  <p className="mt-1 text-[0.78rem] leading-5 text-[#a8afc4]">
+                    Choose a shape and background color.
+                  </p>
+                </div>
+
+                <div className="mb-4 flex flex-wrap gap-2" aria-label="Node color">
+                  {ADD_NODE_COLORS.map((color) => (
+                    <button
+                      key={color.value}
+                      type="button"
+                      onClick={() => setAddNodeColor(color.value)}
+                      className={[
+                        'h-7 w-7 cursor-pointer rounded-full border transition',
+                        addNodeColor === color.value
+                          ? 'border-[#f3c316] ring-2 ring-[#f3c316]/45'
+                          : 'border-white/20 hover:border-white/55',
+                      ].join(' ')}
+                      style={{ backgroundColor: `#${color.value}` }}
+                      title={color.label}
+                      aria-label={color.label}
+                    />
+                  ))}
+                </div>
+
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleAddCanvasNode('rectangle')}
+                    className="cursor-pointer rounded-[0.8rem] border border-[#28304a] bg-[#080c1c] px-3 py-2 text-[0.78rem] font-bold text-[#eef3ff] transition hover:border-[#f3c316] hover:text-[#f3c316]"
+                  >
+                    Rectangle
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleAddCanvasNode('square')}
+                    className="cursor-pointer rounded-[0.8rem] border border-[#28304a] bg-[#080c1c] px-3 py-2 text-[0.78rem] font-bold text-[#eef3ff] transition hover:border-[#f3c316] hover:text-[#f3c316]"
+                  >
+                    Square
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleAddCanvasNode('arrow')}
+                    className="cursor-pointer rounded-[0.8rem] border border-[#28304a] bg-[#080c1c] px-3 py-2 text-[0.78rem] font-bold text-[#eef3ff] transition hover:border-[#f3c316] hover:text-[#f3c316]"
+                  >
+                    Arrow
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleAddCanvasNode('database')}
+                    className="cursor-pointer rounded-[0.8rem] border border-[#28304a] bg-[#080c1c] px-3 py-2 text-[0.78rem] font-bold text-[#eef3ff] transition hover:border-[#f3c316] hover:text-[#f3c316]"
+                  >
+                    Database
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
           <button
             type="button"
             onClick={() => setIsJsonPanelOpen((isOpen) => !isOpen)}
@@ -633,4 +748,127 @@ function isPowerPointFile(file: File) {
     (!file.type ||
       file.type === 'application/vnd.openxmlformats-officedocument.presentationml.presentation')
   )
+}
+
+type AddCanvasNodeOptions = {
+  color: string
+  shape: AddNodeShape
+  slideHeight?: number
+  slideWidth?: number
+}
+
+type NativeSlideElement = Record<string, unknown>
+type NativeSlideRecord = Record<string, unknown> & {
+  elements?: unknown[]
+}
+
+function addCanvasNodeToTemplateJson(input: unknown, options: AddCanvasNodeOptions) {
+  const nextInput = cloneTemplateJson(input)
+  const targetSlide = getEditableSlideRecord(nextInput)
+
+  if (!targetSlide) {
+    return nextInput
+  }
+
+  const existingElements = Array.isArray(targetSlide.elements) ? targetSlide.elements : []
+  targetSlide.elements = [
+    ...existingElements,
+    createCanvasNodeElement(options, existingElements.length),
+  ]
+
+  return nextInput
+}
+
+function cloneTemplateJson(input: unknown) {
+  if (typeof structuredClone === 'function') {
+    return structuredClone(input)
+  }
+
+  return JSON.parse(JSON.stringify(input)) as unknown
+}
+
+function getEditableSlideRecord(input: unknown): NativeSlideRecord | undefined {
+  if (Array.isArray(input)) {
+    return input.find(hasElementsArray) ?? (input[0] && isRecordValue(input[0]) ? input[0] : undefined)
+  }
+
+  if (!isRecordValue(input)) {
+    return undefined
+  }
+
+  if (hasElementsArray(input)) {
+    return input
+  }
+
+  const presentation = isRecordValue(input.presentation) ? input.presentation : input
+  if (Array.isArray(presentation.slides)) {
+    return presentation.slides.find(hasElementsArray) ??
+      (presentation.slides[0] && isRecordValue(presentation.slides[0]) ? presentation.slides[0] : undefined)
+  }
+
+  if (isRecordValue(presentation.slide)) {
+    return presentation.slide
+  }
+
+  if (isRecordValue(input.slide)) {
+    return input.slide
+  }
+
+  return undefined
+}
+
+function hasElementsArray(value: unknown): value is NativeSlideRecord {
+  return isRecordValue(value) && Array.isArray(value.elements)
+}
+
+function isRecordValue(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function createCanvasNodeElement(options: AddCanvasNodeOptions, elementIndex: number): NativeSlideElement {
+  const slideWidth = options.slideWidth ?? 1280
+  const slideHeight = options.slideHeight ?? 720
+  const x = Math.max(40, Math.round(slideWidth * 0.58 + elementIndex * 12) % Math.max(slideWidth - 220, 220))
+  const y = Math.max(40, Math.round(slideHeight * 0.26 + elementIndex * 10) % Math.max(slideHeight - 140, 140))
+  const id = `canvas-node-${Date.now()}-${elementIndex + 1}`
+
+  if (options.shape === 'arrow') {
+    return {
+      id,
+      kind: 'line',
+      x1: x,
+      y1: y + 38,
+      x2: x + 150,
+      y2: y + 38,
+      stroke: options.color,
+      strokeWidth: 3,
+      endArrow: 'triangle',
+    }
+  }
+
+  const isSquare = options.shape === 'square'
+
+  return {
+    id,
+    kind: 'shape',
+    shape: options.shape === 'database' ? 'flowChartMagneticDisk' : 'rect',
+    x,
+    y,
+    w: isSquare ? 96 : 172,
+    h: isSquare ? 96 : 84,
+    fill: options.color,
+    stroke: options.color === '070154' ? '0047FF' : '070154',
+    strokeWidth: 2,
+    label: options.shape === 'database' ? 'Database' : 'New Node',
+    color: getReadableTextColor(options.color),
+    fontSize: 18,
+    bold: true,
+    align: 'center',
+    valign: 'middle',
+    padding: 8,
+  }
+}
+
+function getReadableTextColor(backgroundColor: string) {
+  return ['E8EEF8', 'FFC700', '1DD566', '00A3FF'].includes(backgroundColor) ? '070154' : 'FFFFFF'
 }
