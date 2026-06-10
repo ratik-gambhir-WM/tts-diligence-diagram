@@ -10,7 +10,7 @@ import {
   type NodeProps,
   type NodeTypes,
 } from '@xyflow/react'
-import { useMemo, useState, type ChangeEvent, type CSSProperties, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent, type ReactNode } from 'react'
 import '@xyflow/react/dist/style.css'
 
 import type {
@@ -501,7 +501,7 @@ function SlideShapeLabel({
   }
 
   return (
-    <div className={className} style={style}>
+    <div className={[className, isEditable ? 'is-editing' : undefined].filter(Boolean).join(' ')} style={style}>
       {label}
     </div>
   )
@@ -759,6 +759,7 @@ function SlideTextRuns({
   if (isEditable) {
     return (
       <EditableNodeText
+        editableTextStyle={getEditableRunStyle(runs, maxStackedFontSizePt)}
         onTextChange={onTextChange}
         onTextCommit={onTextCommit}
         text={text ?? fallbackText}
@@ -798,36 +799,67 @@ function SlideTextRuns({
 }
 
 function EditableNodeText({
+  editableTextStyle,
   onTextChange,
   onTextCommit,
   text,
   textStyle,
 }: {
+  editableTextStyle?: CSSProperties
   onTextChange?: (text: string) => void
   onTextCommit?: (text: string) => void
   text: string
   textStyle?: CSSProperties
 }) {
-  const [draft, setDraft] = useState(text)
-  const handleChange = (event: ChangeEvent<HTMLTextAreaElement>) => {
-    setDraft(event.currentTarget.value)
-    onTextChange?.(event.currentTarget.value)
+  const editorRef = useRef<HTMLDivElement>(null)
+  const draftRef = useRef(text)
+
+  useEffect(() => {
+    const editor = editorRef.current
+
+    if (!editor) {
+      return
+    }
+
+    draftRef.current = text
+    editor.textContent = text
+    editor.focus()
+    placeCaretAtEnd(editor)
+  }, [])
+
+  const handleInput = (event: FormEvent<HTMLDivElement>) => {
+    const nextText = event.currentTarget.innerText.replace(/\u00a0/g, ' ')
+    draftRef.current = nextText
+    onTextChange?.(nextText)
   }
   const handleBlur = () => {
-    onTextCommit?.(draft)
+    onTextCommit?.(draftRef.current)
+  }
+
+  const editor = (
+    <div
+      aria-label="Edit node text"
+      className="slide-flow-editable-text nodrag nopan"
+      contentEditable
+      onBlur={handleBlur}
+      onInput={handleInput}
+      onKeyDown={(event) => event.stopPropagation()}
+      ref={editorRef}
+      role="textbox"
+      spellCheck={false}
+      style={editableTextStyle}
+      suppressContentEditableWarning
+    />
+  )
+
+  if (!textStyle) {
+    return editor
   }
 
   return (
-    <textarea
-      aria-label="Edit node text"
-      className="slide-flow-editable-text nodrag nopan"
-      onChange={handleChange}
-      onBlur={handleBlur}
-      onKeyDown={(event) => event.stopPropagation()}
-      spellCheck={false}
-      style={textStyle}
-      value={draft}
-    />
+    <div className="slide-flow-editable-text-frame" style={textStyle}>
+      {editor}
+    </div>
   )
 }
 
@@ -1020,6 +1052,40 @@ function buildRawTextRuns(element: Record<string, unknown>, text: string) {
     text: line,
     ...(underline !== undefined ? { underline } : undefined),
   }))
+}
+
+function getEditableRunStyle(
+  runs: NormalizedTextRun[],
+  maxStackedFontSizePt?: number,
+): CSSProperties | undefined {
+  const firstRun = runs[0]
+
+  if (!firstRun) {
+    return undefined
+  }
+
+  return {
+    color: toCssColor(firstRun.color),
+    fontFamily: firstRun.fontFace,
+    fontSize: `${Math.min(firstRun.fontSize, maxStackedFontSizePt ?? firstRun.fontSize)}pt`,
+    fontStyle: firstRun.italic ? 'italic' : undefined,
+    fontWeight: firstRun.bold ? 700 : 400,
+    textDecoration: firstRun.underline ? 'underline' : undefined,
+  }
+}
+
+function placeCaretAtEnd(element: HTMLElement) {
+  const selection = window.getSelection()
+
+  if (!selection) {
+    return
+  }
+
+  const range = document.createRange()
+  range.selectNodeContents(element)
+  range.collapse(false)
+  selection.removeAllRanges()
+  selection.addRange(range)
 }
 
 function cloneJsonValue<T>(value: T): T {
