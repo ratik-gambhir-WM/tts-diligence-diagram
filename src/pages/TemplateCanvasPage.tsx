@@ -17,7 +17,7 @@ const ADD_NODE_COLORS = [
   { label: 'Magenta', value: 'F900D3' },
 ]
 
-type AddNodeShape = 'arrow' | 'database' | 'rectangle' | 'square'
+type AddNodeShape = 'database' | 'elbowLine' | 'rectangle' | 'square' | 'straightLine'
 
 type TemplateCanvasPageProps = {
   onOpenInputPage: () => void
@@ -169,6 +169,12 @@ export function TemplateCanvasPage({
     })
 
     onTemplateJsonChange(updatedTemplateJson)
+    setIsAddNodeMenuOpen(false)
+    setIsJsonPanelOpen(false)
+  }
+
+  function handleClearCanvasLines() {
+    onTemplateJsonChange(removeLineElementsFromTemplateJson(template.jsonSpec))
     setIsAddNodeMenuOpen(false)
     setIsJsonPanelOpen(false)
   }
@@ -353,10 +359,10 @@ export function TemplateCanvasPage({
                   </button>
                   <button
                     type="button"
-                    onClick={() => handleAddCanvasNode('arrow')}
+                    onClick={() => handleAddCanvasNode('straightLine')}
                     className="cursor-pointer rounded-[0.8rem] border border-[#28304a] bg-[#080c1c] px-3 py-2 text-[0.78rem] font-bold text-[#eef3ff] transition hover:border-[#f3c316] hover:text-[#f3c316]"
                   >
-                    Arrow
+                    Straight Arrow
                   </button>
                   <button
                     type="button"
@@ -364,6 +370,20 @@ export function TemplateCanvasPage({
                     className="cursor-pointer rounded-[0.8rem] border border-[#28304a] bg-[#080c1c] px-3 py-2 text-[0.78rem] font-bold text-[#eef3ff] transition hover:border-[#f3c316] hover:text-[#f3c316]"
                   >
                     Database
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleAddCanvasNode('elbowLine')}
+                    className="cursor-pointer rounded-[0.8rem] border border-[#28304a] bg-[#080c1c] px-3 py-2 text-[0.78rem] font-bold text-[#eef3ff] transition hover:border-[#f3c316] hover:text-[#f3c316]"
+                  >
+                    Angle Arrow
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleClearCanvasLines}
+                    className="cursor-pointer rounded-[0.8rem] border border-[#28304a] bg-transparent px-3 py-2 text-[0.78rem] font-bold text-[#eef3ff] transition hover:border-[#f3c316] hover:text-[#f3c316]"
+                  >
+                    Clear Lines
                   </button>
                 </div>
               </div>
@@ -503,6 +523,18 @@ function addCanvasNodeToTemplateJson(input: unknown, options: AddCanvasNodeOptio
   return nextInput
 }
 
+function removeLineElementsFromTemplateJson(input: unknown) {
+  const nextInput = cloneTemplateJson(input)
+  const targetSlide = getEditableSlideRecord(nextInput)
+
+  if (!targetSlide || !Array.isArray(targetSlide.elements)) {
+    return nextInput
+  }
+
+  targetSlide.elements = targetSlide.elements.filter((element) => !isLineElementRecord(element))
+  return nextInput
+}
+
 function cloneTemplateJson(input: unknown) {
   if (typeof structuredClone === 'function') {
     return structuredClone(input)
@@ -556,14 +588,17 @@ function createCanvasNodeElement(options: AddCanvasNodeOptions, elementIndex: nu
   const y = Math.max(40, Math.round(slideHeight * 0.26 + elementIndex * 10) % Math.max(slideHeight - 140, 140))
   const id = `canvas-node-${Date.now()}-${elementIndex + 1}`
 
-  if (options.shape === 'arrow') {
+  if (options.shape === 'straightLine' || options.shape === 'elbowLine') {
+    const isElbowLine = options.shape === 'elbowLine'
+
     return {
       id,
-      kind: 'line',
+      type: 'line',
+      lineType: isElbowLine ? 'elbow' : 'straight',
       x1: x,
       y1: y + 38,
       x2: x + 150,
-      y2: y + 38,
+      y2: y + (isElbowLine ? 116 : 38),
       stroke: options.color,
       strokeWidth: 3,
       endArrow: 'triangle',
@@ -595,4 +630,12 @@ function createCanvasNodeElement(options: AddCanvasNodeOptions, elementIndex: nu
 
 function getReadableTextColor(backgroundColor: string) {
   return ['E8EEF8', 'FFC700', '1DD566', '00A3FF'].includes(backgroundColor) ? '070154' : 'FFFFFF'
+}
+
+function isLineElementRecord(value: unknown) {
+  if (!isRecordValue(value)) {
+    return false
+  }
+
+  return value.type === 'line' || value.kind === 'line'
 }

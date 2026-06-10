@@ -40,24 +40,26 @@ export function buildPptxPresentation(presentation: NormalizedPresentation) {
 
     for (const element of slideSpec.elements) {
       if (element.kind === 'line') {
-        const lineGeometry = toPptxLineGeometry(element)
-        slide.addShape('line', {
-          x: pxToInches(lineGeometry.x),
-          y: pxToInches(lineGeometry.y),
-          w: pxToInches(lineGeometry.w),
-          h: pxToInches(lineGeometry.h),
-          flipH: lineGeometry.flipH,
-          flipV: lineGeometry.flipV,
-          rotate: element.rotate,
-          line: {
-            color: cleanHex(element.stroke, '000000'),
-            width: element.strokeWidth,
-            transparency: opacityToTransparency(element.opacity),
-            dashType:
-              element.dash === 'solid' ? 'solid' : element.dash === 'dot' ? 'sysDot' : 'dash',
-            endArrowType: element.endArrow,
-          },
-        })
+        for (const segment of toPptxLineSegments(element)) {
+          const lineGeometry = toPptxLineGeometry(segment)
+          slide.addShape('line', {
+            x: pxToInches(lineGeometry.x),
+            y: pxToInches(lineGeometry.y),
+            w: pxToInches(lineGeometry.w),
+            h: pxToInches(lineGeometry.h),
+            flipH: lineGeometry.flipH,
+            flipV: lineGeometry.flipV,
+            rotate: element.rotate,
+            line: {
+              color: cleanHex(element.stroke, '000000'),
+              width: element.strokeWidth,
+              transparency: opacityToTransparency(element.opacity),
+              dashType:
+                element.dash === 'solid' ? 'solid' : element.dash === 'dot' ? 'sysDot' : 'dash',
+              endArrowType: segment.hasEndArrow ? element.endArrow : 'none',
+            },
+          })
+        }
         continue
       }
 
@@ -128,7 +130,22 @@ export function buildPptxPresentation(presentation: NormalizedPresentation) {
   return pptx
 }
 
-function toPptxLineGeometry(element: NormalizedLineElement) {
+type PptxLineSegment = Pick<NormalizedLineElement, 'x1' | 'x2' | 'y1' | 'y2'> & {
+  hasEndArrow: boolean
+}
+
+function toPptxLineSegments(element: NormalizedLineElement): PptxLineSegment[] {
+  if (element.lineType !== 'elbow') {
+    return [{ x1: element.x1, x2: element.x2, y1: element.y1, y2: element.y2, hasEndArrow: true }]
+  }
+
+  return [
+    { x1: element.x1, x2: element.x2, y1: element.y1, y2: element.y1, hasEndArrow: false },
+    { x1: element.x2, x2: element.x2, y1: element.y1, y2: element.y2, hasEndArrow: true },
+  ].filter((segment) => segment.x1 !== segment.x2 || segment.y1 !== segment.y2)
+}
+
+function toPptxLineGeometry(element: Pick<NormalizedLineElement, 'x1' | 'x2' | 'y1' | 'y2'>) {
   return {
     x: Math.min(element.x1, element.x2),
     y: Math.min(element.y1, element.y2),

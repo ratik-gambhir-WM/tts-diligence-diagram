@@ -191,6 +191,14 @@ export function normalizeArrow(value: string | undefined): NormalizedLineElement
   return 'none'
 }
 
+export function normalizeLineType(value: string | undefined): NormalizedLineElement['lineType'] {
+  if (value === 'elbow' || value === 'angle' || value === 'angled' || value === 'angleBracket') {
+    return 'elbow'
+  }
+
+  return 'straight'
+}
+
 export function parseDashStyle(lineNode: XmlNode | undefined): DashStyle {
   const dashNode = findChild(lineNode, 'a:prstDash')
   return normalizeDash(dashNode?.attributes?.val)

@@ -30,6 +30,7 @@ type GenerateSlidePromptOutputParams = {
 const DEFAULT_MODEL = import.meta.env.VITE_OPENAI_MODEL || 'gpt-5.2'
 
 const MIME_BY_EXTENSION: Record<string, string> = {
+  docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   jpeg: 'image/jpeg',
   jpg: 'image/jpeg',
   markdown: 'text/markdown',
@@ -203,8 +204,21 @@ export async function generateSlidePromptOutput({
   })
 
   if (response.output_text) {
-    return JSON.parse(response.output_text) as SlidePromptOutput
+    return removeGeneratedLineElements(JSON.parse(response.output_text) as SlidePromptOutput)
   }
 
   throw new Error('OpenAI did not return a structured slide JSON payload.')
+}
+
+function removeGeneratedLineElements(output: SlidePromptOutput): SlidePromptOutput {
+  return {
+    ...output,
+    presentation: {
+      ...output.presentation,
+      slides: output.presentation.slides.map((slide) => ({
+        ...slide,
+        elements: slide.elements.filter((element) => element.type !== 'line'),
+      })),
+    },
+  }
 }

@@ -6,6 +6,7 @@ import { getExtension } from '../utils/files'
 export type AttachmentMode = 'template-context' | 'upload-only'
 
 const ALLOWED_EXTENSIONS = new Set([
+  'docx',
   'pdf',
   'ppt',
   'pptx',
@@ -19,6 +20,7 @@ const ALLOWED_EXTENSIONS = new Set([
 ])
 
 export const ACCEPT_ATTR = [
+  '.docx',
   '.ppt',
   '.rtf',
   '.pdf',
@@ -32,6 +34,7 @@ export const ACCEPT_ATTR = [
   'text/plain',
   'image/png',
   'image/jpeg',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   'application/pdf',
   'application/vnd.ms-powerpoint',
   'application/vnd.openxmlformats-officedocument.presentationml.presentation',
@@ -67,7 +70,7 @@ function partitionAttachments(files: File[]) {
 
 function formatUnsupportedFilesMessage(fileNames: string[]) {
   return fileNames.length > 0
-    ? `Unsupported file type: ${fileNames.join(', ')}. Allowed: PDF, PPT/PPTX, PNG/JPG, Markdown, TXT.`
+    ? `Unsupported file type: ${fileNames.join(', ')}. Allowed: DOCX, PDF, PPT/PPTX, PNG/JPG, Markdown, TXT.`
     : ''
 }
 

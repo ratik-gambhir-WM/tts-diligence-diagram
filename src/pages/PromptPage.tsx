@@ -17,10 +17,12 @@ type UploadOnlyFile = {
 
 type PromptPageProps = {
   acceptAttr: string
+  createMode: boolean
   isUploadOnlySelecting: boolean
   onOpenDiagramPicker: () => void
   onOpenInputPage: () => void
   onOpenJsonInput: () => void
+  onCreateModeChange: (createMode: boolean) => void
   onUploadOnlyFileChange: (event: ChangeEvent<HTMLInputElement>) => void
   onUploadOnlySubmit: () => void
   selectedArchitectureDiagramId: string
@@ -31,10 +33,12 @@ type PromptPageProps = {
 
 export function PromptPage({
   acceptAttr,
+  createMode,
   isUploadOnlySelecting,
   onOpenDiagramPicker,
   onOpenInputPage,
   onOpenJsonInput,
+  onCreateModeChange,
   onUploadOnlyFileChange,
   onUploadOnlySubmit,
   selectedArchitectureDiagramId,
@@ -57,6 +61,35 @@ export function PromptPage({
 
       <div className="grid min-h-0 flex-1 place-items-center pt-8">
         <StudioPanel className="w-full max-w-[780px] max-[640px]:rounded-[1.5rem] max-[640px]:p-5">
+          <label className="absolute top-5 right-5 z-10 flex cursor-pointer items-center gap-2 text-[0.72rem] font-bold tracking-[0.14em] text-[#eef3ff] uppercase">
+            <span>Create</span>
+            <span
+              className={[
+                'relative h-6 w-11 rounded-full border transition',
+                createMode ? 'border-[#f3c316] bg-[#f3c316]' : 'border-[#28304a] bg-[#080c1c]',
+              ]
+                .filter(Boolean)
+                .join(' ')}
+            >
+              <input
+                aria-label="Create a new diagram from uploaded files"
+                type="checkbox"
+                checked={createMode}
+                onChange={(event) => onCreateModeChange(event.currentTarget.checked)}
+                disabled={isUploadOnlySelecting}
+                className="sr-only"
+              />
+              <span
+                className={[
+                  'absolute top-1 h-4 w-4 rounded-full bg-white transition',
+                  createMode ? 'left-6' : 'left-1',
+                ]
+                  .filter(Boolean)
+                  .join(' ')}
+              />
+            </span>
+          </label>
+
           <BrandLockup align="center" markSize="lg" title="west monroe" />
 
           <div
@@ -80,7 +113,7 @@ export function PromptPage({
               variant="primary"
               className="px-4 py-2.5 text-[0.9rem] disabled:opacity-50"
             >
-              {isUploadOnlySelecting ? 'Selecting...' : 'Submit files'}
+              {isUploadOnlySelecting ? 'Working...' : createMode ? 'Create diagram' : 'Submit files'}
             </Button>
           </div>
 
