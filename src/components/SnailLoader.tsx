@@ -49,6 +49,7 @@ const loadingPhrases = [
   'Looking for the service named "misc"...',
   'Inspecting the blast radius...',
   'Checking if "cloud-native" survived contact with reality...',
+  'An inspector with a magnifying glass...',
 ]
 
 export function SnailLoader() {
