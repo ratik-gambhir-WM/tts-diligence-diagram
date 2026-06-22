@@ -60,7 +60,7 @@ export function addConnectorOcclusionRects(
 
     return {
       ...element,
-      occlusionRects,
+      occlusionRects: element.endArrow === 'none' ? occlusionRects : [],
     }
   })
 }

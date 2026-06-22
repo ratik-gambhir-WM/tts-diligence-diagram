@@ -10,7 +10,16 @@ import {
   type NodeProps,
   type NodeTypes,
 } from '@xyflow/react'
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type FormEvent, type ReactNode } from 'react'
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type FormEvent,
+  type PointerEvent as ReactPointerEvent,
+  type ReactNode,
+} from 'react'
 import '@xyflow/react/dist/style.css'
 
 import type {
@@ -31,10 +40,15 @@ export interface SlideFlowCanvasProps {
 
 type ElementEdit = {
   h?: number
+  lineType?: NormalizedLineElement['lineType']
   text?: string
   w?: number
   x?: number
+  x1?: number
+  x2?: number
   y?: number
+  y1?: number
+  y2?: number
 }
 
 type SlideFlowNode = Node<SlideFlowNodeData>
@@ -122,7 +136,21 @@ function SlideFlowGraph({
   const [nodes, , onNodesChange] = useNodesState(editableNodes)
 
   const handleNodeDragStop: NodeMouseHandler<SlideFlowNode> = (_, node) => {
-    if (node.data.kind !== 'element' || node.data.element.kind === 'line') {
+    if (node.data.kind !== 'element') {
+      return
+    }
+
+    if (node.data.element.kind === 'line') {
+      const geometry = getElementNodeGeometry(node.data.element)
+      const dx = roundCoordinate(node.position.x - geometry.x)
+      const dy = roundCoordinate(node.position.y - geometry.y)
+
+      onElementEdit?.(node.id, {
+        x1: roundCoordinate(node.data.element.x1 + dx),
+        y1: roundCoordinate(node.data.element.y1 + dy),
+        x2: roundCoordinate(node.data.element.x2 + dx),
+        y2: roundCoordinate(node.data.element.y2 + dy),
+      })
       return
     }
 
@@ -155,6 +183,7 @@ function SlideFlowGraph({
       onNodeDragStop={handleNodeDragStop}
       nodesConnectable={false}
       nodesDraggable
+      nodeClickDistance={12}
       nodeDragThreshold={8}
       noDragClassName="nodrag"
       noPanClassName="nopan"
@@ -217,20 +246,23 @@ function SlideElementNode({ data, id, selected }: NodeProps<SlideFlowNode>) {
           return node
         }
 
+        const nextElement = applyElementEdit(node.data.element, edit)
+        const nextGeometry = getElementNodeGeometry(nextElement)
+
         return {
           ...node,
           data: {
             ...node.data,
-            element: applyElementEdit(node.data.element, edit),
+            element: nextElement,
           },
           position: {
-            x: edit.x ?? node.position.x,
-            y: edit.y ?? node.position.y,
+            x: nextGeometry.x,
+            y: nextGeometry.y,
           },
           style: {
             ...node.style,
-            height: edit.h ?? node.style?.height,
-            width: edit.w ?? node.style?.width,
+            height: nextGeometry.h,
+            width: nextGeometry.w,
           },
         }
       }),
@@ -266,6 +298,53 @@ function SlideElementNode({ data, id, selected }: NodeProps<SlideFlowNode>) {
       y: roundCoordinate(params.y),
     })
   }
+  const handleLinePointPointerDown = (
+    point: 'end' | 'start',
+    event: ReactPointerEvent<HTMLButtonElement>,
+  ) => {
+    if (element.kind !== 'line') {
+      return
+    }
+
+    event.preventDefault()
+    event.stopPropagation()
+
+    const startElement = element
+    const startPoint = reactFlow.screenToFlowPosition({ x: event.clientX, y: event.clientY })
+    let lastEdit: ElementEdit =
+      point === 'start'
+        ? { x1: startElement.x1, y1: startElement.y1 }
+        : { x2: startElement.x2, y2: startElement.y2 }
+
+    const handlePointerMove = (moveEvent: PointerEvent) => {
+      const currentPoint = reactFlow.screenToFlowPosition({
+        x: moveEvent.clientX,
+        y: moveEvent.clientY,
+      })
+      const dx = currentPoint.x - startPoint.x
+      const dy = currentPoint.y - startPoint.y
+
+      lastEdit =
+        point === 'start'
+          ? {
+              x1: roundCoordinate(startElement.x1 + dx),
+              y1: roundCoordinate(startElement.y1 + dy),
+            }
+          : {
+              x2: roundCoordinate(startElement.x2 + dx),
+              y2: roundCoordinate(startElement.y2 + dy),
+            }
+
+      updateElement(lastEdit)
+    }
+    const handlePointerUp = () => {
+      window.removeEventListener('pointermove', handlePointerMove)
+      commitElementEdit(lastEdit)
+    }
+
+    window.addEventListener('pointermove', handlePointerMove)
+    window.addEventListener('pointerup', handlePointerUp, { once: true })
+  }
 
   const controls = canResize ? (
     <NodeResizer
@@ -281,7 +360,13 @@ function SlideElementNode({ data, id, selected }: NodeProps<SlideFlowNode>) {
   ) : null
   const wrapElement = (content: ReactNode) => (
     <div
-      className="slide-flow-element-shell"
+      className={[
+        'slide-flow-element-shell',
+        `slide-flow-element-shell-${element.kind}`,
+        isEditingText ? 'is-editing-text' : undefined,
+      ]
+        .filter(Boolean)
+        .join(' ')}
       onDoubleClick={canEditText ? () => setIsEditingText(true) : undefined}
     >
       {controls}
@@ -290,7 +375,13 @@ function SlideElementNode({ data, id, selected }: NodeProps<SlideFlowNode>) {
   )
 
   if (element.kind === 'line') {
-    return wrapElement(<SlideLineElement element={element} />)
+    return wrapElement(
+      <SlideLineElement
+        element={element}
+        isSelected={!!selected}
+        onPointPointerDown={handleLinePointPointerDown}
+      />,
+    )
   }
 
   if (element.kind === 'text') {
@@ -611,55 +702,119 @@ function SlideTextElement({
   )
 }
 
-function SlideLineElement({ element }: { element: NormalizedLineElement }) {
+function SlideLineElement({
+  element,
+  isSelected,
+  onPointPointerDown,
+}: {
+  element: NormalizedLineElement
+  isSelected: boolean
+  onPointPointerDown: (point: 'end' | 'start', event: ReactPointerEvent<HTMLButtonElement>) => void
+}) {
   const originX = Math.min(element.x1, element.x2)
   const originY = Math.min(element.y1, element.y2)
   const width = Math.max(Math.abs(element.x2 - element.x1), Math.max(element.strokeWidth, 1))
   const height = Math.max(Math.abs(element.y2 - element.y1), Math.max(element.strokeWidth, 1))
-  const x1 = element.x1 <= element.x2 ? 0 : width
-  const x2 = element.x1 <= element.x2 ? width : 0
-  const y1 = element.y1 <= element.y2 ? 0 : height
-  const y2 = element.y1 <= element.y2 ? height : 0
+  const x1 = element.x1 - originX
+  const x2 = element.x2 - originX
+  const y1 = element.y1 - originY
+  const y2 = element.y2 - originY
   const hasEndArrow = element.endArrow !== 'none'
   const markerId = `${element.id}-arrow`
   const maskId = `${element.id}-occlusion-mask`
   const hasOcclusionMask = element.occlusionRects.length > 0
+  const commonStrokeProps = {
+    mask: hasOcclusionMask ? `url(#${maskId})` : undefined,
+    opacity: element.opacity,
+    stroke: toCssColor(element.stroke),
+    strokeDasharray: getStrokeDasharray(element),
+    strokeLinecap: 'round' as const,
+    strokeLinejoin: 'round' as const,
+    strokeWidth: element.strokeWidth,
+  }
 
   return (
-    <svg
-      className="slide-flow-line-element"
-      viewBox={`0 0 ${width} ${height}`}
+    <>
+      <svg
+        className="slide-flow-line-element"
+        viewBox={`0 0 ${width} ${height}`}
+        style={{
+          height,
+          overflow: 'visible',
+          transform: `rotate(${element.rotate}deg)`,
+          width,
+        }}
+      >
+        <SlideLineArrowMarker color={toCssColor(element.stroke)} id={markerId} isVisible={hasEndArrow} />
+        <SlideLineOcclusionMask
+          height={height}
+          id={maskId}
+          isVisible={hasOcclusionMask}
+          originX={originX}
+          originY={originY}
+          rects={element.occlusionRects}
+          width={width}
+        />
+        {element.lineType === 'elbow' ? (
+          <polyline
+            fill="none"
+            markerEnd={hasEndArrow ? `url(#${markerId})` : undefined}
+            points={`${x1},${y1} ${x2},${y1} ${x2},${y2}`}
+            {...commonStrokeProps}
+          />
+        ) : (
+          <line
+            markerEnd={hasEndArrow ? `url(#${markerId})` : undefined}
+            x1={x1}
+            x2={x2}
+            y1={y1}
+            y2={y2}
+            {...commonStrokeProps}
+          />
+        )}
+      </svg>
+      {isSelected && (
+        <>
+          <SlideLinePointHandle
+            label="Move line start"
+            onPointerDown={(event) => onPointPointerDown('start', event)}
+            x={x1}
+            y={y1}
+          />
+          <SlideLinePointHandle
+            label="Move line end"
+            onPointerDown={(event) => onPointPointerDown('end', event)}
+            x={x2}
+            y={y2}
+          />
+        </>
+      )}
+    </>
+  )
+}
+
+function SlideLinePointHandle({
+  label,
+  onPointerDown,
+  x,
+  y,
+}: {
+  label: string
+  onPointerDown: (event: ReactPointerEvent<HTMLButtonElement>) => void
+  x: number
+  y: number
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      className="slide-flow-line-point-handle nodrag nopan"
+      onPointerDown={onPointerDown}
       style={{
-        height,
-        overflow: 'visible',
-        transform: `rotate(${element.rotate}deg)`,
-        width,
+        left: x,
+        top: y,
       }}
-    >
-      <SlideLineArrowMarker color={toCssColor(element.stroke)} id={markerId} isVisible={hasEndArrow} />
-      <SlideLineOcclusionMask
-        height={height}
-        id={maskId}
-        isVisible={hasOcclusionMask}
-        originX={originX}
-        originY={originY}
-        rects={element.occlusionRects}
-        width={width}
-      />
-      <line
-        x1={x1}
-        x2={x2}
-        y1={y1}
-        y2={y2}
-        mask={hasOcclusionMask ? `url(#${maskId})` : undefined}
-        opacity={element.opacity}
-        stroke={toCssColor(element.stroke)}
-        strokeDasharray={getStrokeDasharray(element)}
-        strokeLinecap="round"
-        strokeWidth={element.strokeWidth}
-        markerEnd={hasEndArrow ? `url(#${markerId})` : undefined}
-      />
-    </svg>
+    />
   )
 }
 
@@ -924,6 +1079,26 @@ function updateRawElementById(value: unknown, elementId: string, edit: ElementEd
 }
 
 function applyRawElementEdit(element: Record<string, unknown>, edit: ElementEdit) {
+  if (edit.x1 !== undefined) {
+    element.x1 = edit.x1
+  }
+
+  if (edit.y1 !== undefined) {
+    element.y1 = edit.y1
+  }
+
+  if (edit.x2 !== undefined) {
+    element.x2 = edit.x2
+  }
+
+  if (edit.y2 !== undefined) {
+    element.y2 = edit.y2
+  }
+
+  if (edit.lineType !== undefined) {
+    element.lineType = edit.lineType
+  }
+
   if (edit.x !== undefined) {
     element.x = edit.x
     if ('left' in element) {
@@ -966,7 +1141,14 @@ function applyElementEdit(
   edit: ElementEdit,
 ): SlideElementNodeData['element'] {
   if (element.kind === 'line') {
-    return element
+    return {
+      ...element,
+      lineType: edit.lineType ?? element.lineType,
+      x1: edit.x1 ?? element.x1,
+      y1: edit.y1 ?? element.y1,
+      x2: edit.x2 ?? element.x2,
+      y2: edit.y2 ?? element.y2,
+    }
   }
 
   const geometryEdit = {
@@ -1009,6 +1191,24 @@ function applyElementEdit(
           textRuns: buildNormalizedTextRuns(element, text),
         }
       : undefined),
+  }
+}
+
+function getElementNodeGeometry(element: SlideElementNodeData['element']) {
+  if (element.kind !== 'line') {
+    return {
+      h: Math.max(element.h, 1),
+      w: Math.max(element.w, 1),
+      x: element.x,
+      y: element.y,
+    }
+  }
+
+  return {
+    h: Math.max(Math.abs(element.y2 - element.y1), Math.max(element.strokeWidth, 1)),
+    w: Math.max(Math.abs(element.x2 - element.x1), Math.max(element.strokeWidth, 1)),
+    x: Math.min(element.x1, element.x2),
+    y: Math.min(element.y1, element.y2),
   }
 }
 

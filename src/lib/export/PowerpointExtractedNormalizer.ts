@@ -122,6 +122,7 @@ function normalizeExtractedElement(
         opacity: 1,
         rotate,
         valign: 'middle',
+        lineType: 'straight',
         x1: clampNumber(x, 0, slideWidth),
         y1: clampNumber(y, 0, slideHeight),
         x2: clampNumber(x + w, 0, slideWidth),

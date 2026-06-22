@@ -35,6 +35,7 @@ export default function App() {
   const [templateStatusMessage, setTemplateStatusMessage] = useState('')
   const [templateError, setTemplateError] = useState('')
   const [isTemplateSubmitting, setIsTemplateSubmitting] = useState(false)
+  const [isCreateMode, setIsCreateMode] = useState(false)
   const [modelSelection, setModelSelection] = useState<ModelSelectorOutput | null>(null)
   const [modelSelectorError, setModelSelectorError] = useState('')
   const [isModelSelecting, setIsModelSelecting] = useState(false)
@@ -75,6 +76,31 @@ export default function App() {
     setIsModelSelecting(true)
 
     try {
+      if (isCreateMode) {
+        const { generateArchitectureDiagramFromExamples } = await import('./lib/diagramGenerator')
+        const createdDiagramJson = await generateArchitectureDiagramFromExamples({
+          uploadedFiles: uploadOnlyAttachments,
+        })
+
+        setModelSelection(null)
+        setCanvasTemplate({
+          id: 'created-architecture-diagram',
+          name: createdDiagramJson.presentation.title || 'Created Architecture Diagram',
+          description: 'A generated architecture diagram created from uploaded source material.',
+          image: '',
+          relatedAlt: 'Created architecture diagram',
+          jsonSpec: createdDiagramJson,
+        })
+        setTemplateStatusMessage(
+          `Created a new architecture diagram from ${uploadOnlyAttachments.length} uploaded file${
+            uploadOnlyAttachments.length === 1 ? '' : 's'
+          }.`,
+        )
+        setIsTemplateJsonOpenOnLoad(true)
+        navigate(DIAGRAM_CANVAS_ROUTE)
+        return
+      }
+
       const selection = await selectArchitectureDiagramModel({ uploadedFiles: uploadOnlyAttachments })
       console.log("SELECTION: ")
       console.log(selection);
@@ -108,7 +134,9 @@ export default function App() {
       setModelSelectorError(
         selectionError instanceof Error
           ? selectionError.message
-          : 'Failed to select an architecture diagram.',
+          : isCreateMode
+            ? 'Failed to create an architecture diagram.'
+            : 'Failed to select an architecture diagram.',
       )
     } finally {
       setIsModelSelecting(false)
@@ -185,7 +213,9 @@ export default function App() {
                 session ? (
                   <PromptPage
                     acceptAttr={ACCEPT_ATTR}
+                    createMode={isCreateMode}
                     isUploadOnlySelecting={isModelSelecting}
+                    onCreateModeChange={setIsCreateMode}
                     onOpenDiagramPicker={() => navigate(DIAGRAM_PICKER_ROUTE)}
                     onOpenInputPage={() => navigate(EXPORTER_ROUTE)}
                     onOpenJsonInput={() => navigate(JSON_INPUT_ROUTE)}
