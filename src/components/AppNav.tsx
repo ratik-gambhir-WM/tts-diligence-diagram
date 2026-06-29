@@ -4,6 +4,7 @@ type AppNavPage = 'diagramming' | 'commentary' | 'json-input'
 
 type AppNavProps = {
   activePage: AppNavPage
+  onOpenCommentaryPicker?: () => void
   onOpenDiagramPicker?: () => void
   onOpenInputPage?: () => void
   onOpenJsonInput?: () => void
@@ -20,6 +21,7 @@ const navItems = [
 
 export function AppNav({
   activePage,
+  onOpenCommentaryPicker,
   onOpenDiagramPicker,
   onOpenInputPage,
   onOpenJsonInput,
@@ -30,7 +32,7 @@ export function AppNav({
     }
 
     if (itemId === 'commentary') {
-      return onOpenDiagramPicker
+      return onOpenCommentaryPicker ?? onOpenDiagramPicker
     }
 
     if (itemId === 'json-input') {

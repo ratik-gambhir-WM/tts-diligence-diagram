@@ -97,6 +97,10 @@
   overflow: hidden;
 }
 
+.slide-flow-text-element.is-editing {
+  overflow: visible;
+}
+
 .slide-flow-rect-label,
 .slide-flow-shape-label {
   box-sizing: border-box;
@@ -126,6 +130,12 @@
 
 .slide-flow-image-element {
   display: block;
+}
+
+.slide-flow-text-runs {
+  display: block;
+  width: 100%;
+  white-space: pre-wrap;
 }
 
 .slide-flow-line-element {
@@ -168,7 +178,7 @@
   border: 0;
   background: transparent;
   color: inherit;
-  overflow: hidden;
+  overflow: visible;
   cursor: text;
   font: inherit;
   line-height: inherit;

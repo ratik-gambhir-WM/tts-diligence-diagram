@@ -1,32 +1,19 @@
-import { useId, useMemo, useState } from 'react'
-import type { ChangeEvent } from 'react'
+import { useMemo, useState } from 'react'
 
 import { AppNav } from '../components/AppNav'
 import { Button } from '../components/Button'
-import { FileList } from '../components/FileList'
-import { FileUploadButton } from '../components/FileUploadButton'
 import { PageShell } from '../components/PageShell'
 import { PatternOverlay } from '../components/PatternOverlay'
-import { SnailLoader } from '../components/SnailLoader'
 import {
-  DEFAULT_DIAGRAM_TEMPLATE_ID,
-  DIAGRAM_TEMPLATES,
-} from '../lib/diagramTemplates'
-import type { DiagramTemplate } from '../lib/diagramTemplates'
+  COMMENTARY_TEMPLATES,
+  DEFAULT_COMMENTARY_TEMPLATE_ID,
+  type CommentaryTemplate,
+} from '../lib/commentaryTemplates'
 
-type SlidePickerPageProps = {
-  acceptAttr: string
-  attachmentCountLabel: string
-  attachments: File[]
-  error: string
-  isSubmitting: boolean
-  onFileChange: (event: ChangeEvent<HTMLInputElement>) => void
-  onOpenCommentaryPicker: () => void
+type CommentaryPickerProps = {
   onOpenInputPage: () => void
   onOpenJsonInput: () => void
-  onRemoveAttachment: (index: number) => void
-  onSelectTemplate: (template: DiagramTemplate) => void
-  renderFileSize: (bytes: number) => string
+  onSelectTemplate: (template: CommentaryTemplate) => void
 }
 
 function getWheelItemClasses(distanceFromActive: number) {
@@ -41,54 +28,39 @@ function getWheelItemClasses(distanceFromActive: number) {
   return 'scale-[0.62] text-[#e2deeb] opacity-55'
 }
 
-export function SlidePickerPage({
-  acceptAttr,
-  attachmentCountLabel,
-  attachments,
-  error,
-  isSubmitting,
-  onFileChange,
-  onOpenCommentaryPicker,
+export function CommentaryPicker({
   onOpenInputPage,
   onOpenJsonInput,
-  onRemoveAttachment,
   onSelectTemplate,
-  renderFileSize,
-}: SlidePickerPageProps) {
+}: CommentaryPickerProps) {
   const [activeIndex, setActiveIndex] = useState(() => {
-    const defaultIndex = DIAGRAM_TEMPLATES.findIndex(
-      (template) => template.id === DEFAULT_DIAGRAM_TEMPLATE_ID,
+    const defaultIndex = COMMENTARY_TEMPLATES.findIndex(
+      (template) => template.id === DEFAULT_COMMENTARY_TEMPLATE_ID,
     )
 
     return defaultIndex >= 0 ? defaultIndex : 0
   })
-  const inputId = useId()
 
-  const activeTemplate = DIAGRAM_TEMPLATES[activeIndex]
+  const activeTemplate = COMMENTARY_TEMPLATES[activeIndex]
   const relatedTemplates = useMemo(
-    () => DIAGRAM_TEMPLATES.filter((_, index) => index !== activeIndex).slice(0, 3),
+    () => COMMENTARY_TEMPLATES.filter((_, index) => index !== activeIndex).slice(0, 3),
     [activeIndex],
   )
-
-  if (isSubmitting) {
-    return <SnailLoader />
-  }
 
   function moveSelection(direction: 'above' | 'below') {
     setActiveIndex((currentIndex) => {
       if (direction === 'above') {
-        return currentIndex === 0 ? DIAGRAM_TEMPLATES.length - 1 : currentIndex - 1
+        return currentIndex === 0 ? COMMENTARY_TEMPLATES.length - 1 : currentIndex - 1
       }
 
-      return currentIndex === DIAGRAM_TEMPLATES.length - 1 ? 0 : currentIndex + 1
+      return currentIndex === COMMENTARY_TEMPLATES.length - 1 ? 0 : currentIndex + 1
     })
   }
 
   return (
     <PageShell>
       <AppNav
-        activePage="diagramming"
-        onOpenCommentaryPicker={onOpenCommentaryPicker}
+        activePage="commentary"
         onOpenInputPage={onOpenInputPage}
         onOpenJsonInput={onOpenJsonInput}
       />
@@ -103,14 +75,14 @@ export function SlidePickerPage({
           <button
             type="button"
             onClick={() => moveSelection('above')}
-            aria-label="Diagram above"
+            aria-label="Commentary slide above"
             className="absolute left-0 top-1/2 z-10 -translate-y-1/2 cursor-pointer border-0 bg-transparent px-3 py-2 text-[3rem] leading-none text-[#e2b11d] transition hover:scale-110"
           >
-            ‹
+            &lsaquo;
           </button>
 
           <div className="relative z-10 flex w-full max-w-[560px] flex-col items-center gap-11 px-8">
-            {DIAGRAM_TEMPLATES.map((template, index) => {
+            {COMMENTARY_TEMPLATES.map((template, index) => {
               const distanceFromActive = index - activeIndex
 
               return (
@@ -129,10 +101,10 @@ export function SlidePickerPage({
           <button
             type="button"
             onClick={() => moveSelection('below')}
-            aria-label="Diagram below"
+            aria-label="Commentary slide below"
             className="absolute right-0 top-1/2 z-10 -translate-y-1/2 cursor-pointer border-0 bg-transparent px-3 py-2 text-[3rem] leading-none text-[#e2b11d] transition hover:scale-110"
           >
-            ›
+            &rsaquo;
           </button>
         </div>
 
@@ -151,7 +123,7 @@ export function SlidePickerPage({
             <div className="flex items-center gap-3">
               <div className="h-1 w-12 bg-[#f3c316]" />
               <span className="text-[0.82rem] font-bold uppercase tracking-[0.12em] text-[#f3c316]">
-                Selection Preview
+                Commentary Preview
               </span>
             </div>
 
@@ -165,7 +137,7 @@ export function SlidePickerPage({
 
           <div className="relative mt-8 border-t border-white/12 pt-7">
             <p className="mb-3 text-[0.82rem] font-bold uppercase tracking-[0.12em] text-[#8d93aa]">
-              Related Diagrams
+              Related Commentary
             </p>
             <div className="flex flex-wrap gap-3">
               {relatedTemplates.map((template) => (
@@ -173,7 +145,9 @@ export function SlidePickerPage({
                   key={template.name}
                   type="button"
                   onClick={() =>
-                    setActiveIndex(DIAGRAM_TEMPLATES.findIndex((item) => item.name === template.name))
+                    setActiveIndex(
+                      COMMENTARY_TEMPLATES.findIndex((item) => item.name === template.name),
+                    )
                   }
                   className="group h-14 w-24 cursor-pointer overflow-hidden border border-[#28304a] bg-[#080c1c] p-0 transition hover:border-[#f3c316]"
                 >
@@ -188,37 +162,15 @@ export function SlidePickerPage({
           </div>
 
           <div className="relative mt-10">
-            <FileUploadButton
-              id={inputId}
-              accept={acceptAttr}
-              onChange={onFileChange}
-              disabled={isSubmitting}
-              className="px-12 py-4 text-[1rem]"
-            >
-              Add Context Files
-            </FileUploadButton>
-            <p className="mt-3 text-[0.92rem] text-[#8d93aa]">
-              {attachmentCountLabel}
-            </p>
             <Button
               type="button"
               onClick={() => onSelectTemplate(activeTemplate)}
-              disabled={isSubmitting}
               variant="secondary"
-              className="mt-5 inline-flex items-center justify-center px-12 py-4 text-[1rem]"
+              className="inline-flex items-center justify-center px-12 py-4 text-[1rem]"
             >
-              {isSubmitting ? 'Generating...' : 'Submit'}
+              Generate Slide
             </Button>
-            {error && <p className="mt-3 text-[0.92rem] text-[#ffb5b5]">{error}</p>}
           </div>
-
-          <FileList
-            files={attachments}
-            formatFileSize={renderFileSize}
-            label="Diagram context files"
-            onRemove={onRemoveAttachment}
-            removeDisabled={isSubmitting}
-          />
         </div>
       </section>
     </PageShell>
