@@ -208,6 +208,139 @@
 }
 
 @layer components {
+  .app-nav {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    max-width: 1320px;
+    margin-inline: auto;
+    padding: 0.75rem 1.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 9999px;
+    background: var(--theme-page-bg);
+    box-shadow: 0 14px 36px rgba(0, 0, 0, 0.22);
+  }
+
+  .app-nav-brand {
+    display: flex;
+    flex: 1 1 0%;
+    align-items: center;
+    min-width: 0;
+    gap: 0.5rem;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--theme-accent);
+    text-align: left;
+    cursor: pointer;
+    transition: filter 150ms ease;
+  }
+
+  .app-nav-brand:hover {
+    filter: brightness(1.1);
+  }
+
+  .app-nav-mark {
+    width: 1.75rem;
+    height: 1.75rem;
+    flex-shrink: 0;
+  }
+
+  .app-nav-mark rect {
+    fill: var(--theme-accent);
+  }
+
+  .app-nav-brand-text {
+    overflow: hidden;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-overflow: ellipsis;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .app-nav-items {
+    display: flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    gap: 2rem;
+    color: var(--theme-page-text);
+    font-size: 0.62rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+  }
+
+  .app-nav-item {
+    padding: 0 0 0.25rem;
+    border: 0;
+    border-bottom: 1px solid transparent;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    letter-spacing: inherit;
+    text-decoration: none;
+    text-transform: inherit;
+    transition: border-color 150ms ease, color 150ms ease;
+  }
+
+  .app-nav-item:hover,
+  .app-nav-active {
+    color: var(--theme-accent);
+  }
+
+  .app-nav-active {
+    border-bottom-color: var(--theme-accent);
+  }
+
+  .app-nav-action {
+    cursor: pointer;
+  }
+
+  .app-nav-menu-button {
+    display: grid;
+    flex-shrink: 0;
+    place-items: center;
+    width: 2rem;
+    height: 2rem;
+    margin-left: auto;
+    border: 1px solid var(--theme-border-subtle);
+    border-radius: 9999px;
+    background: transparent;
+    color: var(--theme-page-text);
+    transition: border-color 150ms ease, color 150ms ease;
+  }
+
+  .app-nav-menu-button:hover {
+    border-color: var(--theme-accent);
+    color: var(--theme-accent);
+  }
+
+  .app-nav-menu-icon {
+    font-size: 1.125rem;
+    line-height: 1;
+  }
+
+  @media (max-width: 900px) {
+    .app-nav-items {
+      display: none;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .app-nav {
+      padding-inline: 1rem;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .app-nav-brand-text {
+      max-width: 9rem;
+    }
+  }
+
   .loader-phrase {
     animation: loader-phrase-cycle 5s ease-in-out both;
   }

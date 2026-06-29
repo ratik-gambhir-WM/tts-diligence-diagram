@@ -1,4 +1,5 @@
 import { WestMonroeMark } from './WestMonroeMark'
+import { classNames } from './classNames'
 
 type AppNavPage = 'diagramming' | 'commentary' | 'json-input'
 
@@ -41,36 +42,26 @@ export function AppNav({
   }
 
   return (
-    <nav
-      className="mx-auto flex w-full max-w-[1320px] items-center rounded-full border border-white/16 bg-[#070a1b] px-6 py-3 shadow-[0_14px_36px_rgba(0,0,0,0.22)] max-[640px]:px-4"
-      aria-label="Main navigation"
-    >
+    <nav className="app-nav" aria-label="Main navigation">
       <button
         type="button"
         onClick={onOpenInputPage}
-        className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 border-0 bg-transparent p-0 text-left text-[#f3c316] transition hover:brightness-110"
+        className="app-nav-brand"
         aria-label="Open WM Diligence Studio"
       >
-        <WestMonroeMark className="h-7 w-7 shrink-0 [&_rect]:fill-[#f3c316]" />
-        <span className="truncate text-[0.72rem] font-bold uppercase tracking-[0.14em] max-[480px]:max-w-[9rem]">
-          WM Diligence Studio
-        </span>
+        <WestMonroeMark className="app-nav-mark" />
+        <span className="app-nav-brand-text">WM Diligence Studio</span>
       </button>
 
-      <div className="flex flex-none items-center justify-center gap-8 text-[0.62rem] font-bold uppercase tracking-[0.18em] text-[#eef3ff] max-[900px]:hidden">
+      <div className="app-nav-items">
         {navItems.map((item) => {
           const isActive = item.id === activePage
           const action = getNavAction(item.id)
-          const className = [
-            isActive
-              ? 'border-b border-[#f3c316] pb-1 text-[#f3c316]'
-              : 'transition hover:text-[#f3c316]',
-            action && !isActive
-              ? 'cursor-pointer border-0 bg-transparent p-0 text-[inherit] font-[inherit] tracking-[inherit] uppercase'
-              : '',
-          ]
-            .filter(Boolean)
-            .join(' ')
+          const className = classNames(
+            'app-nav-item',
+            isActive && 'app-nav-active',
+            action && !isActive && 'app-nav-action',
+          )
 
           if (isActive) {
             return (
@@ -97,10 +88,10 @@ export function AppNav({
       </div>
       <button
         type="button"
-        className="ml-auto grid h-8 w-8 shrink-0 place-items-center rounded-full border border-white/12 bg-transparent text-[#eef3ff] transition hover:border-[#f3c316] hover:text-[#f3c316]"
+        className="app-nav-menu-button"
         aria-label="Open navigation menu"
       >
-        <span className="text-lg leading-none" aria-hidden="true">
+        <span className="app-nav-menu-icon" aria-hidden="true">
           ≡
         </span>
       </button>
