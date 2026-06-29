@@ -114,12 +114,28 @@ export function useDiagramSession() {
     )
   }
 
+  function removeUploadOnlyAttachment(index: number) {
+    setAttachmentRecords((previousAttachments) => {
+      let uploadOnlyIndex = -1
+
+      return previousAttachments.filter((attachment) => {
+        if (attachment.mode !== 'upload-only') {
+          return true
+        }
+
+        uploadOnlyIndex += 1
+        return uploadOnlyIndex !== index
+      })
+    })
+  }
+
   return {
     attachmentCountLabel,
     attachments,
     error,
     handleFiles,
     removeAttachment,
+    removeUploadOnlyAttachment,
     uploadOnlyAttachments,
   }
 }

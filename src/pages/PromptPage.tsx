@@ -23,6 +23,7 @@ type PromptPageProps = {
   onOpenInputPage: () => void
   onOpenJsonInput: () => void
   onCreateModeChange: (createMode: boolean) => void
+  onRemoveUploadOnlyFile: (index: number) => void
   onUploadOnlyFileChange: (event: ChangeEvent<HTMLInputElement>) => void
   onUploadOnlySubmit: () => void
   selectedArchitectureDiagramId: string
@@ -39,6 +40,7 @@ export function PromptPage({
   onOpenInputPage,
   onOpenJsonInput,
   onCreateModeChange,
+  onRemoveUploadOnlyFile,
   onUploadOnlyFileChange,
   onUploadOnlySubmit,
   selectedArchitectureDiagramId,
@@ -127,6 +129,7 @@ export function PromptPage({
             files={uploadOnlyFiles}
             formatFileSize={formatFileSize}
             label="Added files"
+            onRemove={onRemoveUploadOnlyFile}
             showCountHeader
           />
         </StudioPanel>

@@ -47,8 +47,22 @@ export function FileList({
               {!showCountHeader && ` (${formatFileSize(file.size)})`}
             </span>
             {showCountHeader ? (
-              <span className="shrink-0 text-[0.8rem] font-bold text-[#8d93aa]">
-                {formatFileSize(file.size)}
+              <span className="flex shrink-0 items-center gap-2">
+                <span className="text-[0.8rem] font-bold text-[#8d93aa]">
+                  {formatFileSize(file.size)}
+                </span>
+                {onRemove && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    disabled={removeDisabled}
+                    className="h-7 min-w-7 px-2 text-[0.82rem] leading-none"
+                    aria-label={`Remove ${file.name}`}
+                    onClick={() => onRemove(index)}
+                  >
+                    X
+                  </Button>
+                )}
               </span>
             ) : (
               onRemove && (
