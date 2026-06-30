@@ -4,9 +4,15 @@ import securitySsaImage from '../commentary-picker/security-ssa.png'
 import archSsaSpec from './export/json-commentary-templates/slide-01-phase-1.compact copy.json'
 import securitySsaSpec from './export/json-commentary-templates/slide-02-phase-1.compact copy.json'
 import sdlcSsaSpec from './export/json-commentary-templates/slide-03-phase-1.compact copy.json'
+import { ensureCommentaryBulletOrdering } from './commentaryBulletOrdering'
 import type { DiagramTemplate } from './diagramTemplates'
+import { normalizeBrandedSlideFrameImageIds } from './export/PowerpointBranding'
 
 export type CommentaryTemplate = DiagramTemplate
+
+export function normalizeCommentaryTemplateSpec(input: unknown) {
+  return ensureCommentaryBulletOrdering(normalizeBrandedSlideFrameImageIds(input))
+}
 
 export const COMMENTARY_TEMPLATES: CommentaryTemplate[] = [
   {
@@ -15,7 +21,7 @@ export const COMMENTARY_TEMPLATES: CommentaryTemplate[] = [
     description:
       'A commentary slide for summarizing architecture findings, impact, remediation themes, and recommended project work.',
     image: archSsaImage,
-    jsonSpec: archSsaSpec,
+    jsonSpec: normalizeCommentaryTemplateSpec(archSsaSpec),
     relatedAlt: 'Architecture SSA commentary slide preview',
   },
   {
@@ -24,7 +30,7 @@ export const COMMENTARY_TEMPLATES: CommentaryTemplate[] = [
     description:
       'A commentary slide for secure development findings, remediation priorities, and phase-one project recommendations.',
     image: securitySsaImage,
-    jsonSpec: securitySsaSpec,
+    jsonSpec: normalizeCommentaryTemplateSpec(securitySsaSpec),
     relatedAlt: 'Security SSA commentary slide preview',
   },
   {
@@ -33,7 +39,7 @@ export const COMMENTARY_TEMPLATES: CommentaryTemplate[] = [
     description:
       'A commentary slide for SDLC and QA findings, operational execution gaps, and delivery improvement recommendations.',
     image: sdlcSsaImage,
-    jsonSpec: sdlcSsaSpec,
+    jsonSpec: normalizeCommentaryTemplateSpec(sdlcSsaSpec),
     relatedAlt: 'SDLC SSA commentary slide preview',
   },
 ]

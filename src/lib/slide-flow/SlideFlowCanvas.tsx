@@ -29,6 +29,7 @@ import type {
   NormalizedTextRun,
 } from '../export/PowerpointGenerator'
 import { resolveBundledSlideAssetImageSources } from '../export/PowerpointAssetResolver'
+import { DEFAULT_FONT_FACE } from '../export/PowerpointConstants'
 import { buildSlideFlowModel, type SlideFlowNodeData } from './model'
 import './slide-flow.css'
 
@@ -61,6 +62,8 @@ const nodeTypes: NodeTypes = {
   slideBackground: SlideBackgroundNode,
   slideElement: SlideElementNode,
 }
+
+const CANVAS_FONT_FACE = DEFAULT_FONT_FACE
 
 export function SlideFlowCanvas({ className, input, onChange, slideIndex = 0 }: SlideFlowCanvasProps) {
   const renderInput = useMemo(() => resolveBundledSlideAssetImageSources(input), [input])
@@ -275,6 +278,14 @@ function SlideElementNode({ data, id, selected }: NodeProps<SlideFlowNode>) {
   }
   const handleTextCommit = (text: string) => {
     setIsEditingText(false)
+
+    if (
+      (element.kind === 'text' && text === element.text) ||
+      (element.kind === 'shape' && text === element.label)
+    ) {
+      return
+    }
+
     updateElement({ text })
     commitElementEdit({ text })
   }
@@ -439,6 +450,7 @@ function SlideShapeElement({
   const shapeStyle = getSharedBoxStyle(element)
   const textStyle = getTextBoxStyle(element)
   const shouldStackRuns = element.shape === 'rect'
+  const labelTextStyle = shouldStackRuns ? getStackedTextBoxStyle(element) : textStyle
   const label = (
     <SlideTextRuns
       fallbackText={element.label}
@@ -448,6 +460,7 @@ function SlideShapeElement({
       runs={element.textRuns}
       stackVertically={shouldStackRuns}
       text={element.label}
+      textStyle={labelTextStyle}
       isEditable={isEditable}
     />
   )
@@ -514,7 +527,7 @@ function SlideShapeElement({
       isEditable={isEditable}
       label={label}
       shapeStyle={shapeStyle}
-      textStyle={getStackedTextBoxStyle(element)}
+      textStyle={labelTextStyle}
     />
   )
 }
@@ -952,7 +965,7 @@ function getRunStyle(
   return {
     color: toCssColor(run.color),
     display: stackVertically ? 'block' : undefined,
-    fontFamily: run.fontFace,
+    fontFamily: CANVAS_FONT_FACE,
     fontSize: `${Math.min(run.fontSize, maxFontSizePt ?? run.fontSize)}px`,
     fontStyle: run.italic ? 'italic' : undefined,
     fontWeight: run.bold ? 700 : 400,
@@ -1237,7 +1250,7 @@ function buildNormalizedTextRuns(
     bold: existingRuns[index]?.bold ?? fallbackRun?.bold ?? element.bold,
     breakLine: index < lines.length - 1,
     color: existingRuns[index]?.color ?? fallbackRun?.color ?? ('color' in element ? element.color : element.textColor),
-    fontFace: existingRuns[index]?.fontFace ?? fallbackRun?.fontFace ?? element.fontFace,
+    fontFace: CANVAS_FONT_FACE,
     fontSize: existingRuns[index]?.fontSize ?? fallbackRun?.fontSize ?? element.fontSize,
     italic: existingRuns[index]?.italic ?? fallbackRun?.italic ?? ('italic' in element ? element.italic : false),
     text: line,
@@ -1253,7 +1266,6 @@ function buildRawTextRuns(element: Record<string, unknown>, text: string) {
   return lines.map((line, index) => {
     const matchingRun = existingRuns[index]
     const color = asString(matchingRun?.color) || asString(fallbackRun?.color) || asString(element.textColor) || asString(element.color)
-    const fontFace = asString(matchingRun?.fontFace) || asString(fallbackRun?.fontFace) || asString(element.fontFace)
     const fontSize = asNumber(matchingRun?.fontSize) ?? asNumber(fallbackRun?.fontSize) ?? asNumber(element.fontSize)
     const bold = asBoolean(matchingRun?.bold) ?? asBoolean(fallbackRun?.bold) ?? asBoolean(element.bold)
     const italic = asBoolean(matchingRun?.italic) ?? asBoolean(fallbackRun?.italic) ?? asBoolean(element.italic)
@@ -1263,7 +1275,7 @@ function buildRawTextRuns(element: Record<string, unknown>, text: string) {
       ...(bold !== undefined ? { bold } : undefined),
       breakLine: index < lines.length - 1,
       ...(color ? { color } : undefined),
-      ...(fontFace ? { fontFace } : undefined),
+      fontFace: CANVAS_FONT_FACE,
       ...(fontSize !== undefined ? { fontSize } : undefined),
       ...(italic !== undefined ? { italic } : undefined),
       text: line,
@@ -1285,12 +1297,12 @@ function getEditableRunStyle(
 
   return {
     color: firstRun ? toCssColor(firstRun.color) : textStyle?.color,
-    fontFamily: firstRun?.fontFace ?? textStyle?.fontFamily,
+    fontFamily: CANVAS_FONT_FACE,
     fontSize: firstRun
       ? `${Math.min(firstRun.fontSize, maxStackedFontSizePt ?? firstRun.fontSize)}px`
       : textStyle?.fontSize,
     fontStyle: firstRun?.italic ? 'italic' : undefined,
-    fontWeight: textStyle?.fontWeight ?? 400,
+    fontWeight: firstRun ? (firstRun.bold ? 700 : 400) : (textStyle?.fontWeight ?? 400),
     textDecoration: firstRun?.underline ? 'underline' : undefined,
   }
 }
@@ -1554,7 +1566,7 @@ function getTextBoxStyle(element: NormalizedShapeElement | NormalizedTextElement
     alignItems: toFlexAlign(element.valign),
     color: toCssColor('color' in element ? element.color : element.textColor),
     display: 'flex',
-    fontFamily: element.fontFace,
+    fontFamily: CANVAS_FONT_FACE,
     fontSize: `${element.fontSize}px`,
     fontWeight: element.bold ? 700 : 400,
     justifyContent: toFlexJustify(element.align),

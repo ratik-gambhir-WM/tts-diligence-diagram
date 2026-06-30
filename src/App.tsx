@@ -10,6 +10,7 @@ import {
   selectArchitectureDiagramModel,
 } from './lib/modelSelector'
 import { generateSlidePromptOutput } from './lib/OpenAI'
+import { normalizeCommentaryTemplateSpec } from './lib/commentaryTemplates'
 import { ACCEPT_ATTR, useDiagramSession } from './hooks/useDiagramSession'
 import { JsonInputPage } from './pages/JsonInputPage'
 import { LoginPage } from './pages/LoginPage'
@@ -190,7 +191,10 @@ export default function App() {
   }
 
   function handleSelectCommentaryTemplate(template: DiagramTemplate) {
-    setCanvasTemplate(template)
+    setCanvasTemplate({
+      ...template,
+      jsonSpec: normalizeCommentaryTemplateSpec(template.jsonSpec),
+    })
     setCanvasTemplateSource('commentary')
     setTemplateStatusMessage(`${template.name} is rendered from its commentary template JSON.`)
     setIsTemplateJsonOpenOnLoad(false)
@@ -313,7 +317,10 @@ export default function App() {
                     onTemplateJsonChange={(jsonSpec) =>
                       setCanvasTemplate((currentTemplate) => ({
                         ...currentTemplate,
-                        jsonSpec,
+                        jsonSpec:
+                          canvasTemplateSource === 'commentary'
+                            ? normalizeCommentaryTemplateSpec(jsonSpec)
+                            : jsonSpec,
                       }))
                     }
                     onOpenPicker={() =>

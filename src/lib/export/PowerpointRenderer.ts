@@ -4,6 +4,8 @@ import type {
   NormalizedImageElement,
   NormalizedLineElement,
   NormalizedPresentation,
+  NormalizedShapeElement,
+  NormalizedTextElement,
   NormalizedTextRun,
 } from './PowerpointTypes'
 import {
@@ -13,6 +15,7 @@ import {
   toPptxShapeName,
   toPptxVerticalAlign,
 } from './PowerpointUtils'
+import { getConnectorAwareElementOrder } from './PowerpointLayering'
 
 export function buildPptxPresentation(presentation: NormalizedPresentation) {
   const pptx = new PptxGenJS()
@@ -38,7 +41,7 @@ export function buildPptxPresentation(presentation: NormalizedPresentation) {
     const slide = pptx.addSlide()
     slide.background = { color: cleanHex(slideSpec.backgroundColor, 'FFFFFF') }
 
-    for (const element of slideSpec.elements) {
+    for (const element of getConnectorAwareElementOrder(slideSpec)) {
       if (element.kind === 'line') {
         for (const segment of toPptxLineSegments(element)) {
           const lineGeometry = toPptxLineGeometry(segment)
@@ -70,19 +73,24 @@ export function buildPptxPresentation(presentation: NormalizedPresentation) {
       }
 
       if (element.kind === 'text') {
-        slide.addText(toPptxTextRuns(element.runs), {
+        const maxFontSizePt = getMaxTextBoxFontSizePt(element)
+
+        slide.addText(toPptxTextRuns(element.runs, maxFontSizePt), {
           x: pxToInches(element.x),
           y: pxToInches(element.y),
           w: pxToInches(element.w),
           h: pxToInches(element.h),
           margin: [element.padding, element.padding, element.padding, element.padding],
-          fontFace: element.fontFace,
+          fontFace: DEFAULT_FONT_FACE,
           fontSize: element.fontSize,
           color: cleanHex(element.color, '111827'),
           bold: element.bold,
           italic: element.italic,
           align: element.align,
           valign: toPptxVerticalAlign(element.valign),
+          lineSpacingMultiple: 1.05,
+          paraSpaceAfter: 0,
+          paraSpaceBefore: 0,
           fill: colorToFill(element.fill, element.opacity),
           line: colorToLine(element.stroke, element.strokeWidth, element.opacity),
           rotate: element.rotate,
@@ -104,18 +112,24 @@ export function buildPptxPresentation(presentation: NormalizedPresentation) {
       })
 
       if (element.label.trim()) {
-        slide.addText(toPptxTextRuns(element.textRuns), {
+        const maxFontSizePt =
+          element.shape === 'rect' ? getMaxStackedFontSizePt(element) : undefined
+
+        slide.addText(toPptxTextRuns(element.textRuns, maxFontSizePt), {
           x: pxToInches(element.x),
           y: pxToInches(element.y),
           w: pxToInches(element.w),
           h: pxToInches(element.h),
           margin: [element.padding, element.padding, element.padding, element.padding],
-          fontFace: element.fontFace,
+          fontFace: DEFAULT_FONT_FACE,
           fontSize: element.fontSize,
           color: cleanHex(element.textColor, '111827'),
           bold: element.bold,
           align: element.align,
           valign: toPptxVerticalAlign(element.valign),
+          lineSpacingMultiple: 1.05,
+          paraSpaceAfter: 0,
+          paraSpaceBefore: 0,
           rotate: element.rotate,
           fit: 'shrink',
           isTextBox: true,
@@ -180,19 +194,106 @@ function buildImageOptions(element: NormalizedImageElement) {
   }
 }
 
-function toPptxTextRuns(runs: NormalizedTextRun[]) {
-  return runs.map((run) => ({
+function toPptxTextRuns(runs: NormalizedTextRun[], maxFontSizePt?: number) {
+  return runs.map((run, index) => ({
     text: run.text,
     options: {
       bold: run.bold,
       italic: run.italic,
       underline: run.underline ? {} : undefined,
-      breakLine: run.breakLine,
+      breakLine: run.breakLine && index < runs.length - 1,
       color: cleanHex(run.color, '111827'),
-      fontFace: run.fontFace,
-      fontSize: run.fontSize,
+      fontFace: DEFAULT_FONT_FACE,
+      fontSize: Math.min(run.fontSize, maxFontSizePt ?? run.fontSize),
     },
   }))
+}
+
+function getMaxStackedFontSizePt(element: NormalizedShapeElement) {
+  const lineCount = Math.max(
+    element.textRuns.reduce((count, run) => count + Math.max(run.text.split('\n').length, 1), 0),
+    element.label.split('\n').length,
+    1,
+  )
+  const largestRunSize = Math.max(...element.textRuns.map((run) => run.fontSize), element.fontSize)
+  const availableHeight = Math.max(element.h - element.padding * 2, 1)
+  const heightLimitedSize = availableHeight / (lineCount * 1.28)
+
+  return Math.max(Math.min(largestRunSize, heightLimitedSize), 5)
+}
+
+function getMaxTextBoxFontSizePt(element: NormalizedTextElement) {
+  if (!element.runs.length) {
+    return undefined
+  }
+
+  const largestRunSize = Math.max(...element.runs.map((run) => run.fontSize), element.fontSize)
+  const availableHeight = Math.max(element.h - element.padding * 2, 1)
+  const availableWidth = Math.max(element.w - element.padding * 2, 1)
+  const estimatedHeight = estimateTextRunHeight(element.runs, element.text, availableWidth)
+
+  if (estimatedHeight <= availableHeight) {
+    return largestRunSize
+  }
+
+  return Math.max(largestRunSize * (availableHeight / estimatedHeight) * 0.96, 5)
+}
+
+function estimateTextRunHeight(
+  runs: NormalizedTextRun[],
+  fallbackText: string,
+  availableWidth: number,
+) {
+  const lines = getTextRunLines(runs, fallbackText)
+
+  return lines.reduce((height, line) => {
+    const fontSize = Math.max(line.fontSize, 1)
+    const averageGlyphWidth = fontSize * 0.5
+    const charactersPerLine = Math.max(Math.floor(availableWidth / averageGlyphWidth), 1)
+    const wrappedLineCount = Math.max(Math.ceil(line.text.trim().length / charactersPerLine), 1)
+
+    return height + wrappedLineCount * fontSize * 1.05
+  }, 0)
+}
+
+function getTextRunLines(runs: NormalizedTextRun[], fallbackText: string) {
+  if (!runs.length) {
+    return fallbackText.split('\n').map((line) => ({
+      fontSize: 16,
+      text: line,
+    }))
+  }
+
+  const lines: { fontSize: number; text: string }[] = []
+  let currentLine = ''
+  let currentFontSize = runs[0]?.fontSize ?? 16
+
+  for (const run of runs) {
+    const parts = run.text.split('\n')
+
+    parts.forEach((part, index) => {
+      currentLine += part
+      currentFontSize = Math.max(currentFontSize, run.fontSize)
+
+      if (index < parts.length - 1) {
+        lines.push({ fontSize: currentFontSize, text: currentLine })
+        currentLine = ''
+        currentFontSize = run.fontSize
+      }
+    })
+
+    if (run.breakLine) {
+      lines.push({ fontSize: currentFontSize, text: currentLine })
+      currentLine = ''
+      currentFontSize = run.fontSize
+    }
+  }
+
+  if (currentLine || !lines.length) {
+    lines.push({ fontSize: currentFontSize, text: currentLine })
+  }
+
+  return lines
 }
 
 function colorToFill(color: string, opacity = 1) {
