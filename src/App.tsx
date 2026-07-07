@@ -51,6 +51,7 @@ export default function App() {
     error,
     handleFiles,
     removeAttachment,
+    removeUploadOnlyAttachment,
     uploadOnlyAttachments,
   } = useDiagramSession()
 
@@ -239,6 +240,7 @@ export default function App() {
                     onOpenDiagramPicker={() => navigate(DIAGRAM_PICKER_ROUTE)}
                     onOpenInputPage={() => navigate(EXPORTER_ROUTE)}
                     onOpenJsonInput={() => navigate(JSON_INPUT_ROUTE)}
+                    onRemoveUploadOnlyFile={removeUploadOnlyAttachment}
                     onUploadOnlyFileChange={handleUploadOnlyFileChange}
                     onUploadOnlySubmit={handleUploadOnlySubmit}
                     selectedArchitectureDiagramId={modelSelection?.selectedDiagramId ?? ''}
