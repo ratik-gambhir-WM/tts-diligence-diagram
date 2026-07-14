@@ -154,10 +154,6 @@ export function buildPptxPresentation(presentation: NormalizedPresentation) {
   return pptx
 }
 
-function isLabeledRectShape(element: NormalizedShapeElement) {
-  return element.label.trim().length > 0 && element.shape === 'rect'
-}
-
 type PptxLineSegment = Pick<NormalizedLineElement, 'x1' | 'x2' | 'y1' | 'y2'> & {
   hasEndArrow: boolean
 }
