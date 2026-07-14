@@ -4,7 +4,6 @@ import type {
   NormalizedImageElement,
   NormalizedLineElement,
   NormalizedPresentation,
-  NormalizedShapeElement,
   NormalizedTextRun,
 } from './PowerpointTypes'
 import {
