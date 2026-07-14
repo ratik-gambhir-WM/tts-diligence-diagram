@@ -4,6 +4,7 @@ import type {
   NormalizedImageElement,
   NormalizedLineElement,
   NormalizedPresentation,
+  NormalizedShapeElement,
   NormalizedTextRun,
 } from './PowerpointTypes'
 import {
@@ -88,6 +89,29 @@ export function buildPptxPresentation(presentation: NormalizedPresentation) {
           rotate: element.rotate,
           fit: 'shrink',
           isTextBox: true,
+          shape: element.borderRadius > 0 ? 'roundRect' : 'rect',
+        })
+        continue
+      }
+
+      if (element.label.trim().length > 0 && element.shape === 'rect') {
+        slide.addText(toPptxTextRuns(element.textRuns), {
+          x: pxToInches(element.x),
+          y: pxToInches(element.y),
+          w: pxToInches(element.w),
+          h: pxToInches(element.h),
+          margin: [element.padding, element.padding, element.padding, element.padding],
+          fontFace: element.fontFace,
+          fontSize: element.fontSize,
+          color: cleanHex(element.textColor, '111827'),
+          bold: element.bold,
+          align: element.align,
+          valign: toPptxVerticalAlign(element.valign),
+          rotate: element.rotate,
+          fit: 'shrink',
+          isTextBox: true,
+          fill: colorToFill(element.fill, element.opacity),
+          line: colorToLine(element.stroke, element.strokeWidth, element.opacity),
           shape: element.borderRadius > 0 ? 'roundRect' : 'rect',
         })
         continue
