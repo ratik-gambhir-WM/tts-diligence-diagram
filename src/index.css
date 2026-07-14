@@ -408,6 +408,77 @@
     }
   }
 
+  .file-list {
+    position: relative;
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--theme-border-subtle);
+  }
+
+  .file-list-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+    color: var(--theme-subtle);
+    font-size: 0.82rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .file-list-items {
+    display: grid;
+    gap: 0.5rem;
+  }
+
+  .file-list-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-width: 0;
+    gap: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid var(--theme-panel-border);
+    background: var(--theme-surface-bg);
+    text-align: left;
+  }
+
+  .file-list-name {
+    min-width: 0;
+    overflow: hidden;
+    color: var(--theme-page-text);
+    font-size: 0.9rem;
+    font-weight: 700;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .file-list-actions {
+    display: flex;
+    flex-shrink: 0;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .file-list-size {
+    color: var(--theme-subtle);
+    font-size: 0.8rem;
+    font-weight: 700;
+  }
+
+  .file-list-remove-button {
+    font-size: 0.82rem;
+  }
+
+  .file-list-remove-button-icon {
+    min-width: 1.75rem;
+    height: 1.75rem;
+    padding-inline: 0.5rem;
+    line-height: 1;
+  }
+
   .loader-phrase {
     animation: loader-phrase-cycle 5s ease-in-out both;
   }
