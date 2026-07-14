@@ -19,12 +19,12 @@ export function StudioPanel({
   return (
     <section
       className={classNames(
-        'relative overflow-hidden rounded-[2rem] border border-white/12 bg-[#0b0f24] p-7 shadow-[0_28px_90px_rgba(0,0,0,0.34)]',
+        'studio-panel',
         className,
       )}
     >
       {withPattern && <PatternOverlay className={patternClassName} />}
-      <div className="relative">{children}</div>
+      <div className="studio-panel-content">{children}</div>
     </section>
   )
 }
