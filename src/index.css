@@ -479,6 +479,44 @@
     line-height: 1;
   }
 
+  .file-upload-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid transparent;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: border-color 150ms ease, color 150ms ease, filter 150ms ease;
+  }
+
+  .file-upload-button-primary {
+    border-color: var(--theme-accent);
+    background: var(--theme-accent);
+    color: var(--theme-page-bg);
+  }
+
+  .file-upload-button-primary:hover {
+    filter: brightness(1.05);
+  }
+
+  .file-upload-button-secondary {
+    border-color: var(--theme-panel-border);
+    background: var(--theme-surface-bg);
+    color: var(--theme-page-text);
+  }
+
+  .file-upload-button-secondary:hover {
+    border-color: var(--theme-accent);
+    color: var(--theme-accent);
+  }
+
+  .file-upload-button-disabled {
+    opacity: 0.7;
+    cursor: wait;
+  }
+
   .loader-phrase {
     animation: loader-phrase-cycle 5s ease-in-out both;
   }
