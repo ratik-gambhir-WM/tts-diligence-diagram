@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 
 import { WestMonroeMark } from './WestMonroeMark'
 
-const snailOffsets = [
+const snailClasses = [
   'snail-loader-runner-one',
   'snail-loader-runner-two',
   'snail-loader-runner-three',
@@ -87,7 +87,7 @@ export function SnailLoader() {
           aria-hidden="true"
         />
 
-        {snailOffsets.map((snail, index) => (
+        {snailClasses.map((snail, index) => (
           <div
             key={snail}
             className={`snail-loader-runner ${snail}`}

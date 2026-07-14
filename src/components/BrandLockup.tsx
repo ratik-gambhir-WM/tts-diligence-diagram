@@ -33,7 +33,7 @@ export function BrandLockup({
       {align === 'center' ? (
         <span className="brand-lockup-title brand-lockup-title-center">{title}</span>
       ) : (
-        <div className="brand-lockup-copy">
+        <div>
           <p className="brand-lockup-eyebrow">{eyebrow}</p>
           <h1 className="brand-lockup-title brand-lockup-title-left">{title}</h1>
         </div>

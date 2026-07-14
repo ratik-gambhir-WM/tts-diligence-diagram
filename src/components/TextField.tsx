@@ -10,7 +10,7 @@ type TextFieldProps = InputHTMLAttributes<HTMLInputElement> & {
 
 export function TextField({ addon, className, help, id, label, ...inputProps }: TextFieldProps) {
   return (
-    <div className="text-field">
+    <div>
       <div className="text-field-header">
         <label className="text-field-label" htmlFor={id}>
           {label}
