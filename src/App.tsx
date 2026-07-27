@@ -10,21 +10,25 @@ import {
   selectArchitectureDiagramModel,
 } from './lib/modelSelector'
 import { generateSlidePromptOutput } from './lib/OpenAI'
+import { normalizeCommentaryTemplateSpec } from './lib/commentaryTemplates'
 import { ACCEPT_ATTR, useDiagramSession } from './hooks/useDiagramSession'
 import { JsonInputPage } from './pages/JsonInputPage'
 import { LoginPage } from './pages/LoginPage'
 import { PromptPage } from './pages/PromptPage'
+import { CommentaryPicker } from './pages/CommentaryPicker'
 import { SlidePickerPage } from './pages/SlidePickerPage'
 import { TemplateCanvasPage } from './pages/TemplateCanvasPage'
 import type { ModelSelectorOutput } from './types/ModelSelectorOutput'
 import { formatFileSize } from './utils/files'
 
 const EXPORTER_ROUTE = '/'
+const COMMENTARY_PICKER_ROUTE = '/commentary-picker'
 const DIAGRAM_PICKER_ROUTE = '/diagram-picker'
 const DIAGRAM_CANVAS_ROUTE = '/diagram-template'
 const JSON_INPUT_ROUTE = '/json-input'
 const LOGIN_ROUTE = '/login'
 const EMAIL_SESSION_STORAGE_KEY = 'tts-mermaid-email'
+type CanvasTemplateSource = 'commentary' | 'diagram'
 
 export default function App() {
   const location = useLocation()
@@ -32,6 +36,7 @@ export default function App() {
   const shouldReduceMotion = useReducedMotion()
   const [session, setSession] = useState(() => getStoredSession())
   const [canvasTemplate, setCanvasTemplate] = useState<DiagramTemplate>(() => getDefaultDiagramTemplate())
+  const [canvasTemplateSource, setCanvasTemplateSource] = useState<CanvasTemplateSource>('diagram')
   const [templateStatusMessage, setTemplateStatusMessage] = useState('')
   const [templateError, setTemplateError] = useState('')
   const [isTemplateSubmitting, setIsTemplateSubmitting] = useState(false)
@@ -92,6 +97,7 @@ export default function App() {
           relatedAlt: 'Created architecture diagram',
           jsonSpec: createdDiagramJson,
         })
+        setCanvasTemplateSource('diagram')
         setTemplateStatusMessage(
           `Created a new architecture diagram from ${uploadOnlyAttachments.length} uploaded file${
             uploadOnlyAttachments.length === 1 ? '' : 's'
@@ -126,6 +132,7 @@ export default function App() {
         ...selectedTemplate,
         jsonSpec: generatedSlideJson,
       })
+      setCanvasTemplateSource('diagram')
       setTemplateStatusMessage(
         `Generated ${selectedTemplate.name} from uploaded diligence material.`,
       )
@@ -164,6 +171,7 @@ export default function App() {
         ...template,
         jsonSpec: generatedSlideJson,
       })
+      setCanvasTemplateSource('diagram')
       setTemplateStatusMessage(
         `Generated ${template.name} from ${
           attachments.length === 0
@@ -181,6 +189,17 @@ export default function App() {
     } finally {
       setIsTemplateSubmitting(false)
     }
+  }
+
+  function handleSelectCommentaryTemplate(template: DiagramTemplate) {
+    setCanvasTemplate({
+      ...template,
+      jsonSpec: normalizeCommentaryTemplateSpec(template.jsonSpec),
+    })
+    setCanvasTemplateSource('commentary')
+    setTemplateStatusMessage(`${template.name} is rendered from its commentary template JSON.`)
+    setIsTemplateJsonOpenOnLoad(false)
+    navigate(DIAGRAM_CANVAS_ROUTE)
   }
 
   return (
@@ -216,6 +235,7 @@ export default function App() {
                     acceptAttr={ACCEPT_ATTR}
                     createMode={isCreateMode}
                     isUploadOnlySelecting={isModelSelecting}
+                    onOpenCommentaryPicker={() => navigate(COMMENTARY_PICKER_ROUTE)}
                     onCreateModeChange={setIsCreateMode}
                     onOpenDiagramPicker={() => navigate(DIAGRAM_PICKER_ROUTE)}
                     onOpenInputPage={() => navigate(EXPORTER_ROUTE)}
@@ -247,6 +267,7 @@ export default function App() {
                     error={templateError}
                     isSubmitting={isTemplateSubmitting}
                     onFileChange={handleFiles}
+                    onOpenCommentaryPicker={() => navigate(COMMENTARY_PICKER_ROUTE)}
                     onOpenInputPage={() => navigate(EXPORTER_ROUTE)}
                     onOpenJsonInput={() => navigate(JSON_INPUT_ROUTE)}
                     onRemoveAttachment={removeAttachment}
@@ -259,10 +280,25 @@ export default function App() {
               }
             />
             <Route
+              path={COMMENTARY_PICKER_ROUTE}
+              element={
+                session ? (
+                  <CommentaryPicker
+                    onOpenInputPage={() => navigate(EXPORTER_ROUTE)}
+                    onOpenJsonInput={() => navigate(JSON_INPUT_ROUTE)}
+                    onSelectTemplate={handleSelectCommentaryTemplate}
+                  />
+                ) : (
+                  <Navigate replace to={LOGIN_ROUTE} />
+                )
+              }
+            />
+            <Route
               path={JSON_INPUT_ROUTE}
               element={
                 session ? (
                   <JsonInputPage
+                    onOpenCommentaryPicker={() => navigate(COMMENTARY_PICKER_ROUTE)}
                     onOpenDiagramPicker={() => navigate(DIAGRAM_PICKER_ROUTE)}
                     onOpenInputPage={() => navigate(EXPORTER_ROUTE)}
                     onOpenJsonInput={() => navigate(JSON_INPUT_ROUTE)}
@@ -283,10 +319,19 @@ export default function App() {
                     onTemplateJsonChange={(jsonSpec) =>
                       setCanvasTemplate((currentTemplate) => ({
                         ...currentTemplate,
-                        jsonSpec,
+                        jsonSpec:
+                          canvasTemplateSource === 'commentary'
+                            ? normalizeCommentaryTemplateSpec(jsonSpec)
+                            : jsonSpec,
                       }))
                     }
-                    onOpenPicker={() => navigate(DIAGRAM_PICKER_ROUTE)}
+                    onOpenPicker={() =>
+                      navigate(
+                        canvasTemplateSource === 'commentary'
+                          ? COMMENTARY_PICKER_ROUTE
+                          : DIAGRAM_PICKER_ROUTE,
+                      )
+                    }
                     onOpenInputPage={() => navigate(EXPORTER_ROUTE)}
                   />
                 ) : (

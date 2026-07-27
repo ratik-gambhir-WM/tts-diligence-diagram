@@ -19,6 +19,7 @@ type PromptPageProps = {
   acceptAttr: string
   createMode: boolean
   isUploadOnlySelecting: boolean
+  onOpenCommentaryPicker: () => void
   onOpenDiagramPicker: () => void
   onOpenInputPage: () => void
   onOpenJsonInput: () => void
@@ -36,6 +37,7 @@ export function PromptPage({
   acceptAttr,
   createMode,
   isUploadOnlySelecting,
+  onOpenCommentaryPicker,
   onOpenDiagramPicker,
   onOpenInputPage,
   onOpenJsonInput,
@@ -56,6 +58,7 @@ export function PromptPage({
     <PageShell>
       <AppNav
         activePage="diagramming"
+        onOpenCommentaryPicker={onOpenCommentaryPicker}
         onOpenDiagramPicker={onOpenDiagramPicker}
         onOpenInputPage={onOpenInputPage}
         onOpenJsonInput={onOpenJsonInput}

@@ -1,5 +1,6 @@
 const BRANDED_BACKGROUND_ID = 'element-903000'
-const BRANDED_LOGO_ID = 'element-5'
+const BRANDED_LOGO_ID = 'west-monroe-logo'
+const LEGACY_BRANDED_LOGO_ID = 'element-5'
 const DEFAULT_SLIDE_WIDTH = 1280
 const DEFAULT_SLIDE_HEIGHT = 720
 const LOGO_WIDTH = 153
@@ -11,7 +12,18 @@ export function addBrandedSlideFrame(input: unknown): unknown {
   const cloned = cloneJsonLike(input)
 
   for (const slide of getSlideRecords(cloned)) {
+    normalizeBrandedSlideFrameImageIdsInSlide(slide)
     addBrandedSlideFrameToSlide(slide)
+  }
+
+  return cloned
+}
+
+export function normalizeBrandedSlideFrameImageIds(input: unknown): unknown {
+  const cloned = cloneJsonLike(input)
+
+  for (const slide of getSlideRecords(cloned)) {
+    normalizeBrandedSlideFrameImageIdsInSlide(slide)
   }
 
   return cloned
@@ -55,6 +67,16 @@ function addBrandedSlideFrameToSlide(slide: Record<string, unknown>) {
   slide.elements = [...nextElements, ...currentElements]
 }
 
+function normalizeBrandedSlideFrameImageIdsInSlide(slide: Record<string, unknown>) {
+  const elements = Array.isArray(slide.elements) ? slide.elements.filter(isRecord) : []
+
+  for (const element of elements) {
+    if (isImageWithFileName(element, 'element-5.png')) {
+      element.id = BRANDED_LOGO_ID
+    }
+  }
+}
+
 function getSlideRecords(input: unknown): Array<Record<string, unknown>> {
   if (Array.isArray(input)) {
     return input.filter(isRecord)
@@ -87,15 +109,30 @@ function getSlideRecords(input: unknown): Array<Record<string, unknown>> {
 
 function hasFrameImage(elements: Record<string, unknown>[], id: string, fileName: string) {
   return elements.some((element) => {
-    if (element.id === id) {
+    if (
+      isImageElement(element) &&
+      (element.id === id || (id === BRANDED_LOGO_ID && element.id === LEGACY_BRANDED_LOGO_ID))
+    ) {
       return true
     }
 
-    const src = typeof element.src === 'string' ? element.src : ''
-    const path = typeof element.path === 'string' ? element.path : ''
-    const data = typeof element.data === 'string' ? element.data : ''
-    return [src, path, data].some((value) => value.includes(fileName))
+    return isImageWithFileName(element, fileName)
   })
+}
+
+function isImageWithFileName(element: Record<string, unknown>, fileName: string) {
+  if (!isImageElement(element)) {
+    return false
+  }
+
+  const src = typeof element.src === 'string' ? element.src : ''
+  const path = typeof element.path === 'string' ? element.path : ''
+  const data = typeof element.data === 'string' ? element.data : ''
+  return [src, path, data].some((value) => value.includes(fileName))
+}
+
+function isImageElement(element: Record<string, unknown>) {
+  return element.type === 'image' || element.kind === 'image' || element.type === 'picture'
 }
 
 function cloneJsonLike(input: unknown) {

@@ -131,7 +131,7 @@
             "fill": "transparent",
             "stroke": "transparent",
             "strokeWidth": 0,
-            "text": "© 2025 West Monroe Partners  |  Reproduction and/or distribution without West Monroe Partners’ prior consent is prohibited.",
+            "text": "© 2026 West Monroe Partners  |  Reproduction and/or distribution without West Monroe Partners’ prior consent is prohibited.",
             "align": "left",
             "valign": "middle",
             "fontSize": 16,
@@ -139,7 +139,7 @@
             "textColor": "111827",
             "runs": [
               {
-                "text": "© 2025 West Monroe Partners  |  Reproduction and/or distribution without West Monroe Partners’ prior consent is prohibited.",
+                "text": "© 2026 West Monroe Partners  |  Reproduction and/or distribution without West Monroe Partners’ prior consent is prohibited.",
                 "color": "111827",
                 "fontFace": "Arial",
                 "fontSize": 16,
@@ -273,7 +273,7 @@
             "fill": "transparent",
             "stroke": "transparent",
             "strokeWidth": 0,
-            "text": "LTC Ally has established foundational application security controls, with opportunities to further reduce release risk by formalizing secure design, developer training, and security testing",
+            "text": "Target has established foundational application security controls, with opportunities to further reduce release risk by formalizing secure design, developer training, and security testing",
             "align": "left",
             "valign": "middle",
             "fontSize": 20,
@@ -281,7 +281,7 @@
             "textColor": "05013f",
             "runs": [
               {
-                "text": "LTC Ally has established foundational application security controls, with opportunities to further reduce release risk by formalizing secure design, developer training, and security testing",
+                "text": "Target has established foundational application security controls, with opportunities to further reduce release risk by formalizing secure design, developer training, and security testing",
                 "color": "05013f",
                 "fontFace": "Arial",
                 "fontSize": 20,
@@ -299,16 +299,18 @@
             "fill": "transparent",
             "stroke": "transparent",
             "strokeWidth": 0,
-            "text": "SUPPORTING DETAIL:",
+            "text": "SUPPORTING DETAIL: PRODUCT SECURITY",
             "align": "left",
             "valign": "middle",
             "fontSize": 16,
             "fontFace": "Arial",
-            "textColor": "111827",
+            "bold": true,
+            "textColor": "50648B",
             "runs": [
               {
-                "text": "SUPPORTING DETAIL:",
-                "color": "111827",
+                "text": "SUPPORTING DETAIL: PRODUCT SECURITY",
+                "bold": true,
+                "color": "50648B",
                 "fontFace": "Arial",
                 "fontSize": 16,
                 "breakLine": true
@@ -599,13 +601,7 @@
             "textColor": "070154",
             "runs": [
               {
-                "text": "Secure Release ",
-                "color": "070154",
-                "fontFace": "Arial",
-                "fontSize": 9
-              },
-              {
-                "text": "Process",
+                "text": "Secure Release Process",
                 "color": "070154",
                 "fontFace": "Arial",
                 "fontSize": 9,
@@ -736,11 +732,11 @@
             "x": 29.23,
             "y": 540.44,
             "w": 222.67,
-            "h": 47.28,
+            "h": 88,
             "fill": "transparent",
             "stroke": "transparent",
             "strokeWidth": 0,
-            "text": "Formalize annual secure developer training\nImplement threat modeling and secure design reviews\nDocument and test RBAC / client-data segregation controls",
+            "text": "•     Standardize Secrets Handling (ID 2)\n•     Formalize annual secure developer training (ID 3)\n•     Implement threat modeling and secure design reviews (ID 3)\n•     Document and test RBAC / client-data segregation controls (ID 4)",
             "align": "left",
             "valign": "top",
             "fontSize": 9,
@@ -748,21 +744,28 @@
             "textColor": "111827",
             "runs": [
               {
-                "text": "Formalize annual secure developer training",
+                "text": "•     Standardize Secrets Handling (ID 2)",
                 "color": "111827",
                 "fontFace": "Arial",
                 "fontSize": 9,
                 "breakLine": true
               },
               {
-                "text": "Implement threat modeling and secure design reviews",
+                "text": "•     Formalize annual secure developer training (ID 3)",
                 "color": "111827",
                 "fontFace": "Arial",
                 "fontSize": 9,
                 "breakLine": true
               },
               {
-                "text": "Document and test RBAC / client-data segregation controls",
+                "text": "•     Implement threat modeling and secure design reviews (ID 3)",
+                "color": "111827",
+                "fontFace": "Arial",
+                "fontSize": 9,
+                "breakLine": true
+              },
+              {
+                "text": "•     Document and test RBAC / client-data segregation controls (ID 4)",
                 "color": "111827",
                 "fontFace": "Arial",
                 "fontSize": 9,
@@ -776,11 +779,11 @@
             "x": 252.24,
             "y": 540.44,
             "w": 213.69,
-            "h": 47.28,
+            "h": 64,
             "fill": "transparent",
             "stroke": "transparent",
             "strokeWidth": 0,
-            "text": "Operationalize SCA and vulnerability remediation governance\nAdd automated AppSec release gates",
+            "text": "•     Operationalize SCA and vulnerability remediation governance (ID 3)\n•     Add automated AppSec release gates (ID 3)",
             "align": "left",
             "valign": "top",
             "fontSize": 9,
@@ -788,14 +791,14 @@
             "textColor": "111827",
             "runs": [
               {
-                "text": "Operationalize SCA and vulnerability remediation governance",
+                "text": "•     Operationalize SCA and vulnerability remediation governance (ID 3)",
                 "color": "111827",
                 "fontFace": "Arial",
                 "fontSize": 9,
                 "breakLine": true
               },
               {
-                "text": "Add automated AppSec release gates",
+                "text": "•     Add automated AppSec release gates (ID 3)",
                 "color": "111827",
                 "fontFace": "Arial",
                 "fontSize": 9,
@@ -1202,7 +1205,7 @@
             "fill": "transparent",
             "stroke": "transparent",
             "strokeWidth": 0,
-            "text": "LTC Ally has a foundation for secure development, but developer-specific training should be formalized to reduce knowledge gaps\nGeneral security training is provided, and LTC Ally responded to audit feedback by holding a hands-on OWASP-style seminar for developers, creating a foundation for ongoing role-based secure coding education\nDeveloper-specific secure coding training isn't yet recurring or consistently tracked; making it annual would help keep secure coding expectations current as frameworks, AI-assisted coding, and attack patterns evolve",
+            "text": "Target has a foundation for secure development, but developer-specific training should be formalized to reduce knowledge gaps\na)     General security training is provided, and Target responded to audit feedback by holding a hands-on OWASP-style seminar for developers, creating a foundation for ongoing role-based secure coding education\nb)     Developer-specific secure coding training isn't yet recurring or consistently tracked; making it annual would help keep secure coding expectations current as frameworks, AI-assisted coding, and attack patterns evolve",
             "align": "left",
             "valign": "top",
             "fontSize": 11,
@@ -1211,7 +1214,7 @@
             "textColor": "111827",
             "runs": [
               {
-                "text": "LTC Ally has a foundation for secure development, but developer-specific training should be formalized to reduce knowledge gaps",
+                "text": "Target has a foundation for secure development, but developer-specific training should be formalized to reduce knowledge gaps",
                 "bold": true,
                 "color": "111827",
                 "fontFace": "ヒラギノ角ゴ Pro W3",
@@ -1219,14 +1222,14 @@
                 "breakLine": true
               },
               {
-                "text": "General security training is provided, and LTC Ally responded to audit feedback by holding a hands-on OWASP-style seminar for developers, creating a foundation for ongoing role-based secure coding education",
+                "text": "a)     General security training is provided, and Target responded to audit feedback by holding a hands-on OWASP-style seminar for developers, creating a foundation for ongoing role-based secure coding education",
                 "color": "111827",
                 "fontFace": "Arial",
                 "fontSize": 9,
                 "breakLine": true
               },
               {
-                "text": "Developer-specific secure coding training isn't yet recurring or consistently tracked; making it annual would help keep secure coding expectations current as frameworks, AI-assisted coding, and attack patterns evolve",
+                "text": "b)     Developer-specific secure coding training isn't yet recurring or consistently tracked; making it annual would help keep secure coding expectations current as frameworks, AI-assisted coding, and attack patterns evolve",
                 "color": "111827",
                 "fontFace": "Arial",
                 "fontSize": 9,
@@ -1244,7 +1247,7 @@
             "fill": "transparent",
             "stroke": "transparent",
             "strokeWidth": 0,
-            "text": "Although secure design practices are in place through technical requirements and design reviews, they need to be expanded for higher-risk workflows to xxx\nProduct and engineering teams turn business needs into technical requirements, designs, estimates, and timelines. However, formal threat modeling, abuse-case review, and security architecture checkpoints were not evidenced, creating an opportunity to add lightweight secure design reviews for authorization, PHI, integration, and AI risks before coding could to improve security",
+            "text": "Although secure design practices are in place through technical requirements and design reviews, they need to be expanded for higher-risk workflows to catch authorization, PHI, integration, and AI risks earlier\na)     Product and engineering teams turn business needs into technical requirements, designs, estimates, and timelines. However, formal threat modeling, abuse-case review, and security architecture checkpoints were not evidenced, creating an opportunity to add lightweight secure design reviews for authorization, PHI, integration, and AI risks before coding to improve security",
             "align": "left",
             "valign": "top",
             "fontSize": 11,
@@ -1253,47 +1256,15 @@
             "textColor": "111827",
             "runs": [
               {
-                "text": "Although secure design practices are in place through technical requirements and design reviews, they need to be expanded for higher-risk workflows",
+                "text": "Although secure design practices are in place through technical requirements and design reviews, they need to be expanded for higher-risk workflows to catch authorization, PHI, integration, and AI risks earlier",
                 "bold": true,
                 "color": "111827",
-                "fontFace": "ヒラギノ角ゴ Pro W3",
-                "fontSize": 11
-              },
-              {
-                "text": " ",
-                "bold": true,
-                "color": "111827",
-                "fontFace": "ヒラギノ角ゴ Pro W3",
-                "fontSize": 11
-              },
-              {
-                "text": "to xxx",
-                "bold": true,
-                "color": "FF0000",
                 "fontFace": "ヒラギノ角ゴ Pro W3",
                 "fontSize": 11,
                 "breakLine": true
               },
               {
-                "text": "Product and engineering teams turn business needs into technical requirements, designs, estimates, and timelines. However, formal threat modeling, abuse-case review, and security architecture checkpoints were not evidenced, creating an opportunity to add lightweight secure design reviews for authorization, PHI, integration, and AI risks before coding ",
-                "color": "111827",
-                "fontFace": "Arial",
-                "fontSize": 9
-              },
-              {
-                "text": "could",
-                "color": "FF0000",
-                "fontFace": "Arial",
-                "fontSize": 9
-              },
-              {
-                "text": " to",
-                "color": "FF0000",
-                "fontFace": "Arial",
-                "fontSize": 9
-              },
-              {
-                "text": " improve security",
+                "text": "a)     Product and engineering teams turn business needs into technical requirements, designs, estimates, and timelines. However, formal threat modeling, abuse-case review, and security architecture checkpoints were not evidenced, creating an opportunity to add lightweight secure design reviews for authorization, PHI, integration, and AI risks before coding to improve security",
                 "color": "111827",
                 "fontFace": "Arial",
                 "fontSize": 9,
@@ -1311,7 +1282,7 @@
             "fill": "transparent",
             "stroke": "transparent",
             "strokeWidth": 0,
-            "text": "Security testing encompasses annual third-party penetration assessments; however, testing at the release level should be enhanced to xxx\nLTC Ally conducts annual third-party application penetration testing, including credentialed tests to validate role controls and data segregation, providing independent validation of key controls and a foundation for security checks\nSecurity testing does not appear to be embedded in each major release through routine security regression testing, or automated pre-production gates; adding these controls would reduce the likelihood that vulnerabilities are found only during annual testing or after release\nSnyk, a vulnerability scanning tool, was seen as too noisy and underused; tuning SCA settings, setting severity thresholds, and tracking exceptions would improve visibility into vulnerable libraries without overwhelming developers",
+            "text": "Security testing encompasses annual third-party penetration assessments; however, testing at the release level should be enhanced to catch security issues before deploying to production\na)     Target conducts annual third-party application penetration testing, including credentialed tests to validate role controls and data segregation, providing independent validation of key controls and a foundation for security checks\nb)     Security testing is not embedded in each major release through routine security regression testing, or automated pre-production gates; adding these controls would reduce the likelihood that vulnerabilities are found only during annual testing or after release\nc)     Snyk, a vulnerability scanning tool, was seen as too noisy and underused; tuning SCA settings, setting severity thresholds, and tracking exceptions would improve visibility into vulnerable libraries without overwhelming developers",
             "align": "left",
             "valign": "top",
             "fontSize": 11,
@@ -1320,49 +1291,29 @@
             "textColor": "111827",
             "runs": [
               {
-                "text": "Security testing encompasses annual third-party penetration assessments; however, testing at the release level should be enhanced",
+                "text": "Security testing encompasses annual third-party penetration assessments; however, testing at the release level should be enhanced to catch security issues before deploying to production",
                 "bold": true,
                 "color": "111827",
-                "fontFace": "ヒラギノ角ゴ Pro W3",
-                "fontSize": 11
-              },
-              {
-                "text": " ",
-                "bold": true,
-                "color": "111827",
-                "fontFace": "ヒラギノ角ゴ Pro W3",
-                "fontSize": 11
-              },
-              {
-                "text": "to xxx",
-                "bold": true,
-                "color": "FF0000",
                 "fontFace": "ヒラギノ角ゴ Pro W3",
                 "fontSize": 11,
                 "breakLine": true
               },
               {
-                "text": "LTC Ally conducts annual third-party application penetration testing, including credentialed tests to validate role controls and data segregation, providing independent validation of key controls and a foundation for security checks",
+                "text": "a)     Target conducts annual third-party application penetration testing, including credentialed tests to validate role controls and data segregation, providing independent validation of key controls and a foundation for security checks",
                 "color": "111827",
                 "fontFace": "Arial",
                 "fontSize": 9,
                 "breakLine": true
               },
               {
-                "text": "Security testing does not appear to be embedded in each major release through routine security regression testing, or automated pre-production gates; adding these controls would reduce the likelihood that vulnerabilities are found only during annual testing or after release",
+                "text": "b)     Security testing is not embedded in each major release through routine security regression testing, or automated pre-production gates; adding these controls would reduce the likelihood that vulnerabilities are found only during annual testing or after release",
                 "color": "111827",
                 "fontFace": "Arial",
                 "fontSize": 9,
                 "breakLine": true
               },
               {
-                "text": "Snyk",
-                "color": "111827",
-                "fontFace": "Arial",
-                "fontSize": 9
-              },
-              {
-                "text": ", a vulnerability scanning tool, was seen as too noisy and underused; tuning SCA settings, setting severity thresholds, and tracking exceptions would improve visibility into vulnerable libraries without overwhelming developers",
+                "text": "c)     Snyk, a vulnerability scanning tool, was seen as too noisy and underused; tuning SCA settings, setting severity thresholds, and tracking exceptions would improve visibility into vulnerable libraries without overwhelming developers",
                 "color": "111827",
                 "fontFace": "Arial",
                 "fontSize": 9,
@@ -1380,7 +1331,7 @@
             "fill": "transparent",
             "stroke": "transparent",
             "strokeWidth": 0,
-            "text": "Secure release practices involve robust GitHub and QA controls; however, AppSec criteria should also be incorporated into the release readiness process to xxx\nGitHub branch protections require pull requests and approvals, limit merge/deploy rights, and include QA review as part of the delivery flow, reducing the likelihood of unreviewed code reaching production and creating a foundation for adding security-specific release gates\nIncorporating security scans, SCA findings, design reviews, and remediation checks into release criteria adds security quality gates, helping identify, assign ownership, and resolve high-risk issues before deployment",
+            "text": "Secure release practices involve robust GitHub and QA controls; however, AppSec criteria should also be incorporated into the release readiness process to reduce security release risk\na)     GitHub branch protections require pull requests and approvals, limit merge/deploy rights, and include QA review as part of the delivery flow, reducing the likelihood of unreviewed code reaching production and creating a foundation for adding security-specific release gates\nb)     Incorporating security scans, SCA findings, design reviews, and remediation checks into release criteria adds security quality gates, helping identify, assign ownership, and resolve high-risk issues before deployment",
             "align": "left",
             "valign": "top",
             "fontSize": 11,
@@ -1389,29 +1340,22 @@
             "textColor": "111827",
             "runs": [
               {
-                "text": "Secure release practices involve robust GitHub and QA controls; however, AppSec criteria should also be incorporated into the release readiness process ",
+                "text": "Secure release practices involve robust GitHub and QA controls; however, AppSec criteria should also be incorporated into the release readiness process to reduce security release risk",
                 "bold": true,
                 "color": "111827",
-                "fontFace": "ヒラギノ角ゴ Pro W3",
-                "fontSize": 11
-              },
-              {
-                "text": "to xxx",
-                "bold": true,
-                "color": "FF0000",
                 "fontFace": "ヒラギノ角ゴ Pro W3",
                 "fontSize": 11,
                 "breakLine": true
               },
               {
-                "text": "GitHub branch protections require pull requests and approvals, limit merge/deploy rights, and include QA review as part of the delivery flow, reducing the likelihood of unreviewed code reaching production and creating a foundation for adding security-specific release gates",
+                "text": "a)     GitHub branch protections require pull requests and approvals, limit merge/deploy rights, and include QA review as part of the delivery flow, reducing the likelihood of unreviewed code reaching production and creating a foundation for adding security-specific release gates",
                 "color": "111827",
                 "fontFace": "Arial",
                 "fontSize": 9,
                 "breakLine": true
               },
               {
-                "text": "Incorporating security scans, SCA findings, design reviews, and remediation checks into release criteria adds security quality gates, helping identify, assign ownership, and resolve high-risk issues before deployment",
+                "text": "b)     Incorporating security scans, SCA findings, design reviews, and remediation checks into release criteria adds security quality gates, helping identify, assign ownership, and resolve high-risk issues before deployment",
                 "color": "111827",
                 "fontFace": "Arial",
                 "fontSize": 9,
@@ -1447,7 +1391,7 @@
             "fill": "transparent",
             "stroke": "transparent",
             "strokeWidth": 0,
-            "text": "Third-party component management is partially addressed by Dependabot, but a more comprehensive SCA program is needed to xxx\nDependabot opens dependency update PRs, helping surface outdated packages and providing developers with a path to remediate common dependency issues. Formal SCA governance would help prioritize high-risk vulnerabilities, document accepted exceptions, and track remediation across the application portfolio",
+            "text": "Third-party component management is partially addressed by Dependabot, but a more comprehensive SCA program is needed\na)     Dependabot opens dependency update PRs, helping surface outdated packages and providing developers with a path to remediate common dependency issues. Formal SCA governance would help prioritize high-risk vulnerabilities, document accepted exceptions, and track remediation across the application portfolio",
             "align": "left",
             "valign": "top",
             "fontSize": 11,
@@ -1456,42 +1400,15 @@
             "textColor": "111827",
             "runs": [
               {
-                "text": "Third-party component management is partially addressed by ",
+                "text": "Third-party component management is partially addressed by Dependabot, but a more comprehensive SCA program is needed",
                 "bold": true,
                 "color": "111827",
-                "fontFace": "ヒラギノ角ゴ Pro W3",
-                "fontSize": 11
-              },
-              {
-                "text": "Dependabot",
-                "bold": true,
-                "color": "111827",
-                "fontFace": "ヒラギノ角ゴ Pro W3",
-                "fontSize": 11
-              },
-              {
-                "text": ", but a more comprehensive SCA program is needed ",
-                "bold": true,
-                "color": "111827",
-                "fontFace": "ヒラギノ角ゴ Pro W3",
-                "fontSize": 11
-              },
-              {
-                "text": "to xxx",
-                "bold": true,
-                "color": "FF0000",
                 "fontFace": "ヒラギノ角ゴ Pro W3",
                 "fontSize": 11,
                 "breakLine": true
               },
               {
-                "text": "Dependabot",
-                "color": "111827",
-                "fontFace": "Arial",
-                "fontSize": 9
-              },
-              {
-                "text": " opens dependency update PRs, helping surface outdated packages and providing developers with a path to remediate common dependency issues. Formal SCA governance would help prioritize high-risk vulnerabilities, document accepted exceptions, and track remediation across the application portfolio",
+                "text": "a)     Dependabot opens dependency update PRs, helping surface outdated packages and providing developers with a path to remediate common dependency issues. Formal SCA governance would help prioritize high-risk vulnerabilities, document accepted exceptions, and track remediation across the application portfolio",
                 "color": "111827",
                 "fontFace": "Arial",
                 "fontSize": 9,

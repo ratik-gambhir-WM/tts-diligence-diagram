@@ -6,12 +6,14 @@ import { PageShell } from '../components/PageShell'
 import { generatePowerPointFromJson } from '../lib/export/exporter'
 
 type JsonInputPageProps = {
+  onOpenCommentaryPicker: () => void
   onOpenDiagramPicker: () => void
   onOpenInputPage: () => void
   onOpenJsonInput: () => void
 }
 
 export function JsonInputPage({
+  onOpenCommentaryPicker,
   onOpenDiagramPicker,
   onOpenInputPage,
   onOpenJsonInput,
@@ -50,6 +52,7 @@ export function JsonInputPage({
     <PageShell>
       <AppNav
         activePage="json-input"
+        onOpenCommentaryPicker={onOpenCommentaryPicker}
         onOpenDiagramPicker={onOpenDiagramPicker}
         onOpenInputPage={onOpenInputPage}
         onOpenJsonInput={onOpenJsonInput}

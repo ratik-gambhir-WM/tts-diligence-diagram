@@ -28,6 +28,8 @@ import type {
   NormalizedTextElement,
   NormalizedTextRun,
 } from '../export/PowerpointGenerator'
+import { resolveBundledSlideAssetImageSources } from '../export/PowerpointAssetResolver'
+import { DEFAULT_FONT_FACE } from '../export/PowerpointConstants'
 import { buildSlideFlowModel, type SlideFlowNodeData } from './model'
 import './slide-flow.css'
 
@@ -61,8 +63,11 @@ const nodeTypes: NodeTypes = {
   slideElement: SlideElementNode,
 }
 
+const CANVAS_FONT_FACE = DEFAULT_FONT_FACE
+
 export function SlideFlowCanvas({ className, input, onChange, slideIndex = 0 }: SlideFlowCanvasProps) {
-  const model = useMemo(() => buildSlideFlowModel(input, { slideIndex }), [input, slideIndex])
+  const renderInput = useMemo(() => resolveBundledSlideAssetImageSources(input), [input])
+  const model = useMemo(() => buildSlideFlowModel(renderInput, { slideIndex }), [renderInput, slideIndex])
   const slide = model.slide
   const flowKey = useMemo(() => getFlowKey(model.nodes), [model.nodes])
   const handleInputChange = useMemo(() => {
@@ -273,6 +278,14 @@ function SlideElementNode({ data, id, selected }: NodeProps<SlideFlowNode>) {
   }
   const handleTextCommit = (text: string) => {
     setIsEditingText(false)
+
+    if (
+      (element.kind === 'text' && text === element.text) ||
+      (element.kind === 'shape' && text === element.label)
+    ) {
+      return
+    }
+
     updateElement({ text })
     commitElementEdit({ text })
   }
@@ -437,6 +450,7 @@ function SlideShapeElement({
   const shapeStyle = getSharedBoxStyle(element)
   const textStyle = getTextBoxStyle(element)
   const shouldStackRuns = element.shape === 'rect'
+  const labelTextStyle = shouldStackRuns ? getStackedTextBoxStyle(element) : textStyle
   const label = (
     <SlideTextRuns
       fallbackText={element.label}
@@ -446,6 +460,7 @@ function SlideShapeElement({
       runs={element.textRuns}
       stackVertically={shouldStackRuns}
       text={element.label}
+      textStyle={labelTextStyle}
       isEditable={isEditable}
     />
   )
@@ -512,7 +527,7 @@ function SlideShapeElement({
       isEditable={isEditable}
       label={label}
       shapeStyle={shapeStyle}
-      textStyle={getStackedTextBoxStyle(element)}
+      textStyle={labelTextStyle}
     />
   )
 }
@@ -679,10 +694,11 @@ function SlideTextElement({
 }) {
   const paintStyle = getTextPaintStyle(element)
   const textStyle = getTextBoxStyle(element)
+  const maxFontSizePx = getMaxTextBoxFontSizePx(element)
 
   return (
     <div
-      className="slide-flow-text-element"
+      className={['slide-flow-text-element', isEditable ? 'is-editing' : undefined].filter(Boolean).join(' ')}
       style={{
         ...getSharedBoxStyle(element),
         ...paintStyle,
@@ -692,6 +708,7 @@ function SlideTextElement({
       <SlideTextRuns
         fallbackText={element.text}
         isEditable={isEditable}
+        maxStackedFontSizePt={maxFontSizePx}
         onTextChange={onTextChange}
         onTextCommit={onTextCommit}
         runs={element.runs}
@@ -914,9 +931,10 @@ function SlideTextRuns({
   if (isEditable) {
     return (
       <EditableNodeText
-        editableTextStyle={getEditableRunStyle(runs, maxStackedFontSizePt)}
+        editableTextStyle={getEditableRunStyle(textStyle, runs, maxStackedFontSizePt)}
         onTextChange={onTextChange}
         onTextCommit={onTextCommit}
+        runs={runs}
         text={text ?? fallbackText}
         textStyle={textStyle}
       />
@@ -928,41 +946,49 @@ function SlideTextRuns({
   }
 
   return (
-    <>
+    <span className="slide-flow-text-runs">
       {runs.map((run, index) => (
-        <span
-          key={`${run.text}-${index}`}
-          style={{
-            color: toCssColor(run.color),
-            display: stackVertically ? 'block' : undefined,
-            fontFamily: run.fontFace,
-            fontSize: `${Math.min(run.fontSize, maxStackedFontSizePt ?? run.fontSize)}pt`,
-            fontStyle: run.italic ? 'italic' : undefined,
-            fontWeight: run.bold ? 700 : 400,
-            maxWidth: stackVertically ? '100%' : undefined,
-            textDecoration: run.underline ? 'underline' : undefined,
-            whiteSpace: 'pre-wrap',
-            wordBreak: stackVertically ? 'break-word' : undefined,
-          }}
-        >
+        <span key={`${run.text}-${index}`} style={getRunStyle(run, maxStackedFontSizePt, stackVertically)}>
           {run.text}
           {run.breakLine && <br />}
         </span>
       ))}
-    </>
+    </span>
   )
+}
+
+function getRunStyle(
+  run: NormalizedTextRun,
+  maxFontSizePt?: number,
+  stackVertically = false,
+): CSSProperties {
+  return {
+    color: toCssColor(run.color),
+    display: stackVertically ? 'block' : undefined,
+    fontFamily: CANVAS_FONT_FACE,
+    fontSize: `${Math.min(run.fontSize, maxFontSizePt ?? run.fontSize)}px`,
+    fontStyle: run.italic ? 'italic' : undefined,
+    fontWeight: run.bold ? 700 : 400,
+    lineHeight: 1.05,
+    maxWidth: stackVertically ? '100%' : undefined,
+    textDecoration: run.underline ? 'underline' : undefined,
+    whiteSpace: 'pre-wrap',
+    wordBreak: stackVertically ? 'break-word' : undefined,
+  }
 }
 
 function EditableNodeText({
   editableTextStyle,
   onTextChange,
   onTextCommit,
+  runs,
   text,
   textStyle,
 }: {
   editableTextStyle?: CSSProperties
   onTextChange?: (text: string) => void
   onTextCommit?: (text: string) => void
+  runs: NormalizedTextRun[]
   text: string
   textStyle?: CSSProperties
 }) {
@@ -977,7 +1003,7 @@ function EditableNodeText({
     }
 
     draftRef.current = text
-    editor.textContent = text
+    editor.innerHTML = getStyledEditableTextHtml(text, runs)
     editor.focus()
     placeCaretAtEnd(editor)
   }, [])
@@ -1216,62 +1242,137 @@ function buildNormalizedTextRuns(
   element: NormalizedShapeElement | NormalizedTextElement,
   text: string,
 ): NormalizedTextRun[] {
-  const firstRun = element.kind === 'shape' ? element.textRuns[0] : element.runs[0]
+  const existingRuns = element.kind === 'shape' ? element.textRuns : element.runs
+  const fallbackRun = existingRuns[0]
   const lines = text.split('\n')
 
   return lines.map((line, index) => ({
-    bold: firstRun?.bold ?? element.bold,
+    bold: existingRuns[index]?.bold ?? fallbackRun?.bold ?? element.bold,
     breakLine: index < lines.length - 1,
-    color: firstRun?.color ?? ('color' in element ? element.color : element.textColor),
-    fontFace: firstRun?.fontFace ?? element.fontFace,
-    fontSize: firstRun?.fontSize ?? element.fontSize,
-    italic: firstRun?.italic ?? ('italic' in element ? element.italic : false),
+    color: existingRuns[index]?.color ?? fallbackRun?.color ?? ('color' in element ? element.color : element.textColor),
+    fontFace: CANVAS_FONT_FACE,
+    fontSize: existingRuns[index]?.fontSize ?? fallbackRun?.fontSize ?? element.fontSize,
+    italic: existingRuns[index]?.italic ?? fallbackRun?.italic ?? ('italic' in element ? element.italic : false),
     text: line,
-    underline: firstRun?.underline ?? false,
+    underline: existingRuns[index]?.underline ?? fallbackRun?.underline ?? false,
   }))
 }
 
 function buildRawTextRuns(element: Record<string, unknown>, text: string) {
   const existingRuns = Array.isArray(element.runs) ? element.runs.filter(isRecord) : []
-  const firstRun = existingRuns[0]
+  const fallbackRun = existingRuns[0]
   const lines = text.split('\n')
-  const color = asString(firstRun?.color) || asString(element.textColor) || asString(element.color)
-  const fontFace = asString(firstRun?.fontFace) || asString(element.fontFace)
-  const fontSize = asNumber(firstRun?.fontSize) ?? asNumber(element.fontSize)
-  const bold = asBoolean(firstRun?.bold) ?? asBoolean(element.bold)
-  const italic = asBoolean(firstRun?.italic) ?? asBoolean(element.italic)
-  const underline = asBoolean(firstRun?.underline)
 
-  return lines.map((line, index) => ({
-    ...(bold !== undefined ? { bold } : undefined),
-    breakLine: index < lines.length - 1,
-    ...(color ? { color } : undefined),
-    ...(fontFace ? { fontFace } : undefined),
-    ...(fontSize !== undefined ? { fontSize } : undefined),
-    ...(italic !== undefined ? { italic } : undefined),
-    text: line,
-    ...(underline !== undefined ? { underline } : undefined),
-  }))
+  return lines.map((line, index) => {
+    const matchingRun = existingRuns[index]
+    const color = asString(matchingRun?.color) || asString(fallbackRun?.color) || asString(element.textColor) || asString(element.color)
+    const fontSize = asNumber(matchingRun?.fontSize) ?? asNumber(fallbackRun?.fontSize) ?? asNumber(element.fontSize)
+    const bold = asBoolean(matchingRun?.bold) ?? asBoolean(fallbackRun?.bold) ?? asBoolean(element.bold)
+    const italic = asBoolean(matchingRun?.italic) ?? asBoolean(fallbackRun?.italic) ?? asBoolean(element.italic)
+    const underline = asBoolean(matchingRun?.underline) ?? asBoolean(fallbackRun?.underline)
+
+    return {
+      ...(bold !== undefined ? { bold } : undefined),
+      breakLine: index < lines.length - 1,
+      ...(color ? { color } : undefined),
+      fontFace: CANVAS_FONT_FACE,
+      ...(fontSize !== undefined ? { fontSize } : undefined),
+      ...(italic !== undefined ? { italic } : undefined),
+      text: line,
+      ...(underline !== undefined ? { underline } : undefined),
+    }
+  })
 }
 
 function getEditableRunStyle(
+  textStyle: CSSProperties | undefined,
   runs: NormalizedTextRun[],
   maxStackedFontSizePt?: number,
 ): CSSProperties | undefined {
   const firstRun = runs[0]
 
-  if (!firstRun) {
+  if (!firstRun && !textStyle) {
     return undefined
   }
 
   return {
-    color: toCssColor(firstRun.color),
-    fontFamily: firstRun.fontFace,
-    fontSize: `${Math.min(firstRun.fontSize, maxStackedFontSizePt ?? firstRun.fontSize)}pt`,
-    fontStyle: firstRun.italic ? 'italic' : undefined,
-    fontWeight: firstRun.bold ? 700 : 400,
-    textDecoration: firstRun.underline ? 'underline' : undefined,
+    color: firstRun ? toCssColor(firstRun.color) : textStyle?.color,
+    fontFamily: CANVAS_FONT_FACE,
+    fontSize: firstRun
+      ? `${Math.min(firstRun.fontSize, maxStackedFontSizePt ?? firstRun.fontSize)}px`
+      : textStyle?.fontSize,
+    fontStyle: firstRun?.italic ? 'italic' : undefined,
+    fontWeight: firstRun ? (firstRun.bold ? 700 : 400) : (textStyle?.fontWeight ?? 400),
+    textDecoration: firstRun?.underline ? 'underline' : undefined,
   }
+}
+
+function buildRunStyleSegments(runs: NormalizedTextRun[]): { end: number; style: CSSProperties }[] {
+  let offset = 0
+
+  return runs.map((run) => {
+    offset += run.text.length
+    const segment = {
+      end: offset,
+      style: getRunStyle(run),
+    }
+
+    if (run.breakLine) {
+      offset += 1
+    }
+
+    return segment
+  })
+}
+
+function getRunStyleForOffset(
+  segments: { end: number; style: CSSProperties }[],
+  offset: number,
+): CSSProperties | undefined {
+  return segments.find((segment) => offset <= segment.end)?.style ?? segments.at(-1)?.style
+}
+
+function getStyledEditableTextHtml(text: string, runs: NormalizedTextRun[]) {
+  if (!runs.length) {
+    return escapeHtml(text)
+  }
+
+  const segments = buildRunStyleSegments(runs)
+  const lines = text.split('\n')
+  let offset = 0
+
+  return lines
+    .map((line) => {
+      const style = getRunStyleForOffset(segments, offset)
+      offset += line.length + 1
+
+      return `<div style="${cssPropertiesToInlineStyle(style)}">${escapeHtml(line) || '<br>'}</div>`
+    })
+    .join('')
+}
+
+function cssPropertiesToInlineStyle(style: CSSProperties | undefined) {
+  if (!style) {
+    return ''
+  }
+
+  return Object.entries(style)
+    .filter(([, value]) => value !== undefined && value !== null)
+    .map(([key, value]) => `${toKebabCase(key)}:${String(value)}`)
+    .join(';')
+}
+
+function toKebabCase(value: string) {
+  return value.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`)
+}
+
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
 }
 
 function placeCaretAtEnd(element: HTMLElement) {
@@ -1339,16 +1440,83 @@ function getMaxStackedFontSizePt(element: NormalizedShapeElement) {
   )
   const largestRunSize = Math.max(...element.textRuns.map((run) => run.fontSize), element.fontSize)
   const availableHeight = Math.max(element.h - element.padding * 2, 1)
-  const availableWidth = Math.max(element.w - element.padding * 2, 1)
-  const longestLineLength = Math.max(
-    ...element.textRuns.flatMap((run) => run.text.split('\n').map((line) => line.trim().length)),
-    ...element.label.split('\n').map((line) => line.trim().length),
-    1,
-  )
   const heightLimitedSize = availableHeight / (lineCount * 1.28)
-  const widthLimitedSize = availableWidth / (longestLineLength * 0.62)
 
-  return Math.max(Math.min(largestRunSize, heightLimitedSize, widthLimitedSize), 5)
+  return Math.max(Math.min(largestRunSize, heightLimitedSize), 5)
+}
+
+function getMaxTextBoxFontSizePx(element: NormalizedTextElement) {
+  if (!element.runs.length) {
+    return undefined
+  }
+
+  const largestRunSize = Math.max(...element.runs.map((run) => run.fontSize), element.fontSize)
+  const availableHeight = Math.max(element.h - element.padding * 2, 1)
+  const availableWidth = Math.max(element.w - element.padding * 2, 1)
+  const estimatedHeight = estimateTextRunHeight(element.runs, element.text, availableWidth)
+
+  if (estimatedHeight <= availableHeight) {
+    return largestRunSize
+  }
+
+  return Math.max(largestRunSize * (availableHeight / estimatedHeight) * 0.96, 5)
+}
+
+function estimateTextRunHeight(
+  runs: NormalizedTextRun[],
+  fallbackText: string,
+  availableWidth: number,
+) {
+  const lines = getTextRunLines(runs, fallbackText)
+
+  return lines.reduce((height, line) => {
+    const fontSize = Math.max(line.fontSize, 1)
+    const averageGlyphWidth = fontSize * 0.5
+    const charactersPerLine = Math.max(Math.floor(availableWidth / averageGlyphWidth), 1)
+    const wrappedLineCount = Math.max(Math.ceil(line.text.trim().length / charactersPerLine), 1)
+
+    return height + wrappedLineCount * fontSize * 1.05
+  }, 0)
+}
+
+function getTextRunLines(runs: NormalizedTextRun[], fallbackText: string) {
+  if (!runs.length) {
+    return fallbackText.split('\n').map((line) => ({
+      fontSize: 16,
+      text: line,
+    }))
+  }
+
+  const lines: { fontSize: number; text: string }[] = []
+  let currentLine = ''
+  let currentFontSize = runs[0]?.fontSize ?? 16
+
+  for (const run of runs) {
+    const parts = run.text.split('\n')
+
+    parts.forEach((part, index) => {
+      currentLine += part
+      currentFontSize = Math.max(currentFontSize, run.fontSize)
+
+      if (index < parts.length - 1) {
+        lines.push({ fontSize: currentFontSize, text: currentLine })
+        currentLine = ''
+        currentFontSize = run.fontSize
+      }
+    })
+
+    if (run.breakLine) {
+      lines.push({ fontSize: currentFontSize, text: currentLine })
+      currentLine = ''
+      currentFontSize = run.fontSize
+    }
+  }
+
+  if (currentLine || !lines.length) {
+    lines.push({ fontSize: currentFontSize, text: currentLine })
+  }
+
+  return lines
 }
 
 function getSharedBoxStyle(
@@ -1398,11 +1566,11 @@ function getTextBoxStyle(element: NormalizedShapeElement | NormalizedTextElement
     alignItems: toFlexAlign(element.valign),
     color: toCssColor('color' in element ? element.color : element.textColor),
     display: 'flex',
-    fontFamily: element.fontFace,
-    fontSize: `${element.fontSize}pt`,
+    fontFamily: CANVAS_FONT_FACE,
+    fontSize: `${element.fontSize}px`,
     fontWeight: element.bold ? 700 : 400,
     justifyContent: toFlexJustify(element.align),
-    lineHeight: 1.08,
+    lineHeight: 1.05,
     padding: `${element.padding}pt`,
     textAlign: element.align,
     whiteSpace: 'pre-wrap',
