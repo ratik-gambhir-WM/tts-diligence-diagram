@@ -29,11 +29,9 @@ export function FileUploadButton({
         htmlFor={id}
         aria-disabled={disabled}
         className={classNames(
-          'inline-flex cursor-pointer items-center justify-center font-bold uppercase tracking-[0.12em] transition disabled:cursor-not-allowed',
-          variant === 'primary'
-            ? 'border border-[#f3c316] bg-[#f3c316] text-[#070a1b] hover:brightness-105'
-            : 'border border-[#28304a] bg-[#080c1c] text-[#eef3ff] hover:border-[#f3c316] hover:text-[#f3c316]',
-          disabled && 'cursor-wait opacity-70',
+          'file-upload-button',
+          variant === 'primary' ? 'file-upload-button-primary' : 'file-upload-button-secondary',
+          disabled && 'file-upload-button-disabled',
           className,
         )}
       >

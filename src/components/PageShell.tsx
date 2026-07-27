@@ -12,9 +12,8 @@ export function PageShell({ children, className, layout = 'workspace' }: PageShe
   return (
     <main
       className={classNames(
-        layout === 'center'
-          ? 'grid min-h-screen place-items-center bg-[#070a1b] px-6 py-8 text-[#eef3ff]'
-          : 'flex min-h-screen flex-col bg-[#070a1b] p-8 text-[#eef3ff] max-[640px]:p-4',
+        'page-shell',
+        layout === 'center' ? 'page-shell-center' : 'page-shell-workspace',
         className,
       )}
     >

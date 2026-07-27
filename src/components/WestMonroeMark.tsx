@@ -1,9 +1,10 @@
+import { classNames } from './classNames'
+
 type WestMonroeMarkProps = {
   className?: string
   framed?: boolean
 }
 
-const markColor = '#040047'
 const squareSize = 14
 const radius = 1.5
 
@@ -18,12 +19,16 @@ const pieces = [
   { rotation: 45, x: 7, y: 41 },
 ]
 
-export function WestMonroeMark({ className = 'h-14 w-14', framed = false }: WestMonroeMarkProps) {
+export function WestMonroeMark({ className = 'west-monroe-mark-md', framed = false }: WestMonroeMarkProps) {
   const mark = (
-    <svg aria-hidden="true" className={framed ? 'h-11 w-11' : className} viewBox="0 0 96 96">
+    <svg
+      aria-hidden="true"
+      className={framed ? 'west-monroe-mark-framed-icon' : classNames('west-monroe-mark', className)}
+      viewBox="0 0 96 96"
+    >
       {pieces.map((piece) => (
         <rect
-          fill={markColor}
+          className="west-monroe-mark-piece"
           height={squareSize}
           key={`${piece.x}-${piece.y}`}
           rx={radius}
@@ -45,7 +50,7 @@ export function WestMonroeMark({ className = 'h-14 w-14', framed = false }: West
   }
 
   return (
-    <span className={`inline-flex shrink-0 items-center justify-center rounded-2xl bg-[#040047]/8 ${className}`}>
+    <span className={classNames('west-monroe-mark-frame', className)}>
       {mark}
     </span>
   )

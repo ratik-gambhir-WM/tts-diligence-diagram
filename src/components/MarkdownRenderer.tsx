@@ -12,18 +12,18 @@ export function MarkdownRenderer({ markdown }: MarkdownRendererProps) {
   const blocks = parseMarkdownBlocks(markdown)
 
   return (
-    <div className="space-y-4 text-[0.95rem] leading-6 text-[#c9d0e4]">
+    <div className="markdown-renderer">
       {blocks.map((block, index) => {
         switch (block.type) {
           case 'h2':
             return (
-              <h3 key={index} className="text-lg font-bold text-white">
+              <h3 key={index} className="markdown-renderer-heading">
                 {renderInlineMarkdown(block.text)}
               </h3>
             )
           case 'ol':
             return (
-              <ol key={index} className="list-decimal space-y-2 pl-5">
+              <ol key={index} className="markdown-renderer-list markdown-renderer-list-ordered">
                 {block.items.map((item, itemIndex) => (
                   <li key={itemIndex}>{renderInlineMarkdown(item)}</li>
                 ))}
@@ -31,7 +31,7 @@ export function MarkdownRenderer({ markdown }: MarkdownRendererProps) {
             )
           case 'ul':
             return (
-              <ul key={index} className="list-disc space-y-2 pl-5">
+              <ul key={index} className="markdown-renderer-list markdown-renderer-list-unordered">
                 {block.items.map((item, itemIndex) => (
                   <li key={itemIndex}>{renderInlineMarkdown(item)}</li>
                 ))}
@@ -115,7 +115,7 @@ function renderInlineMarkdown(text: string) {
       return (
         <a
           key={index}
-          className="font-bold text-[#f3c316] underline-offset-4 hover:text-[#ffe07a] hover:underline"
+          className="markdown-renderer-link"
           href={linkMatch[2]}
           rel="noreferrer"
           target="_blank"
@@ -127,7 +127,7 @@ function renderInlineMarkdown(text: string) {
 
     if (part.startsWith('`') && part.endsWith('`')) {
       return (
-        <code key={index} className="rounded-md bg-[#080c1c] px-1.5 py-0.5 text-[#dfe8fb]">
+        <code key={index} className="markdown-renderer-code">
           {part.slice(1, -1)}
         </code>
       )
@@ -135,7 +135,7 @@ function renderInlineMarkdown(text: string) {
 
     if (part.startsWith('**') && part.endsWith('**')) {
       return (
-        <strong key={index} className="font-bold text-white">
+        <strong key={index} className="markdown-renderer-strong">
           {part.slice(2, -2)}
         </strong>
       )
