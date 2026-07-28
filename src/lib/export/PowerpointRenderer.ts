@@ -1,4 +1,5 @@
 import PptxGenJS from 'pptxgenjs'
+import westMonroeLogoImage from '../../slide-assets/element-5.png'
 import { DEFAULT_FONT_FACE } from './PowerpointConstants'
 import type {
   NormalizedImageElement,
@@ -36,9 +37,16 @@ export function buildPptxPresentation(presentation: NormalizedPresentation) {
     headFontFace: DEFAULT_FONT_FACE,
     bodyFontFace: DEFAULT_FONT_FACE,
   }
-
+  pptx.defineSlideMaster({
+    title: 'WEST_MONROE_BRANDED_FRAME',
+    objects: [
+      { rect: { x: 0, y: heightInches - pxToInches(48), w: widthInches, h: pxToInches(48), fill: { color: 'E8EEF8' }, line: { transparency: 100 } } },
+      ...buildBrandDots(),
+      { image: { path: westMonroeLogoImage, x: pxToInches(48.33), y: heightInches - pxToInches(40.02), w: pxToInches(153), h: pxToInches(32.02) } },
+    ],
+  })
   for (const slideSpec of presentation.slides) {
-    const slide = pptx.addSlide()
+    const slide = pptx.addSlide('WEST_MONROE_BRANDED_FRAME')
     slide.background = { color: cleanHex(slideSpec.backgroundColor, 'FFFFFF') }
 
     for (const element of getConnectorAwareElementOrder(slideSpec)) {
@@ -165,6 +173,19 @@ export function buildPptxPresentation(presentation: NormalizedPresentation) {
   }
 
   return pptx
+}
+
+function buildBrandDots() {
+  return Array.from({ length: 15 * 17 }, (_, index) => ({
+    rect: {
+      x: pxToInches(15 + (index % 15) * 19),
+      y: pxToInches(6 + Math.floor(index / 15) * 19),
+      w: pxToInches(2.5),
+      h: pxToInches(2.5),
+      fill: { color: 'E8EEF8' },
+      line: { transparency: 100 },
+    },
+  }))
 }
 
 type PptxLineSegment = Pick<NormalizedLineElement, 'x1' | 'x2' | 'y1' | 'y2'> & {

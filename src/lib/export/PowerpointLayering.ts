@@ -18,6 +18,10 @@ export function getConnectorAwareElementOrder(slide: SlideForElementLayering) {
 }
 
 function getConnectorAwareLayer(element: NormalizedElement, slide: SlideForElementLayering) {
+  if (isBrandedBackgroundDecoration(element)) {
+    return 0
+  }
+
   if (isSlideContainerElement(element, slide)) {
     return 10
   }
@@ -27,6 +31,13 @@ function getConnectorAwareLayer(element: NormalizedElement, slide: SlideForEleme
   }
 
   return 30
+}
+
+function isBrandedBackgroundDecoration(element: NormalizedElement) {
+  return (
+    element.id === 'west-monroe-footer' ||
+    element.id.startsWith('west-monroe-dot-')
+  )
 }
 
 function isSlideContainerElement(element: NormalizedElement, slide: SlideForElementLayering) {
