@@ -2,6 +2,19 @@
 @import "tailwindcss";
 
 @layer base {
+  :root {
+    --slide-canvas-canvas-bg: #eef2f8;
+    --slide-canvas-grid-line: rgba(20, 29, 54, 0.05);
+    --slide-canvas-selection: rgba(20, 81, 225, 0.72);
+    --slide-canvas-edit-outline: rgba(20, 81, 225, 0.9);
+    --slide-canvas-resize: #1451e1;
+    --slide-canvas-shadow-strong: rgba(26, 32, 56, 0.18);
+    --slide-canvas-shadow-border: rgba(27, 39, 67, 0.12);
+    --slide-canvas-empty-bg: #f8fafc;
+    --slide-canvas-empty-border: rgba(20, 29, 54, 0.22);
+    --slide-canvas-empty-text: #5f6b7a;
+  }
+
   :root,
   [data-theme="dark"],
   .theme-dark {
@@ -24,17 +37,6 @@
     --theme-error: #ffb5b5;
     --theme-input-bg: #dfe8fb;
     --theme-input-text: #070a1b;
-
-    --slide-flow-canvas-bg: #eef2f8;
-    --slide-flow-grid-line: rgba(20, 29, 54, 0.05);
-    --slide-flow-selection: rgba(20, 81, 225, 0.55);
-    --slide-flow-edit-outline: rgba(20, 81, 225, 0.85);
-    --slide-flow-resize: #1451e1;
-    --slide-flow-shadow-strong: rgba(26, 32, 56, 0.18);
-    --slide-flow-shadow-border: rgba(27, 39, 67, 0.12);
-    --slide-flow-empty-bg: #f8fafc;
-    --slide-flow-empty-border: rgba(20, 29, 54, 0.22);
-    --slide-flow-empty-text: #5f6b7a;
 
     --diagram-node-text: #060150;
     --diagram-node-fill: #ffffff;
@@ -65,17 +67,6 @@
     --theme-input-bg: #ffffff;
     --theme-input-text: #060150;
 
-    --slide-flow-canvas-bg: #eef2f8;
-    --slide-flow-grid-line: rgba(20, 29, 54, 0.05);
-    --slide-flow-selection: rgba(20, 81, 225, 0.55);
-    --slide-flow-edit-outline: rgba(20, 81, 225, 0.85);
-    --slide-flow-resize: #1451e1;
-    --slide-flow-shadow-strong: rgba(26, 32, 56, 0.18);
-    --slide-flow-shadow-border: rgba(27, 39, 67, 0.12);
-    --slide-flow-empty-bg: #f8fafc;
-    --slide-flow-empty-border: rgba(20, 29, 54, 0.22);
-    --slide-flow-empty-text: #5f6b7a;
-
     --diagram-node-text: #060150;
     --diagram-node-fill: #ffffff;
     --diagram-node-fill-soft: #eef2f8;
@@ -105,17 +96,6 @@
     --theme-error: #b42318;
     --theme-input-bg: #ffffff;
     --theme-input-text: #000000;
-
-    --slide-flow-canvas-bg: #eef2f8;
-    --slide-flow-grid-line: rgba(20, 29, 54, 0.05);
-    --slide-flow-selection: rgba(20, 81, 225, 0.55);
-    --slide-flow-edit-outline: rgba(20, 81, 225, 0.85);
-    --slide-flow-resize: #1451e1;
-    --slide-flow-shadow-strong: rgba(26, 32, 56, 0.18);
-    --slide-flow-shadow-border: rgba(27, 39, 67, 0.12);
-    --slide-flow-empty-bg: #f8fafc;
-    --slide-flow-empty-border: rgba(20, 29, 54, 0.22);
-    --slide-flow-empty-text: #5f6b7a;
 
     --diagram-node-text: #060150;
     --diagram-node-fill: #ffffff;

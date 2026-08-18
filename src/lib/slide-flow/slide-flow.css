@@ -5,9 +5,9 @@
   min-height: 420px;
   overflow: hidden;
   background:
-    linear-gradient(90deg, var(--slide-flow-grid-line) 1px, transparent 1px),
-    linear-gradient(0deg, var(--slide-flow-grid-line) 1px, transparent 1px),
-    var(--slide-flow-canvas-bg);
+    linear-gradient(90deg, var(--slide-canvas-grid-line) 1px, transparent 1px),
+    linear-gradient(0deg, var(--slide-canvas-grid-line) 1px, transparent 1px),
+    var(--slide-canvas-canvas-bg);
   background-size: 32px 32px;
 }
 
@@ -30,7 +30,7 @@
 }
 
 .slide-flow-canvas .react-flow__node.selected {
-  outline: 2px solid var(--slide-flow-selection);
+  outline: 2px solid var(--slide-canvas-selection);
   outline-offset: 2px;
 }
 
@@ -65,8 +65,8 @@
   position: relative;
   overflow: hidden;
   box-shadow:
-    0 18px 45px var(--slide-flow-shadow-strong),
-    0 0 0 1px var(--slide-flow-shadow-border);
+    0 18px 45px var(--slide-canvas-shadow-strong),
+    0 0 0 1px var(--slide-canvas-shadow-border);
 }
 
 .slide-flow-positioned-element {
@@ -77,9 +77,9 @@
   display: grid;
   min-height: 260px;
   place-items: center;
-  border: 1px dashed var(--slide-flow-empty-border);
-  background: var(--slide-flow-empty-bg);
-  color: var(--slide-flow-empty-text);
+  border: 1px dashed var(--slide-canvas-empty-border);
+  background: var(--slide-canvas-empty-bg);
+  color: var(--slide-canvas-empty-text);
   font-weight: 700;
 }
 
@@ -151,8 +151,8 @@
   padding: 0;
   border: 2px solid var(--diagram-node-fill);
   border-radius: 999px;
-  background: var(--slide-flow-resize);
-  box-shadow: 0 2px 8px var(--slide-flow-shadow-strong);
+  background: var(--slide-canvas-resize);
+  box-shadow: 0 2px 8px var(--slide-canvas-shadow-strong);
   cursor: grab;
   pointer-events: auto;
   transform: translate(-50%, -50%);
@@ -193,7 +193,7 @@
 .slide-flow-editable-text-frame,
 .slide-flow-rect-label.is-editing,
 .slide-flow-shape-label.is-editing {
-  outline: 2px solid var(--slide-flow-edit-outline);
+  outline: 2px solid var(--slide-canvas-edit-outline);
   outline-offset: -2px;
   pointer-events: auto;
 }
@@ -205,7 +205,7 @@
 }
 
 .slide-flow-resize-line {
-  border-color: var(--slide-flow-resize);
+  border-color: var(--slide-canvas-resize);
   z-index: 6;
 }
 
@@ -241,8 +241,8 @@
   height: 14px;
   border: 1px solid var(--diagram-node-fill);
   border-radius: 3px;
-  background: var(--slide-flow-resize);
-  box-shadow: 0 2px 6px var(--slide-flow-shadow-strong);
+  background: var(--slide-canvas-resize);
+  box-shadow: 0 2px 6px var(--slide-canvas-shadow-strong);
 }
 
 .slide-flow-resize-handle::before {

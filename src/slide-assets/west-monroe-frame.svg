@@ -17,8 +17,10 @@
       <rect x="243" y="6" width="2.5" height="2.5"/>
     </g>
   </g>
-  <use href="#dots" y="19"/><use href="#dots" y="38"/><use href="#dots" y="57"/><use href="#dots" y="76"/>
-  <use href="#dots" y="95"/><use href="#dots" y="114"/><use href="#dots" y="133"/><use href="#dots" y="152"/>
-  <use href="#dots" y="171"/><use href="#dots" y="190"/><use href="#dots" y="209"/><use href="#dots" y="228"/>
-  <use href="#dots" y="247"/><use href="#dots" y="266"/><use href="#dots" y="285"/><use href="#dots" y="304"/>
+  <g fill="#E8EEF8">
+    <use href="#dots" y="19"/><use href="#dots" y="38"/><use href="#dots" y="57"/><use href="#dots" y="76"/>
+    <use href="#dots" y="95"/><use href="#dots" y="114"/><use href="#dots" y="133"/><use href="#dots" y="152"/>
+    <use href="#dots" y="171"/><use href="#dots" y="190"/><use href="#dots" y="209"/><use href="#dots" y="228"/>
+    <use href="#dots" y="247"/><use href="#dots" y="266"/><use href="#dots" y="285"/><use href="#dots" y="304"/>
+  </g>
 </svg>

@@ -1,10 +1,17 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import type { ChangeEvent } from 'react'
 
 import type { DiagramTemplate } from '../lib/diagramTemplates'
 import { addBrandedSlideFrame } from '../lib/export/PowerpointBranding'
 import { generatePowerPointFromJson, type PowerPointFileHandle } from '../lib/export/exporter'
-import { buildSlideFlowModel, SlideFlowCanvas } from '../lib/slide-flow'
+import { buildSlideCanvasModel } from '../lib/slide-canvas/model'
+import { SvgSlideCanvas } from '../lib/slide-svg/SvgSlideCanvas'
+
+const LazySlideFlowCanvas = lazy(() =>
+  import('../lib/slide-flow/SlideFlowCanvas').then((module) => ({
+    default: module.SlideFlowCanvas,
+  })),
+)
 
 const POWERPOINT_ACCEPT_ATTR =
   '.pptx,application/vnd.openxmlformats-officedocument.presentationml.presentation'
@@ -26,6 +33,7 @@ type TemplateCanvasPageProps = {
   showJsonByDefault: boolean
   statusMessage: string
   template: DiagramTemplate
+  templateKind: 'commentary' | 'diagram'
 }
 
 export function TemplateCanvasPage({
@@ -35,6 +43,7 @@ export function TemplateCanvasPage({
   showJsonByDefault,
   statusMessage,
   template,
+  templateKind,
 }: TemplateCanvasPageProps) {
   const [isJsonPanelOpen, setIsJsonPanelOpen] = useState(showJsonByDefault)
   const [isExporting, setIsExporting] = useState(false)
@@ -52,7 +61,7 @@ export function TemplateCanvasPage({
     [template.jsonSpec],
   )
   const canvasSlide = useMemo(
-    () => buildSlideFlowModel(template.jsonSpec).slide,
+    () => buildSlideCanvasModel(template.jsonSpec, { resolveAssets: false }).slide,
     [template.jsonSpec],
   )
 
@@ -191,7 +200,7 @@ export function TemplateCanvasPage({
               {template.name}
             </h1>
             <p className="mt-2 max-w-3xl text-[0.95rem] leading-6 text-[#a8afc4]">
-              {statusMessage || 'Template JSON is rendered in React Flow.'}
+              {statusMessage || 'Template JSON is rendered on the editable slide canvas.'}
             </p>
           </div>
 
@@ -284,11 +293,21 @@ export function TemplateCanvasPage({
         )}
 
         <div className="relative mt-5 min-h-0 flex-1 overflow-hidden border border-white/12 bg-[#0b0f24]">
-          <SlideFlowCanvas
-            input={template.jsonSpec}
-            onChange={onTemplateJsonChange}
-            className="h-full"
-          />
+          {templateKind === 'commentary' ? (
+            <SvgSlideCanvas
+              input={template.jsonSpec}
+              onChange={onTemplateJsonChange}
+              className="h-full"
+            />
+          ) : (
+            <Suspense fallback={<CanvasLoadingState />}>
+              <LazySlideFlowCanvas
+                input={template.jsonSpec}
+                onChange={onTemplateJsonChange}
+                className="h-full"
+              />
+            </Suspense>
+          )}
 
           <div
             className={[
@@ -436,6 +455,14 @@ export function TemplateCanvasPage({
         </div>
       </div>
     </main>
+  )
+}
+
+function CanvasLoadingState() {
+  return (
+    <div className="slide-canvas-empty h-full" role="status">
+      Loading slide canvas…
+    </div>
   )
 }
 

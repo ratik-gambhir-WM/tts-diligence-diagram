@@ -1,13 +1,13 @@
 import type { Node } from '@xyflow/react'
 
 import {
-  getConnectorAwareElementOrder,
-  normalizePresentationSpec,
-  type NormalizedElement,
-  type NormalizedPresentation,
-  type NormalizedSlide,
-  type ValidationIssue,
-} from '../export/PowerpointGenerator';
+  buildSlideCanvasModel,
+  getElementGeometry,
+  type BuildSlideCanvasModelOptions,
+  type SlideCanvasModel,
+  type SlideElementRef,
+} from '../slide-canvas'
+import type { NormalizedSlide } from '../export/PowerpointTypes'
 
 export type SlideFlowNodeData =
   | {
@@ -15,50 +15,38 @@ export type SlideFlowNodeData =
       slide: Pick<NormalizedSlide, 'backgroundColor' | 'height' | 'name' | 'width'>
     }
   | {
-      element: NormalizedElement
+      element: SlideElementRef['element']
+      elementRef: SlideElementRef
       kind: 'element'
       zIndex: number
     }
 
-export interface SlideFlowModel {
-  issues: ValidationIssue[]
+export interface SlideFlowModel extends SlideCanvasModel {
   nodes: Node<SlideFlowNodeData>[]
-  presentation?: NormalizedPresentation
-  slide?: NormalizedSlide
 }
 
-export interface BuildSlideFlowModelOptions {
-  slideIndex?: number
-}
+export type BuildSlideFlowModelOptions = BuildSlideCanvasModelOptions
 
 export function normalizeSlideFlowInput(input: unknown) {
-  return normalizePresentationSpec(input)
+  return buildSlideCanvasModel(input)
 }
 
 export function buildSlideFlowModel(
   input: unknown,
   options: BuildSlideFlowModelOptions = {},
 ): SlideFlowModel {
-  const { presentation, issues } = normalizeSlideFlowInput(input)
-  const slide = presentation?.slides[options.slideIndex ?? 0]
-
-  if (!slide) {
-    return {
-      issues,
-      nodes: [],
-      presentation,
-    }
-  }
+  const model = buildSlideCanvasModel(input, options)
 
   return {
-    issues,
-    nodes: buildNodes(slide),
-    presentation,
-    slide,
+    ...model,
+    nodes: model.slide ? buildNodes(model.slide, model.elementRefs) : [],
   }
 }
 
-function buildNodes(slide: NormalizedSlide): Node<SlideFlowNodeData>[] {
+function buildNodes(
+  slide: NormalizedSlide,
+  elementRefs: SlideElementRef[],
+): Node<SlideFlowNodeData>[] {
   return [
     {
       id: `${slide.id}-background`,
@@ -83,19 +71,20 @@ function buildNodes(slide: NormalizedSlide): Node<SlideFlowNodeData>[] {
       },
       zIndex: 0,
     },
-    ...getConnectorAwareElementOrder(slide).map((element, index) => {
-      const geometry = getElementGeometry(element)
+    ...elementRefs.map((elementRef, index) => {
+      const geometry = getElementGeometry(elementRef.element)
       const zIndex = index + 1
 
       return {
-        id: element.id,
+        id: elementRef.key,
         type: 'slideElement',
         position: { x: geometry.x, y: geometry.y },
         selectable: true,
         draggable: true,
         deletable: true,
         data: {
-          element,
+          element: elementRef.element,
+          elementRef,
           kind: 'element' as const,
           zIndex,
         },
@@ -108,22 +97,4 @@ function buildNodes(slide: NormalizedSlide): Node<SlideFlowNodeData>[] {
       }
     }),
   ]
-}
-
-function getElementGeometry(element: NormalizedElement) {
-  if (element.kind !== 'line') {
-    return {
-      h: Math.max(element.h, 1),
-      w: Math.max(element.w, 1),
-      x: element.x,
-      y: element.y,
-    }
-  }
-
-  return {
-    h: Math.max(Math.abs(element.y2 - element.y1), Math.max(element.strokeWidth, 1)),
-    w: Math.max(Math.abs(element.x2 - element.x1), Math.max(element.strokeWidth, 1)),
-    x: Math.min(element.x1, element.x2),
-    y: Math.min(element.y1, element.y2),
-  }
 }

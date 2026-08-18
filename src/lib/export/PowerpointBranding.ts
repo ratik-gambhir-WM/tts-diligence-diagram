@@ -1,10 +1,10 @@
-const FRAME_IDS = new Set(['element-903000', 'west-monroe-footer', 'west-monroe-logo', 'element-5'])
+const FRAME_IDS = new Set(['element-903000', 'west-monroe-footer', 'west-monroe-logo'])
 
 export function addBrandedSlideFrame(input: unknown): unknown {
   const cloned = typeof structuredClone === 'function' ? structuredClone(input) : JSON.parse(JSON.stringify(input))
   for (const slide of slides(cloned)) {
     const elements = Array.isArray(slide.elements) ? slide.elements.filter(record) : []
-    slide.elements = elements.filter((element) => !FRAME_IDS.has(String(element.id ?? '')) && !String(element.id ?? '').startsWith('west-monroe-dot-') && !isFrameImage(element))
+    slide.elements = elements.filter((element) => !isBrandedFrameElement(element))
   }
   return cloned
 }
@@ -17,6 +17,11 @@ function isFrameImage(element: Record<string, unknown>) {
     const value = String(element[key] ?? '')
     return value.includes('element-903000.jpg') || value.includes('element-5.png')
   })
+}
+
+function isBrandedFrameElement(element: Record<string, unknown>) {
+  const id = String(element.id ?? '')
+  return FRAME_IDS.has(id) || id.startsWith('west-monroe-dot-') || isFrameImage(element)
 }
 
 function slides(input: unknown): Record<string, unknown>[] {

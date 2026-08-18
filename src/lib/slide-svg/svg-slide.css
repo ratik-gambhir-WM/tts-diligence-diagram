@@ -1,0 +1,173 @@
+.svg-slide-canvas {
+  position: relative;
+  display: grid;
+  width: 100%;
+  height: 100%;
+  min-height: 420px;
+  place-items: center;
+  overflow: hidden;
+  background:
+    linear-gradient(90deg, var(--slide-canvas-grid-line) 1px, transparent 1px),
+    linear-gradient(0deg, var(--slide-canvas-grid-line) 1px, transparent 1px),
+    var(--slide-canvas-canvas-bg);
+  background-size: 32px 32px;
+}
+
+.svg-slide-viewport {
+  display: block;
+  width: calc(100% - 32px);
+  height: auto;
+  max-width: 100%;
+  max-height: 100%;
+  background: var(--slide-canvas-bg);
+  box-shadow:
+    0 18px 45px var(--slide-canvas-shadow-strong),
+    0 0 0 1px var(--slide-canvas-shadow-border);
+  outline: none;
+  touch-action: none;
+}
+
+.svg-slide-element {
+  cursor: grab;
+  outline: none;
+}
+
+.svg-slide-element:active {
+  cursor: grabbing;
+}
+
+.svg-slide-hit-target {
+  cursor: inherit;
+  pointer-events: all;
+}
+
+.svg-slide-selection {
+  pointer-events: none;
+}
+
+.svg-slide-resize-handle,
+.svg-slide-line-handle {
+  fill: var(--slide-canvas-resize);
+  stroke: #fff;
+  stroke-width: 1.5;
+  pointer-events: all;
+  vector-effect: non-scaling-stroke;
+}
+
+.svg-slide-resize-handle {
+  cursor: nwse-resize;
+}
+
+.svg-slide-resize-handle[aria-label$='n'],
+.svg-slide-resize-handle[aria-label$='s'] {
+  cursor: ns-resize;
+}
+
+.svg-slide-resize-handle[aria-label$='e'],
+.svg-slide-resize-handle[aria-label$='w'] {
+  cursor: ew-resize;
+}
+
+.svg-slide-resize-handle[aria-label$='ne'],
+.svg-slide-resize-handle[aria-label$='sw'] {
+  cursor: nesw-resize;
+}
+
+.svg-slide-line-handle {
+  cursor: grab;
+}
+
+.svg-slide-line-handle:active {
+  cursor: grabbing;
+}
+
+.svg-slide-text-editor {
+  position: absolute;
+  z-index: 5;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  border: 0;
+  border-radius: 2px;
+  background: transparent;
+  box-shadow: inset 0 0 0 2px var(--slide-canvas-edit-outline);
+  margin: 0;
+  outline: none;
+  overflow: hidden;
+  transform-origin: center;
+}
+
+.svg-slide-text-editor-content {
+  position: absolute;
+  inset: 0;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.svg-slide-text-editor-input {
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  background: transparent;
+  caret-color: currentColor;
+  cursor: text;
+  outline: none;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.svg-slide-text-editor-input {
+  margin-right: 0;
+  margin-bottom: 0;
+  margin-left: 0;
+}
+
+.svg-slide-text-editor-input::selection {
+  background: rgba(37, 99, 235, 0.22);
+}
+
+.svg-slide-edit-hint {
+  position: absolute;
+  bottom: 1rem;
+  left: 50%;
+  z-index: 4;
+  max-width: calc(100% - 2rem);
+  padding: 0.45rem 0.7rem;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 0.5rem;
+  background: rgba(15, 23, 42, 0.88);
+  box-shadow: 0 0.35rem 1rem rgba(15, 23, 42, 0.18);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.2;
+  pointer-events: none;
+  text-align: center;
+  transform: translateX(-50%);
+}
+
+.svg-slide-diagnostic {
+  position: absolute;
+  bottom: 1rem;
+  left: 1rem;
+  border: 1px solid rgba(255, 0, 80, 0.55);
+  background: rgba(12, 15, 34, 0.92);
+  color: #ffb5c7;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.45rem 0.65rem;
+}
+
+.slide-canvas-empty {
+  display: grid;
+  min-height: 260px;
+  place-items: center;
+  border: 1px dashed var(--slide-canvas-empty-border);
+  background: var(--slide-canvas-empty-bg);
+  color: var(--slide-canvas-empty-text);
+  font-weight: 700;
+}

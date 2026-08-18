@@ -28,8 +28,16 @@ import type {
   NormalizedTextElement,
   NormalizedTextRun,
 } from '../export/PowerpointGenerator'
-import { resolveBundledSlideAssetImageSources } from '../export/PowerpointAssetResolver'
 import { DEFAULT_FONT_FACE } from '../export/PowerpointConstants'
+import {
+  applyElementEdit,
+  applyElementEditToInput,
+  deleteElementsFromInput,
+  getElementGeometry,
+  roundCoordinate,
+  type ElementEdit,
+  type SlideElementRef,
+} from '../slide-canvas'
 import { buildSlideFlowModel, type SlideFlowNodeData } from './model'
 import './slide-flow.css'
 
@@ -40,22 +48,9 @@ export interface SlideFlowCanvasProps {
   slideIndex?: number
 }
 
-type ElementEdit = {
-  h?: number
-  lineType?: NormalizedLineElement['lineType']
-  text?: string
-  w?: number
-  x?: number
-  x1?: number
-  x2?: number
-  y?: number
-  y1?: number
-  y2?: number
-}
-
 type SlideFlowNode = Node<SlideFlowNodeData>
 type SlideElementNodeData = Extract<SlideFlowNodeData, { kind: 'element' }> & {
-  commitElementEdit?: (elementId: string, edit: ElementEdit) => void
+  commitElementEdit?: (elementRef: SlideElementRef, edit: ElementEdit) => void
 }
 
 const nodeTypes: NodeTypes = {
@@ -66,8 +61,7 @@ const nodeTypes: NodeTypes = {
 const CANVAS_FONT_FACE = DEFAULT_FONT_FACE
 
 export function SlideFlowCanvas({ className, input, onChange, slideIndex = 0 }: SlideFlowCanvasProps) {
-  const renderInput = useMemo(() => resolveBundledSlideAssetImageSources(input), [input])
-  const model = useMemo(() => buildSlideFlowModel(renderInput, { slideIndex }), [renderInput, slideIndex])
+  const model = useMemo(() => buildSlideFlowModel(input, { slideIndex }), [input, slideIndex])
   const slide = model.slide
   const flowKey = useMemo(() => getFlowKey(model.nodes), [model.nodes])
   const handleInputChange = useMemo(() => {
@@ -75,8 +69,8 @@ export function SlideFlowCanvas({ className, input, onChange, slideIndex = 0 }: 
       return undefined
     }
 
-    return (elementId: string, edit: ElementEdit) => {
-      onChange(applyElementEditToInput(input, elementId, edit))
+    return (elementRef: SlideElementRef, edit: ElementEdit) => {
+      onChange(applyElementEditToInput(input, elementRef, edit))
     }
   }, [input, onChange])
   const handleInputDelete = useMemo(() => {
@@ -84,8 +78,8 @@ export function SlideFlowCanvas({ className, input, onChange, slideIndex = 0 }: 
       return undefined
     }
 
-    return (elementIds: string[]) => {
-      onChange(deleteElementsFromInput(input, elementIds))
+    return (elementRefs: SlideElementRef[]) => {
+      onChange(deleteElementsFromInput(input, elementRefs))
     }
   }, [input, onChange])
 
@@ -120,8 +114,8 @@ function SlideFlowGraph({
   onElementEdit,
 }: {
   initialNodes: SlideFlowNode[]
-  onElementDelete?: (elementIds: string[]) => void
-  onElementEdit?: (elementId: string, edit: ElementEdit) => void
+  onElementDelete?: (elementRefs: SlideElementRef[]) => void
+  onElementEdit?: (elementRef: SlideElementRef, edit: ElementEdit) => void
 }) {
   const editableNodes = useMemo(
     () =>
@@ -146,11 +140,11 @@ function SlideFlowGraph({
     }
 
     if (node.data.element.kind === 'line') {
-      const geometry = getElementNodeGeometry(node.data.element)
+      const geometry = getElementGeometry(node.data.element)
       const dx = roundCoordinate(node.position.x - geometry.x)
       const dy = roundCoordinate(node.position.y - geometry.y)
 
-      onElementEdit?.(node.id, {
+      onElementEdit?.(node.data.elementRef, {
         x1: roundCoordinate(node.data.element.x1 + dx),
         y1: roundCoordinate(node.data.element.y1 + dy),
         x2: roundCoordinate(node.data.element.x2 + dx),
@@ -159,18 +153,18 @@ function SlideFlowGraph({
       return
     }
 
-    onElementEdit?.(node.id, {
+    onElementEdit?.(node.data.elementRef, {
       x: roundCoordinate(node.position.x),
       y: roundCoordinate(node.position.y),
     })
   }
   const handleNodesDelete = (deletedNodes: SlideFlowNode[]) => {
-    const deletedElementIds = deletedNodes
-      .filter((node) => node.data.kind === 'element')
-      .map((node) => node.id)
+    const deletedElementRefs = deletedNodes.flatMap((node) =>
+      node.data.kind === 'element' ? [node.data.elementRef] : [],
+    )
 
-    if (deletedElementIds.length > 0) {
-      onElementDelete?.(deletedElementIds)
+    if (deletedElementRefs.length > 0) {
+      onElementDelete?.(deletedElementRefs)
     }
   }
 
@@ -243,7 +237,8 @@ function SlideElementNode({ data, id, selected }: NodeProps<SlideFlowNode>) {
   const element = nodeData.element
   const canResize = element.kind !== 'line'
   const canEditText = element.kind === 'shape' || element.kind === 'text'
-  const commitElementEdit = (edit: ElementEdit) => nodeData.commitElementEdit?.(id, edit)
+  const commitElementEdit = (edit: ElementEdit) =>
+    nodeData.commitElementEdit?.(nodeData.elementRef, edit)
   const updateElement = (edit: ElementEdit) => {
     reactFlow.setNodes((currentNodes) =>
       currentNodes.map((node) => {
@@ -252,7 +247,7 @@ function SlideElementNode({ data, id, selected }: NodeProps<SlideFlowNode>) {
         }
 
         const nextElement = applyElementEdit(node.data.element, edit)
-        const nextGeometry = getElementNodeGeometry(nextElement)
+        const nextGeometry = getElementGeometry(nextElement)
 
         return {
           ...node,
@@ -1044,246 +1039,6 @@ function EditableNodeText({
   )
 }
 
-function applyElementEditToInput(input: unknown, elementId: string, edit: ElementEdit) {
-  const nextInput = cloneJsonValue(input)
-
-  updateRawElementById(nextInput, elementId, edit)
-
-  return nextInput
-}
-
-function deleteElementsFromInput(input: unknown, elementIds: string[]) {
-  const nextInput = cloneJsonValue(input)
-  const elementIdSet = new Set(elementIds)
-
-  deleteRawElementsById(nextInput, elementIdSet)
-
-  return nextInput
-}
-
-function deleteRawElementsById(value: unknown, elementIds: Set<string>): boolean {
-  if (Array.isArray(value)) {
-    let didDelete = false
-
-    for (let index = value.length - 1; index >= 0; index -= 1) {
-      const item = value[index]
-
-      if (isRecord(item) && typeof item.id === 'string' && elementIds.has(item.id)) {
-        value.splice(index, 1)
-        didDelete = true
-        continue
-      }
-
-      didDelete = deleteRawElementsById(item, elementIds) || didDelete
-    }
-
-    return didDelete
-  }
-
-  if (!isRecord(value)) {
-    return false
-  }
-
-  return Object.values(value).some((item) => deleteRawElementsById(item, elementIds))
-}
-
-function updateRawElementById(value: unknown, elementId: string, edit: ElementEdit): boolean {
-  if (Array.isArray(value)) {
-    return value.some((item) => updateRawElementById(item, elementId, edit))
-  }
-
-  if (!isRecord(value)) {
-    return false
-  }
-
-  if (value.id === elementId) {
-    applyRawElementEdit(value, edit)
-    return true
-  }
-
-  return Object.values(value).some((item) => updateRawElementById(item, elementId, edit))
-}
-
-function applyRawElementEdit(element: Record<string, unknown>, edit: ElementEdit) {
-  if (edit.x1 !== undefined) {
-    element.x1 = edit.x1
-  }
-
-  if (edit.y1 !== undefined) {
-    element.y1 = edit.y1
-  }
-
-  if (edit.x2 !== undefined) {
-    element.x2 = edit.x2
-  }
-
-  if (edit.y2 !== undefined) {
-    element.y2 = edit.y2
-  }
-
-  if (edit.lineType !== undefined) {
-    element.lineType = edit.lineType
-  }
-
-  if (edit.x !== undefined) {
-    element.x = edit.x
-    if ('left' in element) {
-      element.left = edit.x
-    }
-  }
-
-  if (edit.y !== undefined) {
-    element.y = edit.y
-    if ('top' in element) {
-      element.top = edit.y
-    }
-  }
-
-  if (edit.w !== undefined) {
-    element.w = edit.w
-    if ('width' in element) {
-      element.width = edit.w
-    }
-  }
-
-  if (edit.h !== undefined) {
-    element.h = edit.h
-    if ('height' in element) {
-      element.height = edit.h
-    }
-  }
-
-  if (edit.text !== undefined) {
-    element.text = edit.text
-    if ('label' in element) {
-      element.label = edit.text
-    }
-    element.runs = buildRawTextRuns(element, edit.text)
-  }
-}
-
-function applyElementEdit(
-  element: SlideElementNodeData['element'],
-  edit: ElementEdit,
-): SlideElementNodeData['element'] {
-  if (element.kind === 'line') {
-    return {
-      ...element,
-      lineType: edit.lineType ?? element.lineType,
-      x1: edit.x1 ?? element.x1,
-      y1: edit.y1 ?? element.y1,
-      x2: edit.x2 ?? element.x2,
-      y2: edit.y2 ?? element.y2,
-    }
-  }
-
-  const geometryEdit = {
-    ...(edit.h !== undefined ? { h: edit.h } : undefined),
-    ...(edit.w !== undefined ? { w: edit.w } : undefined),
-    ...(edit.x !== undefined ? { x: edit.x } : undefined),
-    ...(edit.y !== undefined ? { y: edit.y } : undefined),
-  }
-
-  if (element.kind === 'image') {
-    return {
-      ...element,
-      ...geometryEdit,
-    }
-  }
-
-  if (element.kind === 'text') {
-    const text = edit.text ?? element.text
-
-    return {
-      ...element,
-      ...geometryEdit,
-      ...(edit.text !== undefined
-        ? {
-            runs: buildNormalizedTextRuns(element, text),
-            text,
-          }
-        : undefined),
-    }
-  }
-
-  const text = edit.text ?? element.label
-
-  return {
-    ...element,
-    ...geometryEdit,
-    ...(edit.text !== undefined
-      ? {
-          label: text,
-          textRuns: buildNormalizedTextRuns(element, text),
-        }
-      : undefined),
-  }
-}
-
-function getElementNodeGeometry(element: SlideElementNodeData['element']) {
-  if (element.kind !== 'line') {
-    return {
-      h: Math.max(element.h, 1),
-      w: Math.max(element.w, 1),
-      x: element.x,
-      y: element.y,
-    }
-  }
-
-  return {
-    h: Math.max(Math.abs(element.y2 - element.y1), Math.max(element.strokeWidth, 1)),
-    w: Math.max(Math.abs(element.x2 - element.x1), Math.max(element.strokeWidth, 1)),
-    x: Math.min(element.x1, element.x2),
-    y: Math.min(element.y1, element.y2),
-  }
-}
-
-function buildNormalizedTextRuns(
-  element: NormalizedShapeElement | NormalizedTextElement,
-  text: string,
-): NormalizedTextRun[] {
-  const existingRuns = element.kind === 'shape' ? element.textRuns : element.runs
-  const fallbackRun = existingRuns[0]
-  const lines = text.split('\n')
-
-  return lines.map((line, index) => ({
-    bold: existingRuns[index]?.bold ?? fallbackRun?.bold ?? element.bold,
-    breakLine: index < lines.length - 1,
-    color: existingRuns[index]?.color ?? fallbackRun?.color ?? ('color' in element ? element.color : element.textColor),
-    fontFace: CANVAS_FONT_FACE,
-    fontSize: existingRuns[index]?.fontSize ?? fallbackRun?.fontSize ?? element.fontSize,
-    italic: existingRuns[index]?.italic ?? fallbackRun?.italic ?? ('italic' in element ? element.italic : false),
-    text: line,
-    underline: existingRuns[index]?.underline ?? fallbackRun?.underline ?? false,
-  }))
-}
-
-function buildRawTextRuns(element: Record<string, unknown>, text: string) {
-  const existingRuns = Array.isArray(element.runs) ? element.runs.filter(isRecord) : []
-  const fallbackRun = existingRuns[0]
-  const lines = text.split('\n')
-
-  return lines.map((line, index) => {
-    const matchingRun = existingRuns[index]
-    const color = asString(matchingRun?.color) || asString(fallbackRun?.color) || asString(element.textColor) || asString(element.color)
-    const fontSize = asNumber(matchingRun?.fontSize) ?? asNumber(fallbackRun?.fontSize) ?? asNumber(element.fontSize)
-    const bold = asBoolean(matchingRun?.bold) ?? asBoolean(fallbackRun?.bold) ?? asBoolean(element.bold)
-    const italic = asBoolean(matchingRun?.italic) ?? asBoolean(fallbackRun?.italic) ?? asBoolean(element.italic)
-    const underline = asBoolean(matchingRun?.underline) ?? asBoolean(fallbackRun?.underline)
-
-    return {
-      ...(bold !== undefined ? { bold } : undefined),
-      breakLine: index < lines.length - 1,
-      ...(color ? { color } : undefined),
-      fontFace: CANVAS_FONT_FACE,
-      ...(fontSize !== undefined ? { fontSize } : undefined),
-      ...(italic !== undefined ? { italic } : undefined),
-      text: line,
-      ...(underline !== undefined ? { underline } : undefined),
-    }
-  })
-}
-
 function getEditableRunStyle(
   textStyle: CSSProperties | undefined,
   runs: NormalizedTextRun[],
@@ -1387,40 +1142,6 @@ function placeCaretAtEnd(element: HTMLElement) {
   range.collapse(false)
   selection.removeAllRanges()
   selection.addRange(range)
-}
-
-function cloneJsonValue<T>(value: T): T {
-  if (Array.isArray(value)) {
-    return value.map((item) => cloneJsonValue(item)) as T
-  }
-
-  if (isRecord(value)) {
-    return Object.fromEntries(
-      Object.entries(value).map(([key, entry]) => [key, cloneJsonValue(entry)]),
-    ) as T
-  }
-
-  return value
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
-}
-
-function asString(value: unknown) {
-  return typeof value === 'string' ? value : ''
-}
-
-function asNumber(value: unknown) {
-  return typeof value === 'number' && Number.isFinite(value) ? value : undefined
-}
-
-function asBoolean(value: unknown) {
-  return typeof value === 'boolean' ? value : undefined
-}
-
-function roundCoordinate(value: number) {
-  return Math.round(value * 100) / 100
 }
 
 function getStackedTextBoxStyle(element: NormalizedShapeElement): CSSProperties {
