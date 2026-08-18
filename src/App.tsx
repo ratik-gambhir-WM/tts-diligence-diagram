@@ -313,7 +313,6 @@ export default function App() {
                 session ? (
                   <TemplateCanvasPage
                     template={canvasTemplate}
-                    templateKind={canvasTemplateSource}
                     statusMessage={templateStatusMessage}
                     showJsonByDefault={isTemplateJsonOpenOnLoad}
                     onTemplateJsonChange={(jsonSpec) =>

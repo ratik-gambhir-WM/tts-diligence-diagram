@@ -1,8 +1,10 @@
 export {
   applyElementEdit,
+  applyElementEditsToInput,
   applyElementEditToInput,
   deleteElementsFromInput,
   type ElementEdit,
+  type ElementEditRequest,
   type ElementMutationLocator,
 } from './edits'
 export {

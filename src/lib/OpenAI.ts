@@ -204,21 +204,8 @@ export async function generateSlidePromptOutput({
   })
 
   if (response.output_text) {
-    return removeGeneratedLineElements(JSON.parse(response.output_text) as SlidePromptOutput)
+    return JSON.parse(response.output_text) as SlidePromptOutput
   }
 
   throw new Error('OpenAI did not return a structured slide JSON payload.')
-}
-
-function removeGeneratedLineElements(output: SlidePromptOutput): SlidePromptOutput {
-  return {
-    ...output,
-    presentation: {
-      ...output.presentation,
-      slides: output.presentation.slides.map((slide) => ({
-        ...slide,
-        elements: slide.elements.filter((element) => element.type !== 'line'),
-      })),
-    },
-  }
 }

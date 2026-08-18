@@ -1,7 +1,7 @@
 import slideDiagramGenerationInstructions from '../prompts/SlideDiagramGenerationPrompt.md?raw'
 import {
-  SLIDE_PROMPT_OUTPUT_FORMAT,
-  type SlidePromptOutput,
+  GENERATED_SLIDE_PROMPT_OUTPUT_FORMAT,
+  type GeneratedSlidePromptOutput,
 } from '../types/SlidePromptOutput'
 import { DIAGRAM_TEMPLATES, type DiagramTemplate } from './diagramTemplates'
 import { createOpenAIResponse } from './OpenAI'
@@ -75,7 +75,7 @@ function buildGenerationPrompt(uploadedFiles: File[]) {
 
 export async function generateArchitectureDiagramFromExamples({
   uploadedFiles,
-}: GenerateArchitectureDiagramParams): Promise<SlidePromptOutput> {
+}: GenerateArchitectureDiagramParams): Promise<GeneratedSlidePromptOutput> {
   const exampleImageAttachments = await Promise.all(DIAGRAM_TEMPLATES.map(buildExampleImageAttachment))
   const response = await createOpenAIResponse({
     attachments: [...uploadedFiles, ...exampleImageAttachments],
@@ -84,19 +84,21 @@ export async function generateArchitectureDiagramFromExamples({
     text: {
       format: {
         type: 'json_schema',
-        ...SLIDE_PROMPT_OUTPUT_FORMAT,
+        ...GENERATED_SLIDE_PROMPT_OUTPUT_FORMAT,
       },
     },
   })
 
   if (response.output_text) {
-    return validateGeneratedDiagram(constrainSlideBounds(JSON.parse(response.output_text) as SlidePromptOutput))
+    return constrainSlideBounds(
+      validateGeneratedDiagram(JSON.parse(response.output_text) as GeneratedSlidePromptOutput),
+    )
   }
 
   throw new Error('OpenAI did not return a generated slide JSON payload.')
 }
 
-function validateGeneratedDiagram(output: SlidePromptOutput): SlidePromptOutput {
+function validateGeneratedDiagram(output: GeneratedSlidePromptOutput): GeneratedSlidePromptOutput {
   const slides = output.presentation?.slides
   const firstSlide = slides?.[0]
 
@@ -108,10 +110,20 @@ function validateGeneratedDiagram(output: SlidePromptOutput): SlidePromptOutput 
     throw new Error('OpenAI returned an empty architecture diagram. Try Create again or use the template flow.')
   }
 
+  if (
+    slides.some((slide) =>
+      slide.elements.some(
+        (element) => (element as { type?: string }).type === 'line',
+      ),
+    )
+  ) {
+    throw new Error('OpenAI returned a connector line, which the Create flow does not accept. Try Create again.')
+  }
+
   return output
 }
 
-function constrainSlideBounds(output: SlidePromptOutput): SlidePromptOutput {
+function constrainSlideBounds(output: GeneratedSlidePromptOutput): GeneratedSlidePromptOutput {
   return {
     ...output,
     presentation: {
@@ -122,7 +134,7 @@ function constrainSlideBounds(output: SlidePromptOutput): SlidePromptOutput {
 
         return {
           ...slide,
-          elements: slide.elements.filter((element) => element.type !== 'line').map((element) => {
+          elements: slide.elements.map((element) => {
             const x = clamp(element.x, 0, width)
             const y = clamp(element.y, 0, height)
             const w = clamp(element.w, 1, Math.max(width - x, 1))

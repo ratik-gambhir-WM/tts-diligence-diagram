@@ -4,6 +4,7 @@ import {
   useMemo,
   useReducer,
   useRef,
+  useState,
   type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
   type RefObject,
@@ -11,8 +12,10 @@ import {
 
 import type { NormalizedElement } from '../export/PowerpointTypes'
 import {
-  applyElementEditToInput,
+  applyElementEditsToInput,
   deleteElementsFromInput,
+  getElementAccessibleLabel,
+  getElementGeometry,
   roundCoordinate,
   type ElementEdit,
   type SlideElementRef,
@@ -20,49 +23,79 @@ import {
 
 export type ResizeHandle = 'n' | 'ne' | 'e' | 'se' | 's' | 'sw' | 'w' | 'nw'
 
+export type SelectionBox = {
+  h: number
+  w: number
+  x: number
+  y: number
+}
+
 export type SvgInteractionState = {
-  draftEdit?: ElementEdit
+  draftEdits?: ReadonlyMap<string, ElementEdit>
   editingKey?: string
-  mode: 'idle' | 'dragging' | 'resizing' | 'editing-text' | 'moving-line-point'
-  selectedKey?: string
+  mode: 'idle' | 'dragging' | 'resizing' | 'editing-text' | 'moving-line-point' | 'selecting'
+  primaryKey?: string
+  selectedKeys: ReadonlySet<string>
+  selectionBox?: SelectionBox
 }
 
 type InteractionAction =
+  | {
+      mode: ActiveInteraction['mode']
+      primaryKey: string
+      selectedKeys: ReadonlySet<string>
+      type: 'begin'
+    }
   | { type: 'cancel' }
-  | { edit: ElementEdit; mode: SvgInteractionState['mode']; type: 'draft' }
+  | { edits: ReadonlyMap<string, ElementEdit>; mode: ActiveInteraction['mode']; type: 'draft' }
   | { key: string; type: 'edit-text' }
-  | { key?: string; type: 'select' }
+  | { box: SelectionBox; type: 'selection-box' }
+  | { primaryKey?: string; selectedKeys: ReadonlySet<string>; type: 'select' }
   | { type: 'settle' }
 
 type ActiveInteraction = {
   didMove: boolean
   handle?: ResizeHandle | 'line-end' | 'line-start'
-  lastEdit?: ElementEdit
+  lastEdits?: ReadonlyMap<string, ElementEdit>
   mode: 'dragging' | 'resizing' | 'moving-line-point'
   openTextEditorOnClick: boolean
   pointerId: number
-  ref: SlideElementRef
-  startElement: NormalizedElement
+  primaryRef: SlideElementRef
+  refs: SlideElementRef[]
+  startElements: ReadonlyMap<string, NormalizedElement>
+  startPoint: { x: number; y: number }
+}
+
+type ActiveSelectionBox = {
+  baseKeys: ReadonlySet<string>
+  pointerId: number
   startPoint: { x: number; y: number }
 }
 
 type UseSvgInteractionOptions = {
+  coordinateRootRef: RefObject<SVGGraphicsElement | null>
   elementRefs: SlideElementRef[]
   input: unknown
   onChange?: (input: unknown) => void
   svgRef: RefObject<SVGSVGElement | null>
 }
 
-const INITIAL_STATE: SvgInteractionState = { mode: 'idle' }
+const INITIAL_STATE: SvgInteractionState = {
+  mode: 'idle',
+  selectedKeys: new Set(),
+}
 
 export function useSvgInteraction({
+  coordinateRootRef,
   elementRefs,
   input,
   onChange,
   svgRef,
 }: UseSvgInteractionOptions) {
   const [state, dispatch] = useReducer(interactionReducer, INITIAL_STATE)
+  const [announcement, setAnnouncement] = useState('')
   const activeRef = useRef<ActiveInteraction | undefined>(undefined)
+  const selectionBoxRef = useRef<ActiveSelectionBox | undefined>(undefined)
   const latestInputRef = useRef(input)
   const latestOnChangeRef = useRef(onChange)
   latestInputRef.current = input
@@ -73,13 +106,37 @@ export function useSvgInteraction({
   )
 
   useEffect(() => {
-    if (state.selectedKey && !refsByKey.has(state.selectedKey)) {
-      dispatch({ type: 'select' })
+    const selectedKeys = new Set(
+      Array.from(state.selectedKeys).filter((key) => refsByKey.has(key)),
+    )
+    if (selectedKeys.size === state.selectedKeys.size) {
+      return
     }
-  }, [refsByKey, state.selectedKey])
+
+    dispatch({
+      primaryKey:
+        state.primaryKey && selectedKeys.has(state.primaryKey)
+          ? state.primaryKey
+          : selectedKeys.values().next().value,
+      selectedKeys,
+      type: 'select',
+    })
+  }, [refsByKey, state.primaryKey, state.selectedKeys])
 
   const selectElement = useCallback((key?: string) => {
-    dispatch({ key, type: 'select' })
+    dispatch({
+      primaryKey: key,
+      selectedKeys: key ? new Set([key]) : new Set(),
+      type: 'select',
+    })
+  }, [])
+
+  const focusElement = useCallback((ref: SlideElementRef) => {
+    dispatch({
+      primaryKey: ref.key,
+      selectedKeys: new Set([ref.key]),
+      type: 'select',
+    })
   }, [])
 
   const begin = useCallback(
@@ -94,10 +151,34 @@ export function useSvgInteraction({
       }
 
       const svg = svgRef.current
-      const startPoint = svg ? clientPointToSlide(svg, event.clientX, event.clientY) : undefined
+      const coordinateRoot = coordinateRootRef.current
+      const startPoint = coordinateRoot
+        ? clientPointToSlide(coordinateRoot, event.clientX, event.clientY)
+        : undefined
       if (!svg || !startPoint) {
         return
       }
+
+      const selectedKeys = new Set(state.selectedKeys)
+      if (mode === 'dragging' && event.shiftKey) {
+        if (selectedKeys.has(ref.key)) {
+          selectedKeys.delete(ref.key)
+          dispatch({
+            primaryKey: selectedKeys.values().next().value,
+            selectedKeys,
+            type: 'select',
+          })
+          return
+        }
+        selectedKeys.add(ref.key)
+      } else if (mode !== 'dragging' || !selectedKeys.has(ref.key)) {
+        selectedKeys.clear()
+        selectedKeys.add(ref.key)
+      }
+
+      const refs = mode === 'dragging'
+        ? elementRefs.filter((elementRef) => selectedKeys.has(elementRef.key))
+        : [ref]
 
       event.preventDefault()
       event.stopPropagation()
@@ -109,17 +190,21 @@ export function useSvgInteraction({
         mode,
         openTextEditorOnClick:
           mode === 'dragging' &&
-          state.selectedKey === ref.key &&
+          !event.shiftKey &&
+          state.selectedKeys.size === 1 &&
+          state.selectedKeys.has(ref.key) &&
           (ref.element.kind === 'shape' || ref.element.kind === 'text'),
         pointerId: event.pointerId,
-        ref,
-        startElement: ref.element,
+        primaryRef: ref,
+        refs,
+        startElements: new Map(
+          refs.map((elementRef) => [elementRef.key, elementRef.element]),
+        ),
         startPoint,
       }
-      dispatch({ key: ref.key, type: 'select' })
-      dispatch({ edit: {}, mode, type: 'draft' })
+      dispatch({ mode, primaryKey: ref.key, selectedKeys, type: 'begin' })
     },
-    [state.editingKey, state.selectedKey, svgRef],
+    [coordinateRootRef, elementRefs, state.editingKey, state.selectedKeys, svgRef],
   )
 
   const beginDrag = useCallback(
@@ -146,60 +231,150 @@ export function useSvgInteraction({
     [begin],
   )
 
-  const handlePointerMove = useCallback(
-    (event: ReactPointerEvent<SVGSVGElement>) => {
-      const active = activeRef.current
+  const beginSelectionBox = useCallback(
+    (event: ReactPointerEvent<SVGElement>) => {
       const svg = svgRef.current
-      if (!active || !svg || event.pointerId !== active.pointerId) {
+      const coordinateRoot = coordinateRootRef.current
+      const startPoint = coordinateRoot
+        ? clientPointToSlide(coordinateRoot, event.clientX, event.clientY)
+        : undefined
+      if (event.button !== 0 || !svg || !startPoint || state.editingKey) {
         return
       }
 
-      const point = clientPointToSlide(svg, event.clientX, event.clientY)
+      event.preventDefault()
+      event.stopPropagation()
+      svg.focus({ preventScroll: true })
+      svg.setPointerCapture(event.pointerId)
+      selectionBoxRef.current = {
+        baseKeys: state.selectedKeys,
+        pointerId: event.pointerId,
+        startPoint,
+      }
+      dispatch({ box: { h: 0, w: 0, x: startPoint.x, y: startPoint.y }, type: 'selection-box' })
+    },
+    [coordinateRootRef, state.editingKey, state.selectedKeys, svgRef],
+  )
+
+  const handlePointerMove = useCallback(
+    (event: ReactPointerEvent<SVGSVGElement>) => {
+      const coordinateRoot = coordinateRootRef.current
+      const selectionBox = selectionBoxRef.current
+      if (selectionBox && coordinateRoot && event.pointerId === selectionBox.pointerId) {
+        const point = clientPointToSlide(coordinateRoot, event.clientX, event.clientY)
+        if (point) {
+          dispatch({ box: makeSelectionBox(selectionBox.startPoint, point), type: 'selection-box' })
+        }
+        return
+      }
+
+      const active = activeRef.current
+      if (!active || !coordinateRoot || event.pointerId !== active.pointerId) {
+        return
+      }
+
+      const point = clientPointToSlide(coordinateRoot, event.clientX, event.clientY)
       if (!point) {
         return
       }
 
       const dx = point.x - active.startPoint.x
       const dy = point.y - active.startPoint.y
-
       if (active.mode === 'dragging' && !active.didMove && Math.hypot(dx, dy) < 3) {
         return
       }
 
       active.didMove = true
-      const edit = getInteractionEdit(active, dx, dy)
-      active.lastEdit = edit
-      dispatch({ edit, mode: active.mode, type: 'draft' })
+      const edits = new Map<string, ElementEdit>()
+      active.refs.forEach((elementRef) => {
+        const startElement = active.startElements.get(elementRef.key)
+        if (startElement) {
+          edits.set(elementRef.key, getInteractionEdit(active, startElement, dx, dy))
+        }
+      })
+      active.lastEdits = edits
+      dispatch({ edits, mode: active.mode, type: 'draft' })
+    },
+    [coordinateRootRef],
+  )
+
+  const releasePointer = useCallback(
+    (pointerId: number) => {
+      if (svgRef.current?.hasPointerCapture(pointerId)) {
+        svgRef.current.releasePointerCapture(pointerId)
+      }
     },
     [svgRef],
   )
 
   const handlePointerUp = useCallback(
     (event: ReactPointerEvent<SVGSVGElement>) => {
+      const activeSelectionBox = selectionBoxRef.current
+      if (activeSelectionBox && event.pointerId === activeSelectionBox.pointerId) {
+        releasePointer(event.pointerId)
+        selectionBoxRef.current = undefined
+        const selectedKeys = new Set(activeSelectionBox.baseKeys)
+        const box = state.selectionBox
+        if (box) {
+          elementRefs.forEach((elementRef) => {
+            if (boxesIntersect(box, getElementGeometry(elementRef.element))) {
+              selectedKeys.add(elementRef.key)
+            }
+          })
+        }
+        dispatch({
+          primaryKey: Array.from(selectedKeys).at(-1),
+          selectedKeys,
+          type: 'select',
+        })
+        return
+      }
+
       const active = activeRef.current
       if (!active || event.pointerId !== active.pointerId) {
         return
       }
 
-      if (svgRef.current?.hasPointerCapture(event.pointerId)) {
-        svgRef.current.releasePointerCapture(event.pointerId)
-      }
-
+      releasePointer(event.pointerId)
       activeRef.current = undefined
-      if (active.openTextEditorOnClick && !active.didMove && !active.lastEdit) {
-        dispatch({ key: active.ref.key, type: 'edit-text' })
+      if (active.openTextEditorOnClick && !active.didMove && !active.lastEdits) {
+        dispatch({ key: active.primaryRef.key, type: 'edit-text' })
         return
       }
 
-      if (active.lastEdit && latestOnChangeRef.current) {
+      if (active.lastEdits && latestOnChangeRef.current) {
         latestOnChangeRef.current(
-          applyElementEditToInput(latestInputRef.current, active.ref, active.lastEdit),
+          applyElementEditsToInput(
+            latestInputRef.current,
+            active.refs.flatMap((locator) => {
+              const edit = active.lastEdits?.get(locator.key)
+              return edit ? [{ edit, locator }] : []
+            }),
+          ),
+        )
+        setAnnouncement(
+          active.refs.length === 1
+            ? describeElementPosition(active.primaryRef, active.lastEdits.get(active.primaryRef.key))
+            : `${active.refs.length} elements moved.`,
         )
       }
       dispatch({ type: 'settle' })
     },
-    [svgRef],
+    [elementRefs, releasePointer, state.selectionBox],
   )
+
+  const cancelActiveInteraction = useCallback((shouldReleasePointer = true) => {
+    if (!activeRef.current && !selectionBoxRef.current) {
+      return
+    }
+    const pointerId = activeRef.current?.pointerId ?? selectionBoxRef.current?.pointerId
+    if (shouldReleasePointer && pointerId !== undefined) {
+      releasePointer(pointerId)
+    }
+    activeRef.current = undefined
+    selectionBoxRef.current = undefined
+    dispatch({ type: 'settle' })
+  }, [releasePointer])
 
   const startTextEditing = useCallback((ref: SlideElementRef) => {
     if (ref.element.kind === 'shape' || ref.element.kind === 'text') {
@@ -218,8 +393,11 @@ export function useSvgInteraction({
             : ''
         if (text !== currentText) {
           latestOnChangeRef.current(
-            applyElementEditToInput(latestInputRef.current, ref, { text }),
+            applyElementEditsToInput(latestInputRef.current, [
+              { edit: { text }, locator: ref },
+            ]),
           )
+          setAnnouncement(`${getElementAccessibleLabel(ref.element)} text updated.`)
         }
       }
       dispatch({ type: 'settle' })
@@ -233,36 +411,62 @@ export function useSvgInteraction({
 
   const handleKeyDown = useCallback(
     (event: ReactKeyboardEvent<SVGSVGElement>) => {
-      if (!state.selectedKey || state.editingKey) {
+      if (state.editingKey) {
         return
       }
 
-      const ref = refsByKey.get(state.selectedKey)
-      if (!ref) {
-        return
-      }
-
-      if (
-        event.key === 'Enter' &&
-        (ref.element.kind === 'shape' || ref.element.kind === 'text')
-      ) {
+      if (event.key === 'Escape') {
         event.preventDefault()
-        dispatch({ key: ref.key, type: 'edit-text' })
+        const pointerId = activeRef.current?.pointerId ?? selectionBoxRef.current?.pointerId
+        if (pointerId !== undefined) {
+          releasePointer(pointerId)
+        }
+        activeRef.current = undefined
+        selectionBoxRef.current = undefined
+        dispatch({ type: 'cancel' })
+        setAnnouncement('Selection cleared.')
+        return
+      }
+
+      const focusedKey = getFocusedElementKey(event.target)
+      if (event.key === ' ' && focusedKey) {
+        event.preventDefault()
+        const ref = refsByKey.get(focusedKey)
+        if (ref) {
+          focusElement(ref)
+          setAnnouncement(`${getElementAccessibleLabel(ref.element)} selected.`)
+        }
+        return
+      }
+
+      const selectedRefs = elementRefs.filter((elementRef) =>
+        state.selectedKeys.has(elementRef.key),
+      )
+      if (selectedRefs.length === 0) {
+        return
+      }
+
+      if (event.key === 'Enter' && selectedRefs.length === 1) {
+        const [ref] = selectedRefs
+        if (ref.element.kind === 'shape' || ref.element.kind === 'text') {
+          event.preventDefault()
+          dispatch({ key: ref.key, type: 'edit-text' })
+        }
         return
       }
 
       if (event.key === 'Delete' || event.key === 'Backspace') {
         event.preventDefault()
         latestOnChangeRef.current?.(
-          deleteElementsFromInput(latestInputRef.current, [ref]),
+          deleteElementsFromInput(latestInputRef.current, selectedRefs),
         )
-        dispatch({ type: 'select' })
-        return
-      }
-
-      if (event.key === 'Escape') {
-        activeRef.current = undefined
-        dispatch({ type: 'cancel' })
+        setAnnouncement(
+          selectedRefs.length === 1
+            ? `${getElementAccessibleLabel(selectedRefs[0].element)} deleted.`
+            : `${selectedRefs.length} elements deleted.`,
+        )
+        dispatch({ primaryKey: undefined, selectedKeys: new Set(), type: 'select' })
+        svgRef.current?.focus({ preventScroll: true })
         return
       }
 
@@ -273,19 +477,32 @@ export function useSvgInteraction({
       }
 
       event.preventDefault()
+      const requests = selectedRefs.map((locator) => ({
+        edit: getNudgeEdit(locator.element, delta),
+        locator,
+      }))
       latestOnChangeRef.current?.(
-        applyElementEditToInput(latestInputRef.current, ref, getNudgeEdit(ref.element, delta)),
+        applyElementEditsToInput(latestInputRef.current, requests),
+      )
+      setAnnouncement(
+        selectedRefs.length === 1
+          ? describeElementPosition(selectedRefs[0], requests[0].edit)
+          : `${selectedRefs.length} elements moved ${distance} slide units ${getDirection(event.key)}.`,
       )
     },
-    [refsByKey, state.editingKey, state.selectedKey],
+    [elementRefs, focusElement, refsByKey, releasePointer, state.editingKey, state.selectedKeys, svgRef],
   )
 
   return {
+    announcement,
     beginDrag,
     beginLinePointMove,
     beginResize,
+    beginSelectionBox,
+    cancelActiveInteraction,
     cancelTextEditing,
     commitText,
+    focusElement,
     handleKeyDown,
     handlePointerMove,
     handlePointerUp,
@@ -303,31 +520,54 @@ function interactionReducer(
     case 'select':
       return {
         mode: 'idle',
-        selectedKey: action.key,
+        primaryKey: action.primaryKey,
+        selectedKeys: action.selectedKeys,
+      }
+    case 'begin':
+      return {
+        mode: action.mode,
+        primaryKey: action.primaryKey,
+        selectedKeys: action.selectedKeys,
       }
     case 'draft':
       return {
         ...state,
-        draftEdit: action.edit,
+        draftEdits: action.edits,
         mode: action.mode,
+      }
+    case 'selection-box':
+      return {
+        ...state,
+        mode: 'selecting',
+        selectionBox: action.box,
       }
     case 'edit-text':
       return {
         editingKey: action.key,
         mode: 'editing-text',
-        selectedKey: action.key,
+        primaryKey: action.key,
+        selectedKeys: new Set([action.key]),
       }
     case 'cancel':
+      return {
+        mode: 'idle',
+        selectedKeys: new Set(),
+      }
     case 'settle':
       return {
         mode: 'idle',
-        selectedKey: state.selectedKey,
+        primaryKey: state.primaryKey,
+        selectedKeys: state.selectedKeys,
       }
   }
 }
 
-function clientPointToSlide(svg: SVGSVGElement, clientX: number, clientY: number) {
-  const matrix = svg.getScreenCTM()?.inverse()
+function clientPointToSlide(
+  coordinateRoot: SVGGraphicsElement,
+  clientX: number,
+  clientY: number,
+) {
+  const matrix = coordinateRoot.getScreenCTM()?.inverse()
   if (!matrix) {
     return undefined
   }
@@ -336,8 +576,12 @@ function clientPointToSlide(svg: SVGSVGElement, clientX: number, clientY: number
   return { x: point.x, y: point.y }
 }
 
-function getInteractionEdit(active: ActiveInteraction, dx: number, dy: number): ElementEdit {
-  const element = active.startElement
+function getInteractionEdit(
+  active: ActiveInteraction,
+  element: NormalizedElement,
+  dx: number,
+  dy: number,
+): ElementEdit {
   if (active.mode === 'dragging') {
     if (element.kind === 'line') {
       return {
@@ -413,6 +657,10 @@ function getArrowDelta(key: string, distance: number) {
   return undefined
 }
 
+function getDirection(key: string) {
+  return key.replace('Arrow', '').toLowerCase()
+}
+
 function getNudgeEdit(element: NormalizedElement, delta: { x: number; y: number }): ElementEdit {
   if (element.kind === 'line') {
     return {
@@ -426,4 +674,43 @@ function getNudgeEdit(element: NormalizedElement, delta: { x: number; y: number 
     x: roundCoordinate(element.x + delta.x),
     y: roundCoordinate(element.y + delta.y),
   }
+}
+
+function makeSelectionBox(start: { x: number; y: number }, end: { x: number; y: number }) {
+  return {
+    h: Math.abs(end.y - start.y),
+    w: Math.abs(end.x - start.x),
+    x: Math.min(start.x, end.x),
+    y: Math.min(start.y, end.y),
+  }
+}
+
+function boxesIntersect(
+  first: { h: number; w: number; x: number; y: number },
+  second: { h: number; w: number; x: number; y: number },
+) {
+  return (
+    first.x <= second.x + second.w &&
+    first.x + first.w >= second.x &&
+    first.y <= second.y + second.h &&
+    first.y + first.h >= second.y
+  )
+}
+
+function getFocusedElementKey(target: EventTarget) {
+  return target instanceof Element
+    ? target.closest('[data-element-key]')?.getAttribute('data-element-key') ?? undefined
+    : undefined
+}
+
+function describeElementPosition(ref: SlideElementRef, edit?: ElementEdit) {
+  if (!edit) {
+    return `${getElementAccessibleLabel(ref.element)} moved.`
+  }
+
+  const x = ref.element.kind === 'line' ? edit.x1 : edit.x
+  const y = ref.element.kind === 'line' ? edit.y1 : edit.y
+  return x === undefined || y === undefined
+    ? `${getElementAccessibleLabel(ref.element)} changed.`
+    : `${getElementAccessibleLabel(ref.element)} moved to ${x}, ${y}.`
 }

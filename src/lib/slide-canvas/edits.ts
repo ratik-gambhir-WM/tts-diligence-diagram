@@ -22,17 +22,30 @@ export type ElementMutationLocator = Pick<SlideElementRef, 'slideIndex' | 'sourc
   element: Pick<NormalizedElement, 'id' | 'kind'>
 }
 
+export type ElementEditRequest = {
+  edit: ElementEdit
+  locator: ElementMutationLocator
+}
+
 export function applyElementEditToInput(
   input: unknown,
   locator: ElementMutationLocator,
   edit: ElementEdit,
 ) {
-  const nextInput = cloneJsonValue(input)
-  const target = locateRawElement(nextInput, locator)
+  return applyElementEditsToInput(input, [{ edit, locator }])
+}
 
-  if (target) {
-    applyRawElementEdit(target, edit)
-  }
+export function applyElementEditsToInput(
+  input: unknown,
+  requests: ElementEditRequest[],
+) {
+  const nextInput = cloneJsonValue(input)
+  requests.forEach(({ edit, locator }) => {
+    const target = locateRawElement(nextInput, locator)
+    if (target) {
+      applyRawElementEdit(target, edit)
+    }
+  })
 
   return nextInput
 }
@@ -296,4 +309,3 @@ function cloneJsonValue<T>(value: T): T {
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
-

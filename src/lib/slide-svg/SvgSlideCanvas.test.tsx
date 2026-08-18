@@ -3,7 +3,10 @@ import { describe, expect, it, vi } from 'vitest'
 
 import securitySpec from '../export/json-commentary-templates/slide-02-phase-1.compact copy.json'
 import { normalizeCommentaryTemplateSpec } from '../commentaryTemplates'
+import { DIAGRAM_TEMPLATES } from '../diagramTemplates'
 import { applyElementEditToInput, buildSlideCanvasModel } from '../slide-canvas'
+import generatedArchitectureSpec from './fixtures/generated-architecture.json'
+import { SUPPORTED_SHAPE_NAMES } from './shapes'
 import { SvgSlideCanvas } from './SvgSlideCanvas'
 
 const input = {
@@ -101,6 +104,17 @@ describe('SvgSlideCanvas', () => {
     expect(container.querySelector('clipPath[id$="root-clip"]')).not.toBeNull()
     expect(container.querySelector('polygon')).not.toBeNull()
     expect(container.querySelector('path[marker-end]')).not.toBeNull()
+    const footer = container.querySelector('[data-brand-footer]')
+    const logo = container.querySelector('[data-brand-logo]')
+
+    expect(footer?.getAttribute('x')).toBe('0')
+    expect(footer?.getAttribute('y')).toBe('645')
+    expect(footer?.getAttribute('width')).toBe('1280')
+    expect(footer?.getAttribute('height')).toBe('75')
+    expect(logo?.getAttribute('x')).toBe('48.33')
+    expect(logo?.getAttribute('y')).toBe('664.08')
+    expect(logo?.getAttribute('width')).toBe('153')
+    expect(logo?.getAttribute('height')).toBe('32.02')
   })
 
   it('uses unique definition ids across repeated canvases', () => {
@@ -112,6 +126,149 @@ describe('SvgSlideCanvas', () => {
     )
     const ids = Array.from(container.querySelectorAll('[id]')).map((node) => node.id)
     expect(new Set(ids).size).toBe(ids.length)
+  })
+
+  it('provides toolbar zoom and fit controls without changing slide geometry', () => {
+    const { container, getByRole } = render(<SvgSlideCanvas input={input} />)
+    const content = container.querySelector('[data-slide-viewport-content]')!
+
+    fireEvent.click(getByRole('button', { name: 'Zoom in' }))
+    expect(content.getAttribute('transform')).toContain('scale(1.25)')
+    expect(getByRole('button', { name: /Fit 125%/ })).toBeDefined()
+
+    fireEvent.click(getByRole('button', { name: /Fit 125%/ }))
+    expect(content.getAttribute('transform')).toBe('translate(0 0) scale(1)')
+    expect(getByRole('application').getAttribute('viewBox')).toBe('0 0 1280 720')
+  })
+
+  it('zooms around wheel and pinch gestures and pans the enlarged slide', () => {
+    const { container, getByLabelText, getByRole } = render(<SvgSlideCanvas input={input} />)
+    const background = getByLabelText('Test slide')
+    const content = container.querySelector('[data-slide-viewport-content]')!
+    const svg = getByRole('application')
+
+    fireEvent.wheel(svg, { clientX: 640, clientY: 360, deltaY: -120 })
+    expect(content.getAttribute('transform')).not.toContain('scale(1)')
+
+    const beforePan = content.getAttribute('transform')
+    fireEvent.pointerDown(background, {
+      button: 0,
+      clientX: 500,
+      clientY: 300,
+      pointerId: 1,
+    })
+    fireEvent.pointerMove(svg, { clientX: 525, clientY: 325, pointerId: 1 })
+    fireEvent.pointerUp(svg, { clientX: 525, clientY: 325, pointerId: 1 })
+    expect(content.getAttribute('transform')).not.toBe(beforePan)
+
+    fireEvent.click(getByRole('button', { name: /Fit/ }))
+    fireEvent.pointerDown(background, {
+      button: 0,
+      clientX: 400,
+      clientY: 300,
+      pointerId: 2,
+      pointerType: 'touch',
+    })
+    fireEvent.pointerDown(background, {
+      button: 0,
+      clientX: 600,
+      clientY: 300,
+      pointerId: 3,
+      pointerType: 'touch',
+    })
+    fireEvent.pointerMove(svg, {
+      clientX: 700,
+      clientY: 300,
+      pointerId: 3,
+      pointerType: 'touch',
+    })
+    expect(content.getAttribute('transform')).not.toContain('scale(1)')
+    fireEvent.pointerUp(svg, { pointerId: 2, pointerType: 'touch' })
+    fireEvent.pointerUp(svg, { pointerId: 3, pointerType: 'touch' })
+  })
+
+  it('supports keyboard focus, movement announcements, and visible selection state', () => {
+    const onChange = vi.fn()
+    const { container } = render(<SvgSlideCanvas input={input} onChange={onChange} />)
+    const shape = container.querySelector<SVGGElement>(
+      '[data-element-key]:not(.svg-slide-element-line)',
+    )!
+
+    expect(shape.tabIndex).toBe(0)
+    fireEvent.focus(shape)
+    expect(shape.getAttribute('aria-pressed')).toBe('true')
+    fireEvent.keyDown(shape, { key: 'ArrowRight' })
+
+    expect(onChange).toHaveBeenCalledTimes(1)
+    const updated = onChange.mock.calls[0][0] as typeof input
+    expect(updated.presentation.slides[0].elements[0]).toMatchObject({ x: 101, y: 100 })
+    expect(container.querySelector('.svg-slide-live-region')?.textContent).toContain(
+      'moved to 101, 100',
+    )
+  })
+
+  it('additively selects elements and moves them in one JSON commit', () => {
+    const onChange = vi.fn()
+    const { container, getByRole } = render(
+      <SvgSlideCanvas input={input} onChange={onChange} />,
+    )
+    const shape = container.querySelector<SVGGElement>(
+      '[data-element-key]:not(.svg-slide-element-line)',
+    )!
+    const line = container.querySelector<SVGGElement>('.svg-slide-element-line')!
+    const svg = getByRole('application')
+
+    fireEvent.pointerDown(shape, { button: 0, clientX: 100, clientY: 100, pointerId: 1 })
+    fireEvent.pointerUp(svg, { clientX: 100, clientY: 100, pointerId: 1 })
+    fireEvent.pointerDown(line, {
+      button: 0,
+      clientX: 40,
+      clientY: 40,
+      pointerId: 2,
+      shiftKey: true,
+    })
+    fireEvent.pointerUp(svg, { clientX: 40, clientY: 40, pointerId: 2 })
+
+    expect(shape.getAttribute('aria-pressed')).toBe('true')
+    expect(line.getAttribute('aria-pressed')).toBe('true')
+    fireEvent.keyDown(svg, { key: 'ArrowRight' })
+
+    expect(onChange).toHaveBeenCalledTimes(1)
+    const updated = onChange.mock.calls[0][0] as typeof input
+    expect(updated.presentation.slides[0].elements[0]).toMatchObject({ x: 101, y: 100 })
+    expect(updated.presentation.slides[0].elements[1]).toMatchObject({ x1: 41, x2: 241 })
+    expect(container.querySelector('.svg-slide-live-region')?.textContent).toContain(
+      '2 elements moved',
+    )
+
+    fireEvent.keyDown(svg, { key: 'Delete' })
+    expect(onChange).toHaveBeenCalledTimes(2)
+    expect(
+      (onChange.mock.calls[1][0] as typeof input).presentation.slides[0].elements,
+    ).toHaveLength(0)
+    expect(container.querySelector('.svg-slide-live-region')?.textContent).toContain(
+      '2 elements deleted',
+    )
+  })
+
+  it('selects intersecting elements with a Shift-drag selection box', () => {
+    const { container, getByLabelText, getByRole } = render(<SvgSlideCanvas input={input} />)
+    const background = getByLabelText('Test slide')
+    const svg = getByRole('application')
+
+    fireEvent.pointerDown(background, {
+      button: 0,
+      clientX: 0,
+      clientY: 0,
+      pointerId: 1,
+      shiftKey: true,
+    })
+    fireEvent.pointerMove(svg, { clientX: 300, clientY: 300, pointerId: 1 })
+    expect(container.querySelector('.svg-slide-selection-box')).not.toBeNull()
+    fireEvent.pointerUp(svg, { clientX: 300, clientY: 300, pointerId: 1 })
+
+    expect(container.querySelectorAll('[data-element-key][aria-pressed="true"]')).toHaveLength(2)
+    expect(container.querySelector('.svg-slide-selection-box')).toBeNull()
   })
 
   it('commits a drag once on pointer-up and never during pointer movement', () => {
@@ -262,6 +419,18 @@ describe('SvgSlideCanvas', () => {
     )
   })
 
+  it('renders a representative Create-flow fixture without unsupported diagnostics', () => {
+    const model = buildSlideCanvasModel(generatedArchitectureSpec, { resolveAssets: false })
+    const { container } = render(<SvgSlideCanvas input={generatedArchitectureSpec} />)
+
+    expect(model.issues.filter((issue) => issue.level === 'error')).toEqual([])
+    expect(container.querySelectorAll('[data-element-key]')).toHaveLength(
+      model.elementRefs.length,
+    )
+    expect(container.querySelector('.svg-slide-diagnostic')).toBeNull()
+    expect(container.querySelectorAll('tspan').length).toBeGreaterThanOrEqual(6)
+  })
+
   it('uses consistent heading and body sizes across peer detail sections', () => {
     const input = normalizeCommentaryTemplateSpec(securitySpec)
     const { container, rerender } = render(
@@ -317,3 +486,84 @@ describe('SvgSlideCanvas', () => {
     ).toEqual(bodySizes)
   })
 })
+
+describe('architecture diagram SVG compatibility', () => {
+  it.each(DIAGRAM_TEMPLATES)(
+    'renders every element, line feature, and rich-text block in $name',
+    (template) => {
+      const model = buildSlideCanvasModel(template.jsonSpec, { resolveAssets: false })
+      const { container } = render(
+        <SvgSlideCanvas input={template.jsonSpec} showBranding={false} />,
+      )
+      const shapeRefs = model.elementRefs.filter(
+        (elementRef) => elementRef.element.kind === 'shape',
+      )
+      const lineRefs = model.elementRefs.filter(
+        (elementRef) => elementRef.element.kind === 'line',
+      )
+      const arrowCount = lineRefs.filter(
+        (elementRef) =>
+          elementRef.element.kind === 'line' && elementRef.element.endArrow !== 'none',
+      ).length
+      const maskedLineCount = lineRefs.filter(
+        (elementRef) =>
+          elementRef.element.kind === 'line' && elementRef.element.occlusionRects.length > 0,
+      ).length
+
+      expect(model.issues.filter((issue) => issue.level === 'error')).toEqual([])
+      expect(new Set(model.elementRefs.map((elementRef) => elementRef.key)).size).toBe(
+        model.elementRefs.length,
+      )
+      expect(container.querySelectorAll('[data-element-key]')).toHaveLength(
+        model.elementRefs.length,
+      )
+      expect(
+        shapeRefs.every(
+          (elementRef) =>
+            elementRef.element.kind === 'shape' &&
+            SUPPORTED_SHAPE_NAMES.has(elementRef.element.shape),
+        ),
+      ).toBe(true)
+      expect(container.querySelectorAll('.svg-slide-element-line')).toHaveLength(
+        lineRefs.length,
+      )
+      expect(container.querySelectorAll('path[marker-end]')).toHaveLength(arrowCount)
+      expect(container.querySelectorAll('mask')).toHaveLength(maskedLineCount)
+      expect(container.querySelector('.svg-slide-diagnostic')).toBeNull()
+      expect(container.querySelector('clipPath[id$="root-clip"]')).not.toBeNull()
+      expect(container.querySelectorAll('tspan').length).toBeGreaterThan(0)
+    },
+  )
+
+  it('locks the checked-in architecture inventory at 192 elements and 284 text runs', () => {
+    const elementRefs = DIAGRAM_TEMPLATES.flatMap(
+      (template) =>
+        buildSlideCanvasModel(template.jsonSpec, { resolveAssets: false }).elementRefs,
+    )
+    const runCount = DIAGRAM_TEMPLATES.reduce(
+      (total, template) => total + countRawTextRuns(template.jsonSpec),
+      0,
+    )
+
+    expect(elementRefs).toHaveLength(192)
+    expect(elementRefs.filter(({ element }) => element.kind === 'shape')).toHaveLength(145)
+    expect(elementRefs.filter(({ element }) => element.kind === 'line')).toHaveLength(36)
+    expect(elementRefs.filter(({ element }) => element.kind === 'text')).toHaveLength(11)
+    expect(runCount).toBe(284)
+  })
+})
+
+function countRawTextRuns(value: unknown): number {
+  if (Array.isArray(value)) {
+    return value.reduce((total, item) => total + countRawTextRuns(item), 0)
+  }
+  if (typeof value !== 'object' || value === null) {
+    return 0
+  }
+
+  return Object.entries(value).reduce(
+    (total, [key, item]) =>
+      total + (key === 'runs' && Array.isArray(item) ? item.length : countRawTextRuns(item)),
+    0,
+  )
+}

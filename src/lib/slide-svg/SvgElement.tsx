@@ -13,14 +13,18 @@ export const SvgElement = memo(function SvgElement({
   definitionPrefix,
   elementRef,
   isEditing,
+  isSelected,
   onDoubleClick,
+  onFocus,
   onPointerDown,
   textFontScale,
 }: {
   definitionPrefix: string
   elementRef: SlideElementRef
   isEditing: boolean
+  isSelected: boolean
   onDoubleClick: (ref: SlideElementRef) => void
+  onFocus: (ref: SlideElementRef) => void
   onPointerDown: (ref: SlideElementRef, event: ReactPointerEvent<SVGElement>) => void
   textFontScale?: number
 }) {
@@ -37,12 +41,14 @@ export const SvgElement = memo(function SvgElement({
     return (
       <g
         aria-label={label}
+        aria-pressed={isSelected}
         className="svg-slide-element svg-slide-element-line"
         data-element-key={elementRef.key}
+        onFocus={() => onFocus(elementRef)}
         onPointerDown={(event) => onPointerDown(elementRef, event)}
         opacity={element.opacity}
         role="button"
-        tabIndex={-1}
+        tabIndex={0}
       >
         <SvgLine
           element={element}
@@ -65,8 +71,10 @@ export const SvgElement = memo(function SvgElement({
     <g
       aria-label={label}
       aria-keyshortcuts={supportsTextEditing ? 'Enter' : undefined}
+      aria-pressed={isSelected}
       className={`svg-slide-element svg-slide-element-${element.kind}`}
       data-element-key={elementRef.key}
+      onFocus={() => onFocus(elementRef)}
       onDoubleClick={
         supportsTextEditing
           ? (event) => {
@@ -79,7 +87,7 @@ export const SvgElement = memo(function SvgElement({
       onPointerDown={(event) => onPointerDown(elementRef, event)}
       opacity={element.opacity}
       role="button"
-      tabIndex={-1}
+      tabIndex={0}
       transform={transform}
     >
       <title>{title}</title>

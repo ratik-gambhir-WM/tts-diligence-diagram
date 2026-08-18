@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ChangeEvent } from 'react'
 
 import type { DiagramTemplate } from '../lib/diagramTemplates'
@@ -6,12 +6,6 @@ import { addBrandedSlideFrame } from '../lib/export/PowerpointBranding'
 import { generatePowerPointFromJson, type PowerPointFileHandle } from '../lib/export/exporter'
 import { buildSlideCanvasModel } from '../lib/slide-canvas/model'
 import { SvgSlideCanvas } from '../lib/slide-svg/SvgSlideCanvas'
-
-const LazySlideFlowCanvas = lazy(() =>
-  import('../lib/slide-flow/SlideFlowCanvas').then((module) => ({
-    default: module.SlideFlowCanvas,
-  })),
-)
 
 const POWERPOINT_ACCEPT_ATTR =
   '.pptx,application/vnd.openxmlformats-officedocument.presentationml.presentation'
@@ -33,7 +27,6 @@ type TemplateCanvasPageProps = {
   showJsonByDefault: boolean
   statusMessage: string
   template: DiagramTemplate
-  templateKind: 'commentary' | 'diagram'
 }
 
 export function TemplateCanvasPage({
@@ -43,7 +36,6 @@ export function TemplateCanvasPage({
   showJsonByDefault,
   statusMessage,
   template,
-  templateKind,
 }: TemplateCanvasPageProps) {
   const [isJsonPanelOpen, setIsJsonPanelOpen] = useState(showJsonByDefault)
   const [isExporting, setIsExporting] = useState(false)
@@ -293,21 +285,11 @@ export function TemplateCanvasPage({
         )}
 
         <div className="relative mt-5 min-h-0 flex-1 overflow-hidden border border-white/12 bg-[#0b0f24]">
-          {templateKind === 'commentary' ? (
-            <SvgSlideCanvas
-              input={template.jsonSpec}
-              onChange={onTemplateJsonChange}
-              className="h-full"
-            />
-          ) : (
-            <Suspense fallback={<CanvasLoadingState />}>
-              <LazySlideFlowCanvas
-                input={template.jsonSpec}
-                onChange={onTemplateJsonChange}
-                className="h-full"
-              />
-            </Suspense>
-          )}
+          <SvgSlideCanvas
+            input={template.jsonSpec}
+            onChange={onTemplateJsonChange}
+            className="h-full"
+          />
 
           <div
             className={[
@@ -455,14 +437,6 @@ export function TemplateCanvasPage({
         </div>
       </div>
     </main>
-  )
-}
-
-function CanvasLoadingState() {
-  return (
-    <div className="slide-canvas-empty h-full" role="status">
-      Loading slide canvas…
-    </div>
   )
 }
 

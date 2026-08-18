@@ -4,6 +4,7 @@ import type {
   ReactNode,
   RefObject,
   CSSProperties,
+  WheelEvent as ReactWheelEvent,
 } from 'react'
 
 import type { NormalizedSlide } from '../export/PowerpointTypes'
@@ -11,18 +12,32 @@ import type { NormalizedSlide } from '../export/PowerpointTypes'
 export function SvgSlideViewport({
   children,
   clipId,
+  contentRef,
+  contentTransform,
+  descriptionId,
+  id,
   onKeyDown,
+  onPointerCancel,
+  onPointerDownCapture,
   onPointerMove,
   onPointerUp,
+  onWheel,
   slide,
   svgRef,
   viewportSize,
 }: {
   children: ReactNode
   clipId: string
+  contentRef: RefObject<SVGGElement | null>
+  contentTransform: string
+  descriptionId: string
+  id: string
   onKeyDown: (event: ReactKeyboardEvent<SVGSVGElement>) => void
+  onPointerCancel: (event: ReactPointerEvent<SVGSVGElement>) => void
+  onPointerDownCapture: (event: ReactPointerEvent<SVGSVGElement>) => void
   onPointerMove: (event: ReactPointerEvent<SVGSVGElement>) => void
   onPointerUp: (event: ReactPointerEvent<SVGSVGElement>) => void
+  onWheel: (event: ReactWheelEvent<SVGSVGElement>) => void
   slide: NormalizedSlide
   svgRef: RefObject<SVGSVGElement | null>
   viewportSize?: { height: number; width: number }
@@ -30,10 +45,15 @@ export function SvgSlideViewport({
   return (
     <svg
       aria-label={`${slide.name} editable slide canvas`}
+      aria-describedby={descriptionId}
       className="svg-slide-viewport"
+      id={id}
       onKeyDown={onKeyDown}
+      onPointerCancel={onPointerCancel}
+      onPointerDownCapture={onPointerDownCapture}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
+      onWheel={onWheel}
       preserveAspectRatio="xMidYMid meet"
       ref={svgRef}
       role="application"
@@ -50,7 +70,11 @@ export function SvgSlideViewport({
           <rect height={slide.height} width={slide.width} x={0} y={0} />
         </clipPath>
       </defs>
-      <g clipPath={`url(#${clipId})`}>{children}</g>
+      <g clipPath={`url(#${clipId})`}>
+        <g data-slide-viewport-content="" ref={contentRef} transform={contentTransform}>
+          {children}
+        </g>
+      </g>
     </svg>
   )
 }

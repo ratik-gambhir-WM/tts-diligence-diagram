@@ -34,18 +34,20 @@ type OverlayPosition = {
 
 export function SvgTextEditorOverlay({
   containerRef,
+  coordinateRootRef,
   element,
   fontScale,
   onCancel,
   onCommit,
-  svgRef,
+  viewportTransform,
 }: {
   containerRef: RefObject<HTMLDivElement | null>
+  coordinateRootRef: RefObject<SVGGraphicsElement | null>
   element: EditableTextElement
   fontScale?: number
   onCancel: () => void
   onCommit: (text: string) => void
-  svgRef: RefObject<SVGSVGElement | null>
+  viewportTransform: string
 }) {
   const initialText = element.kind === 'text' ? element.text : element.label
   const textContent = useMemo(
@@ -79,14 +81,14 @@ export function SvgTextEditorOverlay({
   }, [position])
 
   useEffect(() => {
-    const svg = svgRef.current
+    const coordinateRoot = coordinateRootRef.current
     const container = containerRef.current
-    if (!svg || !container) {
+    if (!coordinateRoot || !container) {
       return
     }
 
     const updatePosition = () => {
-      const matrix = svg.getScreenCTM()
+      const matrix = coordinateRoot.getScreenCTM()
       if (!matrix) {
         return
       }
@@ -106,13 +108,13 @@ export function SvgTextEditorOverlay({
     updatePosition()
     const observer = new ResizeObserver(updatePosition)
     observer.observe(container)
-    observer.observe(svg)
+    observer.observe(coordinateRoot)
     window.addEventListener('resize', updatePosition)
     return () => {
       observer.disconnect()
       window.removeEventListener('resize', updatePosition)
     }
-  }, [containerRef, element.h, element.w, element.x, element.y, svgRef])
+  }, [containerRef, coordinateRootRef, element.h, element.w, element.x, element.y, viewportTransform])
 
   if (!position) {
     return null

@@ -1,0 +1,194 @@
+{
+  "presentation": {
+    "title": "Generated Platform Architecture",
+    "slides": [
+      {
+        "id": "generated-slide-1",
+        "name": "Generated Platform Architecture",
+        "width": 1280,
+        "height": 720,
+        "backgroundColor": "FFFFFF",
+        "elements": [
+          {
+            "id": "presentation-layer",
+            "type": "shape",
+            "shape": "rect",
+            "x": 80,
+            "y": 70,
+            "w": 1120,
+            "h": 150,
+            "fill": "E8EEF8",
+            "stroke": "070154",
+            "strokeWidth": 2,
+            "text": "Presentation Layer",
+            "align": "left",
+            "valign": "top",
+            "fontSize": 18,
+            "fontFace": "Arial",
+            "bold": true,
+            "textColor": "070154",
+            "runs": [
+              {
+                "text": "Presentation Layer",
+                "bold": true,
+                "color": "070154",
+                "fontFace": "Arial",
+                "fontSize": 18
+              }
+            ],
+            "padding": 12
+          },
+          {
+            "id": "customer-portal",
+            "type": "shape",
+            "shape": "rect",
+            "x": 150,
+            "y": 125,
+            "w": 430,
+            "h": 65,
+            "fill": "00A3FF",
+            "stroke": "070154",
+            "strokeWidth": 2,
+            "text": "Customer Portal",
+            "align": "center",
+            "valign": "middle",
+            "fontSize": 16,
+            "fontFace": "Arial",
+            "bold": true,
+            "textColor": "070154",
+            "runs": [
+              {
+                "text": "Customer Portal",
+                "bold": true,
+                "color": "070154",
+                "fontFace": "Arial",
+                "fontSize": 16
+              }
+            ]
+          },
+          {
+            "id": "operations-portal",
+            "type": "shape",
+            "shape": "rect",
+            "x": 700,
+            "y": 125,
+            "w": 430,
+            "h": 65,
+            "fill": "00A3FF",
+            "stroke": "070154",
+            "strokeWidth": 2,
+            "text": "Operations Portal",
+            "align": "center",
+            "valign": "middle",
+            "fontSize": 16,
+            "fontFace": "Arial",
+            "bold": true,
+            "textColor": "070154",
+            "runs": [
+              {
+                "text": "Operations Portal",
+                "bold": true,
+                "color": "070154",
+                "fontFace": "Arial",
+                "fontSize": 16
+              }
+            ]
+          },
+          {
+            "id": "application-layer",
+            "type": "shape",
+            "shape": "rect",
+            "x": 80,
+            "y": 250,
+            "w": 760,
+            "h": 260,
+            "fill": "E8EEF8",
+            "stroke": "070154",
+            "strokeWidth": 2,
+            "text": "Application Layer",
+            "align": "left",
+            "valign": "top",
+            "fontSize": 18,
+            "fontFace": "Arial",
+            "bold": true,
+            "textColor": "070154",
+            "runs": [
+              {
+                "text": "Application Layer",
+                "bold": true,
+                "color": "070154",
+                "fontFace": "Arial",
+                "fontSize": 18
+              }
+            ],
+            "padding": 12
+          },
+          {
+            "id": "platform-api",
+            "type": "shape",
+            "shape": "rect",
+            "x": 150,
+            "y": 330,
+            "w": 280,
+            "h": 100,
+            "fill": "070154",
+            "stroke": "070154",
+            "strokeWidth": 2,
+            "text": "Platform API\nCore workflows",
+            "align": "center",
+            "valign": "middle",
+            "fontSize": 16,
+            "fontFace": "Arial",
+            "bold": true,
+            "textColor": "FFFFFF",
+            "runs": [
+              {
+                "text": "Platform API",
+                "bold": true,
+                "color": "FFFFFF",
+                "fontFace": "Arial",
+                "fontSize": 16,
+                "breakLine": true
+              },
+              {
+                "text": "Core workflows",
+                "color": "FFFFFF",
+                "fontFace": "Arial",
+                "fontSize": 13,
+                "breakLine": true
+              }
+            ]
+          },
+          {
+            "id": "data-store",
+            "type": "shape",
+            "shape": "flowChartMagneticDisk",
+            "x": 930,
+            "y": 315,
+            "w": 200,
+            "h": 140,
+            "fill": "FFFFFF",
+            "stroke": "070154",
+            "strokeWidth": 2,
+            "text": "Core Data Store",
+            "align": "center",
+            "valign": "middle",
+            "fontSize": 16,
+            "fontFace": "Arial",
+            "bold": true,
+            "textColor": "070154",
+            "runs": [
+              {
+                "text": "Core Data Store",
+                "bold": true,
+                "color": "070154",
+                "fontFace": "Arial",
+                "fontSize": 16
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

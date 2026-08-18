@@ -23,6 +23,8 @@ export const SvgSelection = memo(function SvgSelection({
   elementRef,
   onLinePointPointerDown,
   onResizePointerDown,
+  showHandles,
+  zoom,
 }: {
   elementRef: SlideElementRef
   onLinePointPointerDown: (
@@ -35,6 +37,8 @@ export const SvgSelection = memo(function SvgSelection({
     handle: ResizeHandle,
     event: ReactPointerEvent<SVGElement>,
   ) => void
+  showHandles: boolean
+  zoom: number
 }) {
   const element = elementRef.element
   if (element.kind === 'line') {
@@ -49,18 +53,24 @@ export const SvgSelection = memo(function SvgSelection({
           strokeWidth={1.5}
           vectorEffect="non-scaling-stroke"
         />
-        <LineHandle
-          label="Move line start"
-          onPointerDown={(event) => onLinePointPointerDown(elementRef, 'start', event)}
-          x={element.x1}
-          y={element.y1}
-        />
-        <LineHandle
-          label="Move line end"
-          onPointerDown={(event) => onLinePointPointerDown(elementRef, 'end', event)}
-          x={element.x2}
-          y={element.y2}
-        />
+        {showHandles ? (
+          <>
+            <LineHandle
+              label="Move line start"
+              onPointerDown={(event) => onLinePointPointerDown(elementRef, 'start', event)}
+              x={element.x1}
+              y={element.y1}
+              zoom={zoom}
+            />
+            <LineHandle
+              label="Move line end"
+              onPointerDown={(event) => onLinePointPointerDown(elementRef, 'end', event)}
+              x={element.x2}
+              y={element.y2}
+              zoom={zoom}
+            />
+          </>
+        ) : null}
       </g>
     )
   }
@@ -79,19 +89,19 @@ export const SvgSelection = memo(function SvgSelection({
         x={0}
         y={0}
       />
-      {HANDLE_SPECS.map((handle) => (
+      {showHandles ? HANDLE_SPECS.map((handle) => (
         <rect
           aria-label={`Resize ${handle.handle}`}
           className="svg-slide-resize-handle"
-          height={10}
+          height={10 / zoom}
           key={handle.handle}
           onPointerDown={(event) => onResizePointerDown(elementRef, handle.handle, event)}
           role="button"
-          width={10}
-          x={element.w * handle.x - 5}
-          y={element.h * handle.y - 5}
+          width={10 / zoom}
+          x={element.w * handle.x - 5 / zoom}
+          y={element.h * handle.y - 5 / zoom}
         />
-      ))}
+      )) : null}
     </g>
   )
 })
@@ -101,11 +111,13 @@ function LineHandle({
   onPointerDown,
   x,
   y,
+  zoom,
 }: {
   label: string
   onPointerDown: (event: ReactPointerEvent<SVGElement>) => void
   x: number
   y: number
+  zoom: number
 }) {
   return (
     <circle
@@ -114,9 +126,8 @@ function LineHandle({
       cx={x}
       cy={y}
       onPointerDown={onPointerDown}
-      r={7}
+      r={7 / zoom}
       role="button"
     />
   )
 }
-

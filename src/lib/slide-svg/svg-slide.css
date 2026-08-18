@@ -36,6 +36,12 @@
   cursor: grabbing;
 }
 
+.svg-slide-element:focus .svg-slide-hit-target {
+  stroke: var(--slide-canvas-selection);
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+
 .svg-slide-hit-target {
   cursor: inherit;
   pointer-events: all;
@@ -43,6 +49,14 @@
 
 .svg-slide-selection {
   pointer-events: none;
+}
+
+.svg-slide-selection-box {
+  fill: rgba(20, 81, 225, 0.1);
+  stroke: var(--slide-canvas-selection);
+  stroke-dasharray: 5 4;
+  stroke-width: 1.5;
+  vector-effect: non-scaling-stroke;
 }
 
 .svg-slide-resize-handle,
@@ -150,6 +164,56 @@
   transform: translateX(-50%);
 }
 
+.svg-slide-viewport-controls {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  z-index: 6;
+  display: flex;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 0.65rem;
+  background: rgba(15, 23, 42, 0.92);
+  box-shadow: 0 0.35rem 1rem rgba(15, 23, 42, 0.2);
+}
+
+.svg-slide-viewport-controls button {
+  min-width: 2.25rem;
+  border: 0;
+  border-right: 1px solid rgba(255, 255, 255, 0.18);
+  background: transparent;
+  padding: 0.45rem 0.65rem;
+  color: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.svg-slide-viewport-controls button:last-child {
+  border-right: 0;
+}
+
+.svg-slide-viewport-controls button:hover,
+.svg-slide-viewport-controls button:focus-visible {
+  background: rgba(255, 255, 255, 0.14);
+  outline: none;
+}
+
+.svg-slide-instructions,
+.svg-slide-live-region {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  border: 0;
+  margin: -1px;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  overflow: hidden;
+  white-space: nowrap;
+}
+
 .svg-slide-diagnostic {
   position: absolute;
   bottom: 1rem;
@@ -170,4 +234,10 @@
   background: var(--slide-canvas-empty-bg);
   color: var(--slide-canvas-empty-text);
   font-weight: 700;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .svg-slide-viewport-controls button {
+    transition: none;
+  }
 }

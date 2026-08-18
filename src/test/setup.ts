@@ -72,6 +72,20 @@ Object.defineProperty(SVGSVGElement.prototype, 'getScreenCTM', {
     },
   })),
 })
+Object.defineProperty(SVGElement.prototype, 'getScreenCTM', {
+  configurable: true,
+  value: vi.fn(() => ({
+    a: 1,
+    b: 0,
+    c: 0,
+    d: 1,
+    e: 0,
+    f: 0,
+    inverse() {
+      return this
+    },
+  })),
+})
 Object.defineProperty(SVGSVGElement.prototype, 'setPointerCapture', {
   configurable: true,
   value: vi.fn(),

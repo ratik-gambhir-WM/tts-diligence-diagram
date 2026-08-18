@@ -4,7 +4,11 @@ import architectureSpec from '../export/json-commentary-templates/slide-01-phase
 import securitySpec from '../export/json-commentary-templates/slide-02-phase-1.compact copy.json'
 import sdlcSpec from '../export/json-commentary-templates/slide-03-phase-1.compact copy.json'
 import { normalizeCommentaryTemplateSpec } from '../commentaryTemplates'
-import { applyElementEditToInput, deleteElementsFromInput } from './edits'
+import {
+  applyElementEditsToInput,
+  applyElementEditToInput,
+  deleteElementsFromInput,
+} from './edits'
 import { buildSlideCanvasModel } from './model'
 
 describe('slide canvas model', () => {
@@ -82,6 +86,23 @@ describe('source-path element mutations', () => {
     const updated = deleteElementsFromInput(duplicateIdInput, [firstRef!]) as typeof duplicateIdInput
     expect(updated.presentation.slides[0].elements).toHaveLength(1)
     expect(updated.presentation.slides[0].elements[0].text).toBe('Second')
+  })
+
+  it('applies a group edit in one immutable update', () => {
+    const model = buildSlideCanvasModel(duplicateIdInput, { resolveAssets: false })
+    const updated = applyElementEditsToInput(
+      duplicateIdInput,
+      model.elementRefs.map((locator, index) => ({
+        edit: { x: 100 + index * 20, y: 200 + index * 20 },
+        locator,
+      })),
+    ) as typeof duplicateIdInput
+
+    expect(updated.presentation.slides[0].elements).toMatchObject([
+      { text: 'First', x: 100, y: 200 },
+      { text: 'Second', x: 120, y: 220 },
+    ])
+    expect(duplicateIdInput.presentation.slides[0].elements[0]).toMatchObject({ x: 10, y: 20 })
   })
 
   it('preserves normal body runs when editing a box with a bold heading', () => {

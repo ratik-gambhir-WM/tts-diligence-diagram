@@ -1,5 +1,10 @@
 import PptxGenJS from 'pptxgenjs'
 import westMonroeLogoImage from '../../slide-assets/element-5.png'
+import {
+  getWestMonroeBrandFrameLayout,
+  WEST_MONROE_BRAND_COLOR,
+  type BrandFrameRect,
+} from '../WestMonroeBrandFrame'
 import { DEFAULT_FONT_FACE } from './PowerpointConstants'
 import type {
   NormalizedImageElement,
@@ -22,6 +27,10 @@ export function buildPptxPresentation(presentation: NormalizedPresentation) {
   const pptx = new PptxGenJS()
   const widthInches = pxToInches(presentation.meta.width)
   const heightInches = pxToInches(presentation.meta.height)
+  const brandFrame = getWestMonroeBrandFrameLayout(
+    presentation.meta.width,
+    presentation.meta.height,
+  )
 
   pptx.defineLayout({
     name: 'JSON_LAYOUT',
@@ -40,9 +49,26 @@ export function buildPptxPresentation(presentation: NormalizedPresentation) {
   pptx.defineSlideMaster({
     title: 'WEST_MONROE_BRANDED_FRAME',
     objects: [
-      { rect: { x: 0, y: heightInches - pxToInches(48), w: widthInches, h: pxToInches(48), fill: { color: 'E8EEF8' }, line: { transparency: 100 } } },
-      ...buildBrandDots(),
-      { image: { path: westMonroeLogoImage, x: pxToInches(48.33), y: heightInches - pxToInches(40.02), w: pxToInches(153), h: pxToInches(32.02) } },
+      {
+        rect: {
+          x: pxToInches(brandFrame.footer.x),
+          y: pxToInches(brandFrame.footer.y),
+          w: pxToInches(brandFrame.footer.w),
+          h: pxToInches(brandFrame.footer.h),
+          fill: { color: WEST_MONROE_BRAND_COLOR },
+          line: { transparency: 100 },
+        },
+      },
+      ...buildBrandDots(brandFrame.dots),
+      {
+        image: {
+          path: westMonroeLogoImage,
+          x: pxToInches(brandFrame.logo.x),
+          y: pxToInches(brandFrame.logo.y),
+          w: pxToInches(brandFrame.logo.w),
+          h: pxToInches(brandFrame.logo.h),
+        },
+      },
     ],
   })
   for (const slideSpec of presentation.slides) {
@@ -175,14 +201,14 @@ export function buildPptxPresentation(presentation: NormalizedPresentation) {
   return pptx
 }
 
-function buildBrandDots() {
-  return Array.from({ length: 15 * 17 }, (_, index) => ({
+function buildBrandDots(dots: readonly BrandFrameRect[]) {
+  return dots.map((dot) => ({
     rect: {
-      x: pxToInches(15 + (index % 15) * 19),
-      y: pxToInches(6 + Math.floor(index / 15) * 19),
-      w: pxToInches(2.5),
-      h: pxToInches(2.5),
-      fill: { color: 'E8EEF8' },
+      x: pxToInches(dot.x),
+      y: pxToInches(dot.y),
+      w: pxToInches(dot.w),
+      h: pxToInches(dot.h),
+      fill: { color: WEST_MONROE_BRAND_COLOR },
       line: { transparency: 100 },
     },
   }))
