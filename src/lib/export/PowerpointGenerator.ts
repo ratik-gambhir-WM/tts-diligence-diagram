@@ -1,4 +1,5 @@
 import type { NormalizedPresentation, PowerPointWriteOptions } from './PowerpointTypes'
+import westMonroeLogoImage from '../../slide-assets/element-5.png'
 import {
   applyDefaultThemeToPptx,
   downloadPptxBytes,
@@ -77,7 +78,9 @@ export async function buildThemedPptxBytes(
   presentation: NormalizedPresentation,
   options: Pick<PowerPointWriteOptions, 'compression'> = {},
 ) {
-  const pptx = buildPptxPresentation(presentation)
+  const pptx = buildPptxPresentation(presentation, {
+    brandingImageSource: westMonroeLogoImage,
+  })
   const raw = await pptx.write({ outputType: 'uint8array', compression: options.compression ?? true })
   return applyDefaultThemeToPptx(raw, options)
 }

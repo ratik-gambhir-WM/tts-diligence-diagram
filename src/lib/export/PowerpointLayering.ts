@@ -4,7 +4,7 @@ import type {
   NormalizedLineElement,
   NormalizedSlide,
   SlideForElementLayering,
-} from './PowerpointTypes'
+} from './PowerpointTypes.ts'
 
 export function getConnectorAwareElementOrder(slide: SlideForElementLayering) {
   return slide.elements

@@ -33,8 +33,8 @@ const MIME_BY_EXTENSION: Record<string, string> = {
   docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   jpeg: 'image/jpeg',
   jpg: 'image/jpeg',
-  markdown: 'text/markdown',
-  md: 'text/markdown',
+  markdown: 'text/plain',
+  md: 'text/plain',
   pdf: 'application/pdf',
   png: 'image/png',
   ppt: 'application/vnd.ms-powerpoint',
@@ -95,8 +95,15 @@ function isImageFile(file: File) {
 }
 
 function getMimeType(file: File) {
-  if (file.type.trim()) {
-    return file.type
+  const reportedMimeType = file.type.split(';', 1)[0]?.trim().toLowerCase()
+  const lowerName = file.name.toLowerCase()
+
+  if (
+    reportedMimeType &&
+    !lowerName.endsWith('.md') &&
+    !lowerName.endsWith('.markdown')
+  ) {
+    return reportedMimeType
   }
 
   const extension = getExtension(file.name)

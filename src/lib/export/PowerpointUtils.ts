@@ -1,4 +1,4 @@
-import { shapeAliases } from './PowerpointConstants'
+import { shapeAliases } from './PowerpointConstants.ts'
 import type {
   DashStyle,
   HorizontalAlign,
@@ -8,7 +8,7 @@ import type {
   UnknownRecord,
   VerticalAlign,
   XmlNode,
-} from './PowerpointTypes'
+} from './PowerpointTypes.ts'
 
 export function parseLineColor(lineNode: XmlNode | undefined, theme: Record<string, string>, fallback: string) {
   if (!lineNode || hasChild(lineNode, 'a:noFill')) {

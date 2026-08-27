@@ -1,14 +1,14 @@
-import { DEFAULT_HEIGHT_PX, DEFAULT_WIDTH_PX } from './PowerpointConstants'
+import { DEFAULT_HEIGHT_PX, DEFAULT_WIDTH_PX } from './PowerpointConstants.ts'
 import type {
   ExtractedSlideSpec,
   NormalizationOptions,
   NormalizedPresentation,
   NormalizedSlide,
   ValidationIssue,
-} from './PowerpointTypes'
-import { normalizeExtractedPresentation } from './PowerpointExtractedNormalizer'
-import { normalizeNativePresentation, normalizeNativeSlide } from './PowerpointNativeNormalizer'
-import { isRecord } from './PowerpointUtils'
+} from './PowerpointTypes.ts'
+import { normalizeExtractedPresentation } from './PowerpointExtractedNormalizer.ts'
+import { normalizeNativePresentation, normalizeNativeSlide } from './PowerpointNativeNormalizer.ts'
+import { isRecord } from './PowerpointUtils.ts'
 
 export function normalizePresentationSpec(
   input: unknown,
