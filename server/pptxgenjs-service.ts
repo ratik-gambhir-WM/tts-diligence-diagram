@@ -566,7 +566,7 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse) {
 
 export function startPptxGenJsService(port = PORT) {
   const server = createServer(handleRequest)
-  server.listen(port, '127.0.0.1', () => {
+  server.listen(port, () => {
     console.log(`PPTXGenJS service listening on http://localhost:${port}/api/pptxgenjs`)
   })
   return server
