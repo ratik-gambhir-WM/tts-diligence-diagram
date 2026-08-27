@@ -1,4 +1,4 @@
-import { DEFAULT_FONT_FACE, DEFAULT_HEIGHT_PX, DEFAULT_WIDTH_PX } from './PowerpointConstants'
+import { DEFAULT_FONT_FACE, DEFAULT_HEIGHT_PX, DEFAULT_WIDTH_PX } from './PowerpointConstants.ts'
 import type {
   NormalizationOptions,
   NormalizedElement,
@@ -10,8 +10,8 @@ import type {
   NormalizedTextElement,
   UnknownRecord,
   ValidationIssue,
-} from './PowerpointTypes'
-import { addConnectorOcclusionRects } from './PowerpointLayering'
+} from './PowerpointTypes.ts'
+import { addConnectorOcclusionRects } from './PowerpointLayering.ts'
 import {
   asString,
   cleanHex,
@@ -30,7 +30,7 @@ import {
   normalizeShapeName,
   normalizeValign,
   resolveImageSource,
-} from './PowerpointUtils'
+} from './PowerpointUtils.ts'
 
 export function normalizeNativePresentation(
   input: UnknownRecord,

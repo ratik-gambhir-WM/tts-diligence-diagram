@@ -3,7 +3,7 @@ import {
   DEFAULT_HEIGHT_PX,
   DEFAULT_THEME,
   DEFAULT_WIDTH_PX,
-} from './PowerpointConstants'
+} from './PowerpointConstants.ts'
 import type {
   ExtractedRelationship,
   ExtractedShapeElement,
@@ -16,8 +16,8 @@ import type {
   NormalizedTextRun,
   ValidationIssue,
   XmlNode,
-} from './PowerpointTypes'
-import { addConnectorOcclusionRects } from './PowerpointLayering'
+} from './PowerpointTypes.ts'
+import { addConnectorOcclusionRects } from './PowerpointLayering.ts'
 import {
   bodyPadding,
   clampNumber,
@@ -33,7 +33,7 @@ import {
   parseDashStyle,
   parseFontColor,
   parseLineColor,
-} from './PowerpointUtils'
+} from './PowerpointUtils.ts'
 
 export function normalizeExtractedPresentation(
   input: ExtractedSlideSpec,

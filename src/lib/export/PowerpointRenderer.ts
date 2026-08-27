@@ -1,6 +1,5 @@
 import PptxGenJS from 'pptxgenjs'
-import westMonroeLogoImage from '../../slide-assets/element-5.png'
-import { DEFAULT_FONT_FACE } from './PowerpointConstants'
+import { DEFAULT_FONT_FACE } from './PowerpointConstants.ts'
 import type {
   NormalizedImageElement,
   NormalizedLineElement,
@@ -8,17 +7,24 @@ import type {
   NormalizedShapeElement,
   NormalizedTextElement,
   NormalizedTextRun,
-} from './PowerpointTypes'
+} from './PowerpointTypes.ts'
 import {
   cleanHex,
   opacityToTransparency,
   pxToInches,
   toPptxShapeName,
   toPptxVerticalAlign,
-} from './PowerpointUtils'
-import { getConnectorAwareElementOrder } from './PowerpointLayering'
+} from './PowerpointUtils.ts'
+import { getConnectorAwareElementOrder } from './PowerpointLayering.ts'
 
-export function buildPptxPresentation(presentation: NormalizedPresentation) {
+export type PowerpointRendererOptions = {
+  brandingImageSource?: string
+}
+
+export function buildPptxPresentation(
+  presentation: NormalizedPresentation,
+  options: PowerpointRendererOptions = {},
+) {
   const pptx = new PptxGenJS()
   const widthInches = pxToInches(presentation.meta.width)
   const heightInches = pxToInches(presentation.meta.height)
@@ -42,7 +48,9 @@ export function buildPptxPresentation(presentation: NormalizedPresentation) {
     objects: [
       { rect: { x: 0, y: heightInches - pxToInches(48), w: widthInches, h: pxToInches(48), fill: { color: 'E8EEF8' }, line: { transparency: 100 } } },
       ...buildBrandDots(),
-      { image: { path: westMonroeLogoImage, x: pxToInches(48.33), y: heightInches - pxToInches(40.02), w: pxToInches(153), h: pxToInches(32.02) } },
+      ...(options.brandingImageSource
+        ? [{ image: { data: options.brandingImageSource, x: pxToInches(48.33), y: heightInches - pxToInches(40.02), w: pxToInches(153), h: pxToInches(32.02) } }]
+        : []),
     ],
   })
   for (const slideSpec of presentation.slides) {

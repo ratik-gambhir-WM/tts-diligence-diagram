@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "api": "node --experimental-strip-types server/pptxgenjs-service.ts",
     "build": "vite build",
     "preview": "vite preview"
   },
