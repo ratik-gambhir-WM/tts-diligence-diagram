@@ -455,7 +455,7 @@ function decodeBase64(value: string) {
 
 function assertAllowedMaterial(name: string, mimeType: string) {
   const extension = getExtension(name)
-  if (!ALLOWED_EXTENSIONS.has(extension) && mimeType !== 'image/png' && mimeType !== 'image/jpeg') {
+  if (!ALLOWED_EXTENSIONS.has(extension)) {
     throw new HttpError(415, `Unsupported material type: ${name}. Allowed: DOCX, PDF, PPT/PPTX, PNG/JPG, Markdown, TXT, RTF.`)
   }
 }
