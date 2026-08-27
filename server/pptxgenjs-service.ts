@@ -526,10 +526,12 @@ class HttpError extends Error {
   }
 }
 
+const CORS_ORIGIN = process.env.PPTXGENJS_CORS_ORIGIN?.trim() || 'http://localhost:5173'
+
 function writeJson(res: ServerResponse, statusCode: number, payload: unknown) {
   const body = JSON.stringify(payload)
   res.writeHead(statusCode, {
-    'access-control-allow-origin': '*',
+    'access-control-allow-origin': CORS_ORIGIN,
     'content-type': JSON_CONTENT_TYPE,
     'content-length': Buffer.byteLength(body),
   })
@@ -541,8 +543,7 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse) {
     res.writeHead(204, {
       'access-control-allow-headers': 'content-type',
       'access-control-allow-methods': 'POST, OPTIONS',
-      'access-control-allow-origin': '*',
-    })
+      'access-control-allow-origin': CORS_ORIGIN,
     res.end()
     return
   }
