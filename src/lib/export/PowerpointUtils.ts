@@ -37,6 +37,27 @@ export function parseColor(fillNode: XmlNode | undefined, theme: Record<string, 
   return colorNode ? parseColorNode(colorNode, theme, fallback) : fallback
 }
 
+export function parseColorOpacity(fillNode: XmlNode | undefined) {
+  const colorNode = fillNode?.children?.find((child) => isColorTag(child.tag))
+  if (!colorNode) {
+    return 1
+  }
+
+  let opacity = 1
+  for (const modifier of colorNode.children ?? []) {
+    const value = Number(modifier.attributes?.val ?? 100000) / 100000
+    if (modifier.tag === 'a:alpha') {
+      opacity = value
+    } else if (modifier.tag === 'a:alphaMod') {
+      opacity *= value
+    } else if (modifier.tag === 'a:alphaOff') {
+      opacity += value
+    }
+  }
+
+  return clamp01(opacity)
+}
+
 export function parseColorNode(node: XmlNode, theme: Record<string, string>, fallback: string) {
   if (node.tag === 'a:srgbClr') {
     return cleanHex(node.attributes?.val, fallback)
@@ -209,16 +230,25 @@ export function parseArrowType(lineNode: XmlNode | undefined): NormalizedLineEle
   return normalizeArrow(tailEnd?.attributes?.type)
 }
 
+export function parseBeginArrowType(lineNode: XmlNode | undefined): NormalizedLineElement['beginArrow'] {
+  const headEnd = findChild(lineNode, 'a:headEnd')
+  return normalizeArrow(headEnd?.attributes?.type)
+}
+
 export function bodyPadding(bodyProperties: Record<string, string> | undefined) {
-  const left = emuToPoints(bodyProperties?.lIns)
-  const top = emuToPoints(bodyProperties?.tIns)
-  const right = emuToPoints(bodyProperties?.rIns)
-  const bottom = emuToPoints(bodyProperties?.bIns)
-  const average = [left, top, right, bottom].filter((value) => value > 0)
-  if (!average.length) {
+  const rawInsets = [
+    bodyProperties?.lIns,
+    bodyProperties?.tIns,
+    bodyProperties?.rIns,
+    bodyProperties?.bIns,
+  ]
+  const definedInsets = rawInsets.filter((value): value is string => value !== undefined)
+  if (!definedInsets.length) {
     return 8
   }
-  return average.reduce((sum, value) => sum + value, 0) / average.length
+
+  const insets = definedInsets.map(emuToPoints)
+  return insets.reduce((sum, value) => sum + value, 0) / insets.length
 }
 
 export function resolveImageSource(src: string | undefined, options: NormalizationOptions) {

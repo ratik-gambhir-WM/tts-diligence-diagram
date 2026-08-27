@@ -4,7 +4,7 @@ import {
   buildThemedPptxBytes,
   buildSuggestedFileName,
   normalizePresentationSpec,
-} from '../src/pptx.ts'
+} from '../src/lib/export/PowerpointGenerator'
 
 async function main() {
   const [, , inputArg, outputArg] = process.argv

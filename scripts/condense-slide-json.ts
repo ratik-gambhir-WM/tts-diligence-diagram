@@ -1,15 +1,15 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
-import {
-  normalizePresentationSpec,
-  type NormalizedElement,
-  type NormalizedImageElement,
-  type NormalizedLineElement,
-  type NormalizedPresentation,
-  type NormalizedShapeElement,
-  type NormalizedTextElement,
-  type NormalizedTextRun,
-} from '../src/pptx.ts'
+import { normalizePresentationSpec } from '../src/lib/export/PowerpointNormalizer'
+import type {
+  NormalizedElement,
+  NormalizedImageElement,
+  NormalizedLineElement,
+  NormalizedPresentation,
+  NormalizedShapeElement,
+  NormalizedTextElement,
+  NormalizedTextRun,
+} from '../src/lib/export/PowerpointTypes'
 
 type JsonRecord = Record<string, unknown>
 
@@ -51,6 +51,8 @@ async function compactPresentation(presentation: NormalizedPresentation, outputP
   return {
     presentation: {
       title: presentation.meta.title,
+      preserveElementOrder: presentation.meta.preserveElementOrder,
+      showBranding: presentation.meta.showBranding,
       slides: await Promise.all(
         presentation.slides.map(async (slide) => ({
           id: slide.id,
@@ -97,9 +99,13 @@ function compactShape(element: NormalizedShapeElement): JsonRecord {
     w: round(element.w),
     h: round(element.h),
     rotate: optionalNumber(element.rotate, 0),
+    flipH: element.flipH || undefined,
+    flipV: element.flipV || undefined,
     opacity: optionalNumber(element.opacity, 1),
     fill: element.fill,
+    fillOpacity: optionalNumber(element.fillOpacity ?? 1, 1),
     stroke: element.stroke,
+    strokeOpacity: optionalNumber(element.strokeOpacity ?? 1, 1),
     strokeWidth: round(element.strokeWidth),
     borderRadius: optionalNumber(round(element.borderRadius), 0),
     padding: optionalNumber(round(element.padding), 8),
@@ -123,9 +129,13 @@ function compactText(element: NormalizedTextElement): JsonRecord {
     w: round(element.w),
     h: round(element.h),
     rotate: optionalNumber(element.rotate, 0),
+    flipH: element.flipH || undefined,
+    flipV: element.flipV || undefined,
     opacity: optionalNumber(element.opacity, 1),
     fill: element.fill,
+    fillOpacity: optionalNumber(element.fillOpacity ?? 1, 1),
     stroke: element.stroke,
+    strokeOpacity: optionalNumber(element.strokeOpacity ?? 1, 1),
     strokeWidth: round(element.strokeWidth),
     borderRadius: optionalNumber(round(element.borderRadius), 0),
     padding: optionalNumber(round(element.padding), 8),
@@ -150,8 +160,10 @@ function compactLine(element: NormalizedLineElement): JsonRecord {
     x2: round(element.x2),
     y2: round(element.y2),
     rotate: optionalNumber(element.rotate, 0),
+    beginArrow: !element.beginArrow || element.beginArrow === 'none' ? undefined : element.beginArrow,
     opacity: optionalNumber(element.opacity, 1),
     stroke: element.stroke,
+    strokeOpacity: optionalNumber(element.strokeOpacity ?? 1, 1),
     strokeWidth: round(element.strokeWidth),
     dash: element.dash === 'solid' ? undefined : element.dash,
     endArrow: element.endArrow === 'none' ? undefined : element.endArrow,
@@ -171,16 +183,19 @@ async function compactImage(
     w: round(element.w),
     h: round(element.h),
     rotate: optionalNumber(element.rotate, 0),
+    flipH: element.flipH || undefined,
+    flipV: element.flipV || undefined,
     opacity: optionalNumber(element.opacity, 1),
     src: await externalizeImage(element.src, outputPath, element.id || `image-${index + 1}`),
     fit: element.fit,
+    crop: element.crop,
     borderRadius: optionalNumber(round(element.borderRadius), 0),
     altText: element.altText || undefined,
   })
 }
 
 function compactRuns(runs: NormalizedTextRun[], text: string) {
-  if (runs.length <= 1 && runs[0]?.text === text && !runs[0]?.breakLine) {
+  if (!runs.length || (runs.length <= 1 && runs[0]?.text === text && !runs[0]?.breakLine)) {
     return undefined
   }
 

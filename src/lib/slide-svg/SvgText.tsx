@@ -33,9 +33,11 @@ export const SvgTextBlock = memo(function SvgTextBlock({
       {paintBox ? (
         <rect
           fill={toSvgColor(element.fill)}
+          fillOpacity={element.fillOpacity ?? 1}
           height={Math.max(element.h - element.strokeWidth, 0)}
           rx={element.borderRadius}
           stroke={toSvgColor(element.stroke)}
+          strokeOpacity={element.strokeOpacity ?? 1}
           strokeWidth={element.strokeWidth}
           vectorEffect="non-scaling-stroke"
           width={Math.max(element.w - element.strokeWidth, 0)}

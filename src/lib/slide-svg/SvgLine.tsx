@@ -12,7 +12,8 @@ export const SvgLine = memo(function SvgLine({
   markerId: string
   maskId: string
 }) {
-  const hasArrow = element.endArrow !== 'none'
+  const hasStartArrow = !!element.beginArrow && element.beginArrow !== 'none'
+  const hasEndArrow = element.endArrow !== 'none'
   const hasMask = element.occlusionRects.length > 0
   const midX = (element.x1 + element.x2) / 2
   const midY = (element.y1 + element.y2) / 2
@@ -21,7 +22,7 @@ export const SvgLine = memo(function SvgLine({
   return (
     <g transform={element.rotate ? `rotate(${element.rotate} ${midX} ${midY})` : undefined}>
       <defs>
-        {hasArrow ? (
+        {hasEndArrow ? (
           <marker
             id={markerId}
             markerHeight="10"
@@ -32,7 +33,21 @@ export const SvgLine = memo(function SvgLine({
             refY="5"
             viewBox="0 0 10 10"
           >
-            {renderArrowMarker(element)}
+            {renderArrowMarker(element.endArrow, element.stroke)}
+          </marker>
+        ) : null}
+        {hasStartArrow ? (
+          <marker
+            id={`${markerId}-start`}
+            markerHeight="10"
+            markerUnits="userSpaceOnUse"
+            markerWidth="10"
+            orient="auto-start-reverse"
+            refX="9"
+            refY="5"
+            viewBox="0 0 10 10"
+          >
+            {renderArrowMarker(element.beginArrow ?? 'none', element.stroke)}
           </marker>
         ) : null}
         {hasMask ? (
@@ -54,9 +69,11 @@ export const SvgLine = memo(function SvgLine({
       <path
         d={path}
         fill="none"
-        markerEnd={hasArrow ? `url(#${markerId})` : undefined}
+        markerEnd={hasEndArrow ? `url(#${markerId})` : undefined}
+        markerStart={hasStartArrow ? `url(#${markerId}-start)` : undefined}
         mask={hasMask ? `url(#${maskId})` : undefined}
         stroke={toSvgColor(element.stroke)}
+        strokeOpacity={element.strokeOpacity ?? 1}
         strokeDasharray={getStrokeDasharray(element)}
         strokeLinecap="round"
         strokeLinejoin="round"
@@ -73,18 +90,18 @@ export function getLinePath(element: NormalizedLineElement) {
     : `M ${element.x1} ${element.y1} L ${element.x2} ${element.y2}`
 }
 
-function renderArrowMarker(element: NormalizedLineElement) {
-  const color = toSvgColor(element.stroke)
-  if (element.endArrow === 'diamond') {
+function renderArrowMarker(arrow: NonNullable<NormalizedLineElement['beginArrow']>, stroke: string) {
+  const color = toSvgColor(stroke)
+  if (arrow === 'diamond') {
     return <path d="M 0 5 L 5 0 L 10 5 L 5 10 Z" fill={color} />
   }
-  if (element.endArrow === 'oval') {
+  if (arrow === 'oval') {
     return <circle cx="5" cy="5" fill={color} r="4" />
   }
-  if (element.endArrow === 'arrow') {
+  if (arrow === 'arrow') {
     return <path d="M 1 1 L 9 5 L 1 9 L 3.5 5 Z" fill={color} />
   }
-  if (element.endArrow === 'stealth') {
+  if (arrow === 'stealth') {
     return <path d="M 0 1 L 10 5 L 0 9 L 3 5 Z" fill={color} />
   }
   return <path d="M 0 0 L 10 5 L 0 10 Z" fill={color} />
@@ -99,4 +116,3 @@ function getStrokeDasharray(element: NormalizedLineElement) {
   }
   return undefined
 }
-

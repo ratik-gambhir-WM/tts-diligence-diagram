@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "pptx:to-json": "node --import tsx scripts/parse-pptx.ts",
     "test": "vitest run",
     "preview": "vite preview"
   },
@@ -27,6 +28,7 @@
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^5.0.0",
     "jsdom": "^29.1.1",
+    "tsx": "^4.23.12",
     "typescript": "^5.9.3",
     "vite": "^7.0.0",
     "vitest": "^4.1.10"

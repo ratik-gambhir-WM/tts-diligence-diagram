@@ -128,6 +128,30 @@ describe('SvgSlideCanvas', () => {
     expect(new Set(ids).size).toBe(ids.length)
   })
 
+  it('honors imported-deck metadata for branding and PowerPoint z-order', () => {
+    const importedInput = {
+      presentation: {
+        preserveElementOrder: true,
+        showBranding: false,
+        slides: [
+          {
+            id: 'imported-slide',
+            name: 'Imported slide',
+            width: 1280,
+            height: 720,
+            elements: [input.presentation.slides[0].elements[0], input.presentation.slides[0].elements[1]],
+          },
+        ],
+      },
+    }
+    const { container } = render(<SvgSlideCanvas input={importedInput} />)
+    const elements = Array.from(container.querySelectorAll('[data-element-key]'))
+
+    expect(container.querySelector('[data-brand-footer]')).toBeNull()
+    expect(elements[0].classList.contains('svg-slide-element-shape')).toBe(true)
+    expect(elements[1].classList.contains('svg-slide-element-line')).toBe(true)
+  })
+
   it('provides toolbar zoom and fit controls without changing slide geometry', () => {
     const { container, getByRole } = render(<SvgSlideCanvas input={input} />)
     const content = container.querySelector('[data-slide-viewport-content]')!

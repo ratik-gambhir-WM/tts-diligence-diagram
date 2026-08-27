@@ -66,7 +66,13 @@ export const SvgElement = memo(function SvgElement({
     )
   }
 
-  const transform = `translate(${element.x} ${element.y})${element.rotate ? ` rotate(${element.rotate} ${element.w / 2} ${element.h / 2})` : ''}`
+  const transform = [
+    `translate(${element.x} ${element.y})`,
+    element.rotate ? `rotate(${element.rotate} ${element.w / 2} ${element.h / 2})` : '',
+    element.flipH || element.flipV
+      ? `translate(${element.flipH ? element.w : 0} ${element.flipV ? element.h : 0}) scale(${element.flipH ? -1 : 1} ${element.flipV ? -1 : 1})`
+      : '',
+  ].filter(Boolean).join(' ')
   return (
     <g
       aria-label={label}

@@ -34,6 +34,8 @@ export interface ExtractedTransform {
   yInches?: number
   widthInches?: number
   heightInches?: number
+  flipH?: boolean
+  flipV?: boolean
 }
 
 export interface ExtractedTextRun {
@@ -61,7 +63,9 @@ export interface ExtractedShapeElement {
   nonVisual?: {
     id?: number
     name?: string
+    description?: string
     hidden?: boolean
+    isTextBox?: boolean
   }
   transform?: ExtractedTransform
   presetGeometry?: {
@@ -120,6 +124,8 @@ export interface BaseElement {
   sourcePath: string
   opacity: number
   rotate: number
+  flipH?: boolean
+  flipV?: boolean
   valign: VerticalAlign
 }
 
@@ -131,7 +137,9 @@ export interface NormalizedTextElement extends BaseElement {
   h: number
   text: string
   fill: string
+  fillOpacity?: number
   stroke: string
+  strokeOpacity?: number
   strokeWidth: number
   borderRadius: number
   padding: number
@@ -153,7 +161,9 @@ export interface NormalizedShapeElement extends BaseElement {
   shape: string
   label: string
   fill: string
+  fillOpacity?: number
   stroke: string
+  strokeOpacity?: number
   strokeWidth: number
   borderRadius: number
   padding: number
@@ -173,8 +183,10 @@ export interface NormalizedLineElement extends BaseElement {
   x2: number
   y2: number
   stroke: string
+  strokeOpacity?: number
   strokeWidth: number
   dash: DashStyle
+  beginArrow?: 'none' | 'triangle' | 'arrow' | 'diamond' | 'oval' | 'stealth'
   endArrow: 'none' | 'triangle' | 'arrow' | 'diamond' | 'oval' | 'stealth'
   occlusionRects: LineOcclusionRect[]
 }
@@ -187,6 +199,12 @@ export interface NormalizedImageElement extends BaseElement {
   h: number
   src: string
   fit: 'contain' | 'cover' | 'stretch'
+  crop?: {
+    bottom: number
+    left: number
+    right: number
+    top: number
+  }
   borderRadius: number
   altText: string
 }
@@ -210,6 +228,7 @@ export interface NormalizedSlide {
   width: number
   height: number
   backgroundColor: string
+  preserveElementOrder: boolean
   elements: NormalizedElement[]
 }
 
@@ -218,6 +237,8 @@ export interface NormalizedPresentation {
     title: string
     width: number
     height: number
+    preserveElementOrder: boolean
+    showBranding: boolean
     sourceType: 'extracted-slide' | 'native-presentation'
   }
   slides: NormalizedSlide[]

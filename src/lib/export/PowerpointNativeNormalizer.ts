@@ -75,7 +75,15 @@ export function normalizeNativePresentation(
 
   const mappedSlides: Array<NormalizedSlide | undefined> = slidesSource
     .map((slideSource, index) =>
-      normalizeNativeSlide(slideSource, index, width, height, issues, options),
+      normalizeNativeSlide(
+        slideSource,
+        index,
+        width,
+        height,
+        issues,
+        options,
+        presentationNode.preserveElementOrder === true,
+      ),
     )
   const slides = mappedSlides.filter(isDefined)
 
@@ -93,6 +101,8 @@ export function normalizeNativePresentation(
       title: asString(presentationNode.title) || 'Generated Presentation',
       width,
       height,
+      preserveElementOrder: presentationNode.preserveElementOrder === true,
+      showBranding: presentationNode.showBranding !== false,
       sourceType: 'native-presentation',
     },
     slides,
@@ -106,6 +116,7 @@ export function normalizeNativeSlide(
   defaultHeight: number,
   issues: ValidationIssue[],
   options: NormalizationOptions,
+  preserveElementOrder = false,
 ): NormalizedSlide | undefined {
   if (!isRecord(slideSource)) {
     issues.push({
@@ -135,7 +146,10 @@ export function normalizeNativeSlide(
     .map((item, elementIndex) =>
       normalizeNativeElement(item, width, height, issues, `slides[${index}].elements[${elementIndex}]`, options),
     )
-  const elements = addConnectorOcclusionRects(mappedElements.filter(isDefined), { height, width })
+  const normalizedElements = mappedElements.filter(isDefined)
+  const elements = preserveElementOrder
+    ? normalizedElements
+    : addConnectorOcclusionRects(normalizedElements, { height, width })
 
   return {
     id: asString(slideSource.id) || `slide-${index + 1}`,
@@ -143,6 +157,7 @@ export function normalizeNativeSlide(
     width,
     height,
     backgroundColor: cleanHex(asString(slideSource.backgroundColor), 'FFFFFF'),
+    preserveElementOrder,
     elements,
   }
 }
@@ -195,6 +210,8 @@ function normalizeNativeElement(
       sourcePath: pathLabel,
       opacity: clamp01(coerceNumber(input.opacity, 1)),
       rotate: coerceNumber(input.rotate, 0),
+      flipH: coerceBoolean(input.flipH) || undefined,
+      flipV: coerceBoolean(input.flipV) || undefined,
       valign: 'middle',
       lineType: normalizeLineType(asString(input.lineType)),
       x1,
@@ -202,8 +219,10 @@ function normalizeNativeElement(
       x2,
       y2,
       stroke: cleanHex(asString(input.stroke) || asString(input.color), '334155'),
+      strokeOpacity: clamp01(coerceNumber(input.strokeOpacity, 1)),
       strokeWidth: coerceNumber(input.strokeWidth, 1.5),
       dash: normalizeDash(asString(input.dash)),
+      beginArrow: normalizeArrow(asString(input.beginArrow) || asString(input.startArrow)),
       endArrow: normalizeArrow(asString(input.endArrow) || asString(input.arrow)),
       occlusionRects: [],
     }
@@ -227,6 +246,8 @@ function normalizeNativeElement(
       sourcePath: pathLabel,
       opacity: clamp01(coerceNumber(input.opacity, 1)),
       rotate: coerceNumber(input.rotate, 0),
+      flipH: coerceBoolean(input.flipH) || undefined,
+      flipV: coerceBoolean(input.flipV) || undefined,
       valign: 'middle',
       x: resolvePosition(input.x ?? input.left, width),
       y: resolvePosition(input.y ?? input.top, height),
@@ -234,6 +255,7 @@ function normalizeNativeElement(
       h: resolvePosition(input.h ?? input.height, height),
       src,
       fit: normalizeImageFit(asString(input.fit)),
+      crop: normalizeImageCrop(input.crop),
       borderRadius: coerceNumber(input.borderRadius, 0),
       altText: asString(input.altText) || '',
     }
@@ -276,6 +298,8 @@ function normalizeNativeElement(
       sourcePath: pathLabel,
       opacity: clamp01(coerceNumber(input.opacity, 1)),
       rotate: coerceNumber(input.rotate, 0),
+      flipH: coerceBoolean(input.flipH) || undefined,
+      flipV: coerceBoolean(input.flipV) || undefined,
       valign,
       x,
       y,
@@ -283,7 +307,9 @@ function normalizeNativeElement(
       h,
       text: textContent,
       fill: cleanHex(asString(input.fill), 'FFFFFF'),
+      fillOpacity: clamp01(coerceNumber(input.fillOpacity, 1)),
       stroke: cleanHex(asString(input.stroke), 'FFFFFF'),
+      strokeOpacity: clamp01(coerceNumber(input.strokeOpacity, 1)),
       strokeWidth: coerceNumber(input.strokeWidth, 0),
       borderRadius: coerceNumber(input.borderRadius, 0),
       padding,
@@ -304,6 +330,8 @@ function normalizeNativeElement(
     sourcePath: pathLabel,
     opacity: clamp01(coerceNumber(input.opacity, 1)),
     rotate: coerceNumber(input.rotate, 0),
+    flipH: coerceBoolean(input.flipH) || undefined,
+    flipV: coerceBoolean(input.flipV) || undefined,
     valign,
     x,
     y,
@@ -312,7 +340,9 @@ function normalizeNativeElement(
     shape: normalizeShapeName(asString(input.shape) || rawKind),
     label: textContent,
     fill: cleanHex(asString(input.fill), 'E5EEF8'),
+    fillOpacity: clamp01(coerceNumber(input.fillOpacity, 1)),
     stroke: cleanHex(asString(input.stroke), '334155'),
+    strokeOpacity: clamp01(coerceNumber(input.strokeOpacity, 1)),
     strokeWidth: coerceNumber(input.strokeWidth, 1),
     borderRadius: coerceNumber(input.borderRadius, 0),
     padding,
@@ -324,6 +354,21 @@ function normalizeNativeElement(
     textRuns: runs,
   }
   return element
+}
+
+function normalizeImageCrop(input: unknown): NormalizedImageElement['crop'] {
+  if (!isRecord(input)) {
+    return undefined
+  }
+
+  const crop = {
+    top: clamp01(coerceNumber(input.top, 0)),
+    right: clamp01(coerceNumber(input.right, 0)),
+    bottom: clamp01(coerceNumber(input.bottom, 0)),
+    left: clamp01(coerceNumber(input.left, 0)),
+  }
+
+  return crop.top || crop.right || crop.bottom || crop.left ? crop : undefined
 }
 
 function normalizeNativeTextRuns(

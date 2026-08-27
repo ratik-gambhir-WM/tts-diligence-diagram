@@ -9,6 +9,8 @@ export const SvgImage = memo(function SvgImage({
   clipId: string
   element: NormalizedImageElement
 }) {
+  const placement = getImagePlacement(element)
+
   return (
     <>
       <title>{element.altText || 'Slide image'}</title>
@@ -25,12 +27,12 @@ export const SvgImage = memo(function SvgImage({
       </defs>
       <image
         clipPath={`url(#${clipId})`}
-        height={element.h}
+        height={placement.height}
         href={element.src}
-        preserveAspectRatio={getPreserveAspectRatio(element.fit)}
-        width={element.w}
-        x={0}
-        y={0}
+        preserveAspectRatio={placement.preserveAspectRatio}
+        width={placement.width}
+        x={placement.x}
+        y={placement.y}
       />
     </>
   )
@@ -46,3 +48,27 @@ function getPreserveAspectRatio(fit: NormalizedImageElement['fit']) {
   return 'xMidYMid meet'
 }
 
+function getImagePlacement(element: NormalizedImageElement) {
+  if (!element.crop) {
+    return {
+      height: element.h,
+      preserveAspectRatio: getPreserveAspectRatio(element.fit),
+      width: element.w,
+      x: 0,
+      y: 0,
+    }
+  }
+
+  const visibleWidth = Math.max(1 - element.crop.left - element.crop.right, 0.001)
+  const visibleHeight = Math.max(1 - element.crop.top - element.crop.bottom, 0.001)
+  const width = element.w / visibleWidth
+  const height = element.h / visibleHeight
+
+  return {
+    height,
+    preserveAspectRatio: 'none',
+    width,
+    x: -width * element.crop.left,
+    y: -height * element.crop.top,
+  }
+}

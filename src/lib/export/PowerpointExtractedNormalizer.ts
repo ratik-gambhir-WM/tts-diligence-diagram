@@ -17,7 +17,6 @@ import type {
   ValidationIssue,
   XmlNode,
 } from './PowerpointTypes'
-import { addConnectorOcclusionRects } from './PowerpointLayering'
 import {
   bodyPadding,
   clampNumber,
@@ -29,7 +28,9 @@ import {
   normalizeBodyAnchor,
   normalizeShapeName,
   parseArrowType,
+  parseBeginArrowType,
   parseColor,
+  parseColorOpacity,
   parseDashStyle,
   parseFontColor,
   parseLineColor,
@@ -59,7 +60,7 @@ export function normalizeExtractedPresentation(
         issues,
       ),
     )
-  const elements = addConnectorOcclusionRects(normalizedElements, { height, width })
+  const elements = normalizedElements
 
   if (!elements.length) {
     issues.push({
@@ -74,6 +75,8 @@ export function normalizeExtractedPresentation(
       title: slideName,
       width,
       height,
+      preserveElementOrder: true,
+      showBranding: false,
       sourceType: 'extracted-slide',
     },
     slides: [
@@ -83,6 +86,7 @@ export function normalizeExtractedPresentation(
         width,
         height,
         backgroundColor: 'FFFFFF',
+        preserveElementOrder: true,
         elements,
       },
     ],
@@ -111,9 +115,12 @@ function normalizeExtractedElement(
   const w = coerceNumber(transform.widthPx, transform.widthInches ? transform.widthInches * 96 : 0)
   const h = coerceNumber(transform.heightPx, transform.heightInches ? transform.heightInches * 96 : 0)
   const rotate = coerceNumber(transform.rotation, 0)
+  const presetShape = normalizeShapeName(element.presetGeometry?.preset)
 
-  if (element.kind === 'connector') {
+  if (element.kind === 'connector' || presetShape === 'line' || presetShape === 'lineInv') {
     const lineNode = findChild(element.shapeProperties, 'a:ln')
+    const reverseX = !!transform.flipH || presetShape === 'lineInv'
+    const reverseY = !!transform.flipV || presetShape === 'lineInv'
     return [
       {
         kind: 'line',
@@ -123,13 +130,15 @@ function normalizeExtractedElement(
         rotate,
         valign: 'middle',
         lineType: 'straight',
-        x1: clampNumber(x, 0, slideWidth),
-        y1: clampNumber(y, 0, slideHeight),
-        x2: clampNumber(x + w, 0, slideWidth),
-        y2: clampNumber(y + h, 0, slideHeight),
+        x1: clampNumber(reverseX ? x + w : x, 0, slideWidth),
+        y1: clampNumber(reverseY ? y + h : y, 0, slideHeight),
+        x2: clampNumber(reverseX ? x : x + w, 0, slideWidth),
+        y2: clampNumber(reverseY ? y : y + h, 0, slideHeight),
         stroke: parseLineColor(lineNode, theme, '334155'),
+        strokeOpacity: parseColorOpacity(findChild(lineNode, 'a:solidFill')),
         strokeWidth: emuLineWidthToPoints(lineNode?.attributes?.w),
         dash: parseDashStyle(lineNode),
+        beginArrow: parseBeginArrowType(lineNode),
         endArrow: parseArrowType(lineNode),
         occlusionRects: [],
       },
@@ -137,7 +146,19 @@ function normalizeExtractedElement(
   }
 
   if (element.kind === 'graphicFrame') {
-    const image = extractGraphicFrameImage(element, relationships, supportParts, theme, id, sourcePath, x, y, w, h)
+    const image = extractGraphicFrameImage(
+      element,
+      relationships,
+      supportParts,
+      theme,
+      id,
+      sourcePath,
+      x,
+      y,
+      w,
+      h,
+      rotate,
+    )
     if (image) {
       return [image]
     }
@@ -160,14 +181,45 @@ function normalizeExtractedElement(
   }
 
   const textBody = element.text
+  if (hasChild(element.shapeProperties, 'a:custGeom')) {
+    issues.push({
+      level: 'warning',
+      path: sourcePath,
+      message: 'Rendered a custom/freeform PowerPoint geometry as a rectangle fallback.',
+    })
+  }
+  if (
+    hasChild(element.shapeProperties, 'a:gradFill') ||
+    hasChild(element.shapeProperties, 'a:pattFill') ||
+    hasChild(element.shapeProperties, 'a:blipFill')
+  ) {
+    issues.push({
+      level: 'warning',
+      path: sourcePath,
+      message: 'This shape uses a gradient, pattern, or picture fill; the compact canvas schema uses a solid-color fallback.',
+    })
+  }
   const textRuns = normalizeExtractedTextRuns(textBody, theme, element.style)
   const label = paragraphText(textBody)
   const fillNode = findChild(element.shapeProperties, 'a:solidFill')
   const lineNode = findChild(element.shapeProperties, 'a:ln')
+  const fillReference = findChild(element.style, 'a:fillRef')
+  const lineReference = findChild(element.style, 'a:lnRef')
   const hasNoFill = hasChild(element.shapeProperties, 'a:noFill')
-  const fill = hasNoFill ? 'transparent' : parseColor(fillNode, theme, 'transparent')
-  const strokeVisible = !hasChild(lineNode, 'a:noFill')
-  const stroke = strokeVisible ? parseLineColor(lineNode, theme, '334155') : 'transparent'
+  const fill = hasNoFill
+    ? 'transparent'
+    : fillNode
+      ? parseColor(fillNode, theme, 'transparent')
+      : parseColor(fillReference, theme, 'transparent')
+  const strokeVisible =
+    !!lineNode &&
+    !hasChild(lineNode, 'a:noFill') &&
+    (!!findChild(lineNode, 'a:solidFill') || !!lineReference)
+  const stroke = strokeVisible
+    ? findChild(lineNode, 'a:solidFill')
+      ? parseLineColor(lineNode, theme, '334155')
+      : parseColor(lineReference, theme, '334155')
+    : 'transparent'
   const strokeWidth = strokeVisible ? emuLineWidthToPoints(lineNode?.attributes?.w) : 0
   const textColor =
     textRuns.find((run) => run.color)?.color ??
@@ -177,7 +229,9 @@ function normalizeExtractedElement(
   const align = normalizeAlign(textBody?.paragraphs?.[0]?.properties?.algn)
   const valign = normalizeBodyAnchor(textBody?.bodyProperties?.anchor)
   const padding = bodyPadding(textBody?.bodyProperties)
-  const shapeName = normalizeShapeName(element.presetGeometry?.preset)
+  const shapeName = presetShape
+  const fillOpacity = parseColorOpacity(fillNode ?? fillReference)
+  const strokeOpacity = parseColorOpacity(findChild(lineNode, 'a:solidFill') ?? lineReference)
 
   if (!label && w <= 0 && h <= 0) {
     return []
@@ -185,8 +239,10 @@ function normalizeExtractedElement(
 
   const textOnly =
     !!label &&
-    (element.nonVisual?.name?.toLowerCase().includes('textbox') ||
-      (fill === 'transparent' && stroke === 'transparent'))
+    (element.nonVisual?.isTextBox ||
+      element.nonVisual?.name?.toLowerCase().includes('textbox') ||
+      ((fill === 'transparent' || fillOpacity === 0) &&
+        (stroke === 'transparent' || strokeOpacity === 0)))
 
   if (textOnly) {
     return [
@@ -196,6 +252,8 @@ function normalizeExtractedElement(
         sourcePath,
         opacity: 1,
         rotate,
+        flipH: transform.flipH || undefined,
+        flipV: transform.flipV || undefined,
         valign,
         x,
         y,
@@ -203,7 +261,9 @@ function normalizeExtractedElement(
         h: Math.max(h, fontSize * Math.max(textRuns.length, 1)),
         text: label,
         fill: 'transparent',
+        fillOpacity,
         stroke: 'transparent',
+        strokeOpacity,
         strokeWidth: 0,
         borderRadius: 0,
         padding,
@@ -211,8 +271,8 @@ function normalizeExtractedElement(
         color: textColor,
         fontSize,
         fontFace,
-        bold: textRuns.some((run) => run.bold),
-        italic: textRuns.some((run) => run.italic),
+        bold: textRuns.length > 0 && textRuns.every((run) => run.bold),
+        italic: textRuns.length > 0 && textRuns.every((run) => run.italic),
         runs: textRuns.length
           ? textRuns
           : [
@@ -237,6 +297,8 @@ function normalizeExtractedElement(
       sourcePath,
       opacity: 1,
       rotate,
+      flipH: transform.flipH || undefined,
+      flipV: transform.flipV || undefined,
       valign,
       x,
       y,
@@ -245,15 +307,17 @@ function normalizeExtractedElement(
       shape: shapeName,
       label,
       fill,
+      fillOpacity,
       stroke,
+      strokeOpacity,
       strokeWidth,
-      borderRadius: shapeName === 'roundRect' ? 18 : 0,
+      borderRadius: parseBorderRadius(element, shapeName, w, h),
       padding,
       align,
       textColor,
       fontSize,
       fontFace,
-      bold: textRuns.some((run) => run.bold),
+      bold: textRuns.length > 0 && textRuns.every((run) => run.bold),
       textRuns: textRuns.length
         ? textRuns
         : label
@@ -273,6 +337,22 @@ function normalizeExtractedElement(
   ]
 }
 
+function parseBorderRadius(
+  element: ExtractedShapeElement,
+  shapeName: string,
+  width: number,
+  height: number,
+) {
+  if (shapeName !== 'roundRect') {
+    return 0
+  }
+
+  const adjustment = findChild(findChild(element.presetGeometry?.xmlAst, 'a:avLst'), 'a:gd')
+  const match = /^val\s+(-?\d+(?:\.\d+)?)$/u.exec(adjustment?.attributes?.fmla ?? '')
+  const ratio = match ? clampNumber(Number(match[1]) / 100000, 0, 0.5) : 1 / 6
+  return Math.min(width, height) * ratio
+}
+
 function extractGraphicFrameImage(
   element: ExtractedShapeElement,
   relationships: ExtractedRelationship[],
@@ -284,6 +364,7 @@ function extractGraphicFrameImage(
   y: number,
   w: number,
   h: number,
+  rotate: number,
 ) {
   void theme
   const relationshipId = element.relationshipIds?.find((candidate) => {
@@ -311,19 +392,62 @@ function extractGraphicFrameImage(
     kind: 'image',
     id,
     sourcePath,
-    opacity: 1,
-    rotate: 0,
+    opacity: extractImageOpacity(element.xmlAst),
+    rotate,
+    flipH: element.transform?.flipH || undefined,
+    flipV: element.transform?.flipV || undefined,
     valign: 'middle',
     x,
     y,
     w: Math.max(w, 1),
     h: Math.max(h, 1),
     src: `data:${mimeType};base64,${base64}`,
-    fit: 'contain',
+    fit: 'stretch',
+    crop: extractImageCrop(element.xmlAst),
     borderRadius: 0,
-    altText: element.nonVisual?.name || 'Embedded image',
+    altText: element.nonVisual?.description || element.nonVisual?.name || 'Embedded image',
   }
   return imageElement
+}
+
+function extractImageOpacity(node: XmlNode | undefined) {
+  const blip = findFirstDescendant(node, 'a:blip')
+  const alpha = findChild(blip, 'a:alphaModFix')
+  return clampNumber(Number(alpha?.attributes?.amt ?? 100000) / 100000, 0, 1)
+}
+
+function extractImageCrop(node: XmlNode | undefined): NormalizedImageElement['crop'] {
+  const srcRect = findChild(findFirstDescendant(node, 'p:blipFill'), 'a:srcRect')
+  if (!srcRect) {
+    return undefined
+  }
+
+  const crop = {
+    top: clampNumber(Number(srcRect.attributes?.t ?? 0) / 100000, 0, 1),
+    right: clampNumber(Number(srcRect.attributes?.r ?? 0) / 100000, 0, 1),
+    bottom: clampNumber(Number(srcRect.attributes?.b ?? 0) / 100000, 0, 1),
+    left: clampNumber(Number(srcRect.attributes?.l ?? 0) / 100000, 0, 1),
+  }
+
+  return crop.top || crop.right || crop.bottom || crop.left ? crop : undefined
+}
+
+function findFirstDescendant(node: XmlNode | undefined, tag: string): XmlNode | undefined {
+  if (!node) {
+    return undefined
+  }
+  if (node.tag === tag) {
+    return node
+  }
+
+  for (const childNode of node.children ?? []) {
+    const match = findFirstDescendant(childNode, tag)
+    if (match) {
+      return match
+    }
+  }
+
+  return undefined
 }
 
 function getRelationshipSupportPart(
@@ -426,7 +550,13 @@ function normalizeExtractedTextRuns(
 function paragraphText(textBody: ExtractedTextBody | undefined) {
   const lines = (textBody?.paragraphs ?? [])
     .map((paragraph) => (paragraph.runs ?? []).map((run) => run.text ?? '').join(''))
-    .filter((line) => line.trim().length > 0)
+
+  while (lines.length && !lines[0].trim()) {
+    lines.shift()
+  }
+  while (lines.length && !lines.at(-1)?.trim()) {
+    lines.pop()
+  }
 
   if (lines.length) {
     return lines.join('\n')

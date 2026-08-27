@@ -1,0 +1,268 @@
+import { execFile } from 'node:child_process'
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import path from 'node:path'
+import { promisify } from 'node:util'
+
+import JSZip from 'jszip'
+import PptxGenJS from 'pptxgenjs'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+
+import { importPowerPoint } from '../src/lib/import/PowerpointImporter'
+
+const execFileAsync = promisify(execFile)
+let testDir = ''
+let sourcePath = ''
+
+beforeAll(async () => {
+  testDir = await mkdtemp(path.join(tmpdir(), 'tts-mermaid-pptx-import-'))
+  sourcePath = path.join(testDir, 'source.pptx')
+
+  const pptx = new PptxGenJS()
+  pptx.layout = 'LAYOUT_WIDE'
+  const first = pptx.addSlide()
+  first.addText('First slide', { x: 0.5, y: 0.5, w: 3, h: 0.5 })
+
+  const second = pptx.addSlide()
+  second.background = { color: 'F4F7FB' }
+  second.addText('Imported title', {
+    x: 0.6,
+    y: 0.4,
+    w: 4,
+    h: 0.6,
+    fontFace: 'Aptos Display',
+    fontSize: 28,
+    bold: true,
+    color: '070154',
+    margin: 0,
+  })
+  second.addShape(pptx.ShapeType.ellipse, {
+    x: 1,
+    y: 1.5,
+    w: 2.4,
+    h: 1.4,
+    fill: { color: '1DD566', transparency: 25 },
+    line: { color: '0047FF', width: 2 },
+  })
+  second.addImage({
+    data: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAGElEQVR42mNkYGD4z8DAwMgAI0AMYBQAAD0AAgFIr6QAAAAASUVORK5CYII=',
+    x: 4,
+    y: 1.5,
+    w: 2,
+    h: 1.5,
+    sizing: { type: 'crop', x: 0.25, y: 0.1, w: 1.5, h: 1.1 },
+  })
+
+  const third = pptx.addSlide()
+  const headerCell = (text: string) => ({
+    text,
+    options: {
+      bold: true,
+      color: 'FFFFFF',
+      fill: { color: '070154' },
+      fontSize: 11,
+    },
+  })
+  const bodyCell = (text: string) => ({ text, options: { color: '070154', fontSize: 10.5 } })
+  third.addTable(
+    [
+      [headerCell('Approach'), headerCell('Details')],
+      [bodyCell('Hosting Provider'), bodyCell('AWS')],
+      [bodyCell('Hosting Methodology'), bodyCell('Mostly PaaS (EKS, RDS)\nSome IaaS (EC2 - Linux)')],
+      [
+        bodyCell('Availability'),
+        bodyCell(
+          'Multiple availability zones\nSingle production region (US-East-1)\nSingle development region (US-West-1)\nApp: no demand-based auto-scaling',
+        ),
+      ],
+      [bodyCell('Disaster Recovery'), bodyCell('Data replication to EU-West-1, annual tabletop exercises')],
+    ],
+    {
+      x: 8.4,
+      y: 3.4,
+      w: 4.4,
+      h: 2.4,
+      colW: [1.65, 2.75],
+      border: { type: 'solid', color: 'CED7E6', pt: 0.5 },
+      margin: 0.08,
+      valign: 'mid',
+    },
+  )
+  await pptx.writeFile({ fileName: sourcePath })
+
+  // PowerPoint commonly stores content-driven rows as h="0". Reproduce that
+  // OOXML rather than relying on PptxGenJS's equal-height row defaults.
+  const zip = await JSZip.loadAsync(await readFile(sourcePath))
+  const tableSlidePath = 'ppt/slides/slide3.xml'
+  const tableSlide = await zip.file(tableSlidePath)?.async('text')
+  if (!tableSlide) {
+    throw new Error('Missing generated table slide')
+  }
+  let rowIndex = 0
+  const autoSizedRows = tableSlide.replace(/<a:tr h="[^"]+">/gu, (match) => {
+    rowIndex += 1
+    return rowIndex === 1 ? match : '<a:tr h="0">'
+  })
+  zip.file(tableSlidePath, autoSizedRows)
+  await writeFile(sourcePath, await zip.generateAsync({ type: 'nodebuffer' }))
+})
+
+afterAll(async () => {
+  if (testDir) {
+    await rm(testDir, { force: true, recursive: true })
+  }
+})
+
+describe('PowerPoint XML to TemplateCanvas JSON script', () => {
+  it('emits a selected slide in the native template.jsonSpec contract', async () => {
+    const outputPath = path.join(testDir, 'selected.canvas.json')
+    const result = await importPowerPoint({
+      inputPath: sourcePath,
+      outputPath,
+      slide: 2,
+    })
+    const json = result.jsonSpec as {
+      presentation: {
+        preserveElementOrder: boolean
+        showBranding: boolean
+        slides: Array<{
+          backgroundColor: string
+          elements: Array<Record<string, unknown>>
+          id: string
+        }>
+      }
+    }
+
+    expect(result).toMatchObject({
+      inputPath: sourcePath,
+      outputPath,
+      sourceSlideCount: 3,
+      importedSlideCount: 1,
+    })
+    expect(JSON.parse(await readFile(outputPath, 'utf8'))).toEqual(result.jsonSpec)
+
+    expect(json.presentation).toMatchObject({
+      preserveElementOrder: true,
+      showBranding: false,
+    })
+    expect(json.presentation.slides).toHaveLength(1)
+    expect(json.presentation.slides[0]).toMatchObject({
+      id: 'slide-2',
+      backgroundColor: 'F4F7FB',
+    })
+    expect(json.presentation.slides[0].elements).toEqual([
+      expect.objectContaining({
+        type: 'text',
+        text: 'Imported title',
+        fontFace: 'Aptos Display',
+        fontSize: 28,
+      }),
+      expect.objectContaining({
+        type: 'shape',
+        shape: 'ellipse',
+        fill: '1DD566',
+        fillOpacity: 0.75,
+        stroke: '0047FF',
+      }),
+      expect.objectContaining({
+        type: 'image',
+        crop: {
+          left: 0.13,
+          right: 0.13,
+          top: 0.07,
+          bottom: 0.2,
+        },
+      }),
+    ])
+
+    const roundTripPptxPath = path.join(testDir, 'round-trip.pptx')
+    const roundTripJsonPath = path.join(testDir, 'round-trip.canvas.json')
+    await execFileAsync(
+      process.execPath,
+      [
+        '--import',
+        'tsx',
+        path.join(process.cwd(), 'scripts/generate-pptx-from-json.ts'),
+        outputPath,
+        roundTripPptxPath,
+      ],
+      { cwd: process.cwd() },
+    )
+    await execFileAsync(
+      process.execPath,
+      [
+        '--import',
+        'tsx',
+        path.join(process.cwd(), 'scripts/parse-pptx.ts'),
+        roundTripPptxPath,
+        roundTripJsonPath,
+      ],
+      { cwd: process.cwd() },
+    )
+
+    const roundTripJson = JSON.parse(await readFile(roundTripJsonPath, 'utf8')) as typeof json
+    expect(roundTripJson.presentation.slides[0].elements).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          type: 'image',
+          crop: {
+            left: 0.13,
+            right: 0.13,
+            top: 0.07,
+            bottom: 0.2,
+          },
+        }),
+      ]),
+    )
+  })
+
+  it('distributes PowerPoint auto-sized table rows by their rendered text height', async () => {
+    const outputPath = path.join(testDir, 'table.canvas.json')
+    await execFileAsync(
+      process.execPath,
+      [
+        '--import',
+        'tsx',
+        path.join(process.cwd(), 'scripts/parse-pptx.ts'),
+        sourcePath,
+        outputPath,
+        '--slide',
+        '3',
+      ],
+      { cwd: process.cwd() },
+    )
+
+    const json = JSON.parse(await readFile(outputPath, 'utf8')) as {
+      presentation: {
+        slides: Array<{
+          elements: Array<Record<string, unknown>>
+        }>
+      }
+    }
+    const elements = json.presentation.slides[0].elements
+    const cell = (text: string) => elements.find((element) => element.text === text) as
+      | Record<string, number | string>
+      | undefined
+    const header = cell('Approach')
+    const provider = cell('Hosting Provider')
+    const methodology = cell('Hosting Methodology')
+    const availability = cell('Availability')
+    const recovery = cell('Disaster Recovery')
+
+    expect(header).toBeDefined()
+    expect(provider).toBeDefined()
+    expect(methodology).toBeDefined()
+    expect(availability).toBeDefined()
+    expect(recovery).toBeDefined()
+    expect(header?.h).toBeCloseTo(46.08, 1)
+    expect(provider?.h).toBeGreaterThan(20)
+    expect(methodology?.h).toBeGreaterThan(provider?.h ?? 0)
+    expect(availability?.h).toBeGreaterThan(methodology?.h ?? 0)
+    expect(recovery?.h).toBeCloseTo(methodology?.h ?? 0, 1)
+    expect(provider?.y).toBeCloseTo((header?.y ?? 0) + (header?.h ?? 0), 1)
+    expect(methodology?.y).toBeCloseTo((provider?.y ?? 0) + (provider?.h ?? 0), 1)
+    expect(availability?.y).toBeCloseTo((methodology?.y ?? 0) + (methodology?.h ?? 0), 1)
+    expect(recovery?.y).toBeCloseTo((availability?.y ?? 0) + (availability?.h ?? 0), 1)
+    expect((recovery?.y ?? 0) + (recovery?.h ?? 0)).toBeCloseTo(556.8, 1)
+  })
+})

@@ -47,7 +47,10 @@ export function buildSlideCanvasModel(
   }
 
   const keyCounts = new Map<string, number>()
-  const elementRefs = getConnectorAwareElementOrder(slide).map((element) => {
+  const orderedElements = slide.preserveElementOrder
+    ? slide.elements
+    : getConnectorAwareElementOrder(slide)
+  const elementRefs = orderedElements.map((element) => {
     const baseKey = `${slideIndex}:${element.sourcePath}`
     const occurrence = keyCounts.get(baseKey) ?? 0
     keyCounts.set(baseKey, occurrence + 1)
@@ -67,4 +70,3 @@ export function buildSlideCanvasModel(
     slide,
   }
 }
-

@@ -39,6 +39,8 @@ export function normalizePresentationSpec(
           title: 'Generated Presentation',
           width: slides[0].width,
           height: slides[0].height,
+          preserveElementOrder: false,
+          showBranding: true,
           sourceType: 'native-presentation',
         },
         slides,

@@ -40,7 +40,7 @@ export function SvgSlideCanvas({
   className,
   input,
   onChange,
-  showBranding = true,
+  showBranding,
   slideIndex = 0,
 }: SvgSlideCanvasProps) {
   const model = useMemo(
@@ -182,6 +182,7 @@ export function SvgSlideCanvas({
   }
 
   const slide = model.slide
+  const shouldShowBranding = showBranding ?? model.presentation?.meta.showBranding ?? true
   return (
     <div
       className={['svg-slide-canvas', className].filter(Boolean).join(' ')}
@@ -213,7 +214,7 @@ export function SvgSlideCanvas({
           onElementPointerDown={handleElementPointerDown}
           onSlidePointerDown={handleSlidePointerDown}
           selectedKeys={interaction.state.selectedKeys}
-          showBranding={showBranding}
+          showBranding={shouldShowBranding}
           slide={slide}
           textFontScales={textFontScales}
         />
