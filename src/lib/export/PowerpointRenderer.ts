@@ -49,7 +49,19 @@ export function buildPptxPresentation(
       { rect: { x: 0, y: heightInches - pxToInches(48), w: widthInches, h: pxToInches(48), fill: { color: 'E8EEF8' }, line: { transparency: 100 } } },
       ...buildBrandDots(),
       ...(options.brandingImageSource
-        ? [{ image: { data: options.brandingImageSource, x: pxToInches(48.33), y: heightInches - pxToInches(40.02), w: pxToInches(153), h: pxToInches(32.02) } }]
+        ? [
+            {
+              image: {
+                ...(options.brandingImageSource.startsWith('data:')
+                  ? { data: options.brandingImageSource }
+                  : { path: options.brandingImageSource }),
+                x: pxToInches(48.33),
+                y: heightInches - pxToInches(40.02),
+                w: pxToInches(153),
+                h: pxToInches(32.02),
+              },
+            },
+          ]
         : []),
     ],
   })
