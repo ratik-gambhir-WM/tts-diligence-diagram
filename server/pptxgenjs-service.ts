@@ -543,7 +543,8 @@ async function handleRequest(req: IncomingMessage, res: ServerResponse) {
     res.writeHead(204, {
       'access-control-allow-headers': 'content-type',
       'access-control-allow-methods': 'POST, OPTIONS',
-      'access-control-allow-origin': CORS_ORIGIN,
+      'access-control-allow-origin': CORS_ORIGIN 
+    })
     res.end()
     return
   }
