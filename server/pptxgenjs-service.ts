@@ -184,7 +184,7 @@ async function generateSlideJson({
     throw new HttpError(502, 'OpenAI did not return structured slide JSON.')
   }
 
-  return removeGeneratedLineElements(constrainSlideBounds(JSON.parse(response.output_text) as SlidePromptOutput))
+  return constrainSlideBounds(removeGeneratedLineElements(JSON.parse(response.output_text) as SlidePromptOutput))
 }
 
 async function buildGenerationPrompt({
