@@ -4,7 +4,8 @@ import {
   buildThemedPptxBytes,
   buildSuggestedFileName,
   normalizePresentationSpec,
-} from '../src/pptx.ts'
+} from '../src/lib/export/PowerpointGenerator'
+import type { JsonValue, ThrownValue } from '../src/lib/shared/PowerpointTypes'
 
 async function main() {
   const [, , inputArg, outputArg] = process.argv
@@ -17,7 +18,7 @@ async function main() {
 
   const inputPath = path.resolve(process.cwd(), inputArg)
   const raw = await readFile(inputPath, 'utf8')
-  const parsed = JSON.parse(raw) as unknown
+  const parsed = JSON.parse(raw) as JsonValue
   const { presentation, issues } = normalizePresentationSpec(parsed, {
     baseDir: path.dirname(inputPath),
   })
@@ -56,7 +57,7 @@ function resolveOutputPath(inputPath: string, outputArg: string | undefined, def
   return path.join(resolved, defaultFileName)
 }
 
-main().catch((error: unknown) => {
+main().catch((error: ThrownValue) => {
   const message = error instanceof Error ? error.message : String(error)
   console.error(message)
   process.exitCode = 1

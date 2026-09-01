@@ -1,37 +1,24 @@
 import JSZip from 'jszip'
 import type { PowerPointFileHandle, PowerPointWriteOptions } from './PowerpointTypes'
+import { isDefined } from '../shared/PowerpointUtils'
 import { applyDefaultThemeXml } from './PowerpointTheme'
 import {
   escapeXml,
-  isDefined,
-  isRecord,
   unescapeXmlAttribute,
 } from './PowerpointUtils'
 
 export function downloadPptxBytes(themed: Uint8Array, fileName: string) {
   const browser = globalThis as typeof globalThis & {
-    document?: {
-      body: { appendChild: (node: unknown) => void }
-      createElement: (tag: 'a') => {
-        href: string
-        download: string
-        style: { display: string }
-        click: () => void
-        remove: () => void
-      }
-    }
-    URL?: {
-      createObjectURL: (blob: unknown) => string
-      revokeObjectURL: (url: string) => void
-    }
-    Blob?: new (parts: unknown[], options?: { type?: string }) => unknown
+    document?: Document
+    URL?: typeof URL
+    Blob?: typeof Blob
   }
 
   if (!browser.document || !browser.URL || !browser.Blob) {
     throw new Error('PowerPoint download is only available in a browser export context.')
   }
 
-  const blob = new browser.Blob([themed], {
+  const blob = new browser.Blob([Uint8Array.from(themed).buffer], {
     type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
   })
   const link = browser.document.createElement('a')
@@ -53,7 +40,12 @@ export async function writePptxBytesToFileHandle(bytes: Uint8Array, fileHandle: 
   }
 }
 
-export async function applyDefaultThemeToPptx(raw: unknown, options: Pick<PowerPointWriteOptions, 'compression'>) {
+type PowerPointBinary = ArrayBuffer | Blob | Uint8Array | string
+
+export async function applyDefaultThemeToPptx(
+  raw: PowerPointBinary,
+  options: Pick<PowerPointWriteOptions, 'compression'>,
+) {
   const bytes = await toUint8Array(raw)
   const zip = await JSZip.loadAsync(bytes)
   const themePath = 'ppt/theme/theme1.xml'
@@ -458,7 +450,7 @@ function clampInteger(value: number, min: number, max: number) {
   return Math.max(min, Math.min(max, Math.trunc(value)))
 }
 
-async function toUint8Array(raw: unknown) {
+async function toUint8Array(raw: PowerPointBinary) {
   if (raw instanceof Uint8Array) {
     return raw
   }
@@ -467,7 +459,7 @@ async function toUint8Array(raw: unknown) {
     return new Uint8Array(raw)
   }
 
-  if (isRecord(raw) && typeof raw.arrayBuffer === 'function') {
+  if (typeof Blob !== 'undefined' && raw instanceof Blob) {
     return new Uint8Array(await raw.arrayBuffer())
   }
 

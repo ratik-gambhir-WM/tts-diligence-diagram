@@ -1,6 +1,10 @@
 import PptxGenJS from 'pptxgenjs'
-import westMonroeLogoImage from '../../slide-assets/element-5.png'
-import { DEFAULT_FONT_FACE } from './PowerpointConstants'
+import {
+  getWestMonroeBrandFrameLayout,
+  WEST_MONROE_BRAND_COLOR,
+  type BrandFrameRect,
+} from '../WestMonroeBrandFrame'
+import { DEFAULT_FONT_FACE } from '../shared/PowerpointConstants'
 import type {
   NormalizedImageElement,
   NormalizedLineElement,
@@ -8,20 +12,26 @@ import type {
   NormalizedShapeElement,
   NormalizedTextElement,
   NormalizedTextRun,
-} from './PowerpointTypes'
+} from '../shared/PowerpointTypes'
+import { cleanHex } from '../shared/PowerpointUtils'
 import {
-  cleanHex,
   opacityToTransparency,
   pxToInches,
   toPptxShapeName,
   toPptxVerticalAlign,
 } from './PowerpointUtils'
-import { getConnectorAwareElementOrder } from './PowerpointLayering'
+import { getConnectorAwareElementOrder } from '../shared/PowerpointLayering'
+
+const westMonroeLogoImage = new URL('../../slide-assets/element-5.png', import.meta.url).pathname
 
 export function buildPptxPresentation(presentation: NormalizedPresentation) {
   const pptx = new PptxGenJS()
   const widthInches = pxToInches(presentation.meta.width)
   const heightInches = pxToInches(presentation.meta.height)
+  const brandFrame = getWestMonroeBrandFrameLayout(
+    presentation.meta.width,
+    presentation.meta.height,
+  )
 
   pptx.defineLayout({
     name: 'JSON_LAYOUT',
@@ -37,19 +47,43 @@ export function buildPptxPresentation(presentation: NormalizedPresentation) {
     headFontFace: DEFAULT_FONT_FACE,
     bodyFontFace: DEFAULT_FONT_FACE,
   }
-  pptx.defineSlideMaster({
-    title: 'WEST_MONROE_BRANDED_FRAME',
-    objects: [
-      { rect: { x: 0, y: heightInches - pxToInches(48), w: widthInches, h: pxToInches(48), fill: { color: 'E8EEF8' }, line: { transparency: 100 } } },
-      ...buildBrandDots(),
-      { image: { path: westMonroeLogoImage, x: pxToInches(48.33), y: heightInches - pxToInches(40.02), w: pxToInches(153), h: pxToInches(32.02) } },
-    ],
-  })
+  if (presentation.meta.showBranding) {
+    pptx.defineSlideMaster({
+      title: 'WEST_MONROE_BRANDED_FRAME',
+      objects: [
+        {
+          rect: {
+            x: pxToInches(brandFrame.footer.x),
+            y: pxToInches(brandFrame.footer.y),
+            w: pxToInches(brandFrame.footer.w),
+            h: pxToInches(brandFrame.footer.h),
+            fill: { color: WEST_MONROE_BRAND_COLOR },
+            line: { transparency: 100 },
+          },
+        },
+        ...buildBrandDots(brandFrame.dots),
+        {
+          image: {
+            path: westMonroeLogoImage,
+            x: pxToInches(brandFrame.logo.x),
+            y: pxToInches(brandFrame.logo.y),
+            w: pxToInches(brandFrame.logo.w),
+            h: pxToInches(brandFrame.logo.h),
+          },
+        },
+      ],
+    })
+  }
   for (const slideSpec of presentation.slides) {
-    const slide = pptx.addSlide('WEST_MONROE_BRANDED_FRAME')
+    const slide = presentation.meta.showBranding
+      ? pptx.addSlide('WEST_MONROE_BRANDED_FRAME')
+      : pptx.addSlide()
     slide.background = { color: cleanHex(slideSpec.backgroundColor, 'FFFFFF') }
 
-    for (const element of getConnectorAwareElementOrder(slideSpec)) {
+    const elements = slideSpec.preserveElementOrder
+      ? slideSpec.elements
+      : getConnectorAwareElementOrder(slideSpec)
+    for (const element of elements) {
       if (element.kind === 'line') {
         for (const segment of toPptxLineSegments(element)) {
           const lineGeometry = toPptxLineGeometry(segment)
@@ -64,9 +98,10 @@ export function buildPptxPresentation(presentation: NormalizedPresentation) {
             line: {
               color: cleanHex(element.stroke, '000000'),
               width: element.strokeWidth,
-              transparency: opacityToTransparency(element.opacity),
+              transparency: opacityToTransparency(element.strokeOpacity ?? element.opacity),
               dashType:
                 element.dash === 'solid' ? 'solid' : element.dash === 'dot' ? 'sysDot' : 'dash',
+              beginArrowType: segment.hasBeginArrow ? element.beginArrow : 'none',
               endArrowType: segment.hasEndArrow ? element.endArrow : 'none',
             },
           })
@@ -89,22 +124,25 @@ export function buildPptxPresentation(presentation: NormalizedPresentation) {
           w: pxToInches(element.w),
           h: pxToInches(element.h),
           margin: [element.padding, element.padding, element.padding, element.padding],
-          fontFace: DEFAULT_FONT_FACE,
+          fontFace: element.fontFace,
           fontSize: element.fontSize,
           color: cleanHex(element.color, '111827'),
-          bold: element.bold,
-          italic: element.italic,
+          bold: element.runs.length ? element.runs.every((run) => run.bold) : element.bold,
+          italic: element.runs.length ? element.runs.every((run) => run.italic) : element.italic,
           align: element.align,
           valign: toPptxVerticalAlign(element.valign),
           lineSpacingMultiple: 1.05,
           paraSpaceAfter: 0,
           paraSpaceBefore: 0,
-          fill: colorToFill(element.fill, element.opacity),
-          line: colorToLine(element.stroke, element.strokeWidth, element.opacity),
+          fill: colorToFill(element.fill, element.fillOpacity ?? element.opacity),
+          line: colorToLine(element.stroke, element.strokeWidth, element.strokeOpacity ?? element.opacity),
           rotate: element.rotate,
+          flipH: element.flipH,
+          flipV: element.flipV,
           fit: 'shrink',
           isTextBox: true,
           shape: element.borderRadius > 0 ? 'roundRect' : 'rect',
+          rectRadius: element.borderRadius > 0 ? pxToInches(element.borderRadius) : undefined,
         })
         continue
       }
@@ -123,11 +161,14 @@ export function buildPptxPresentation(presentation: NormalizedPresentation) {
           align: element.align,
           valign: toPptxVerticalAlign(element.valign),
           rotate: element.rotate,
+          flipH: element.flipH,
+          flipV: element.flipV,
           fit: 'shrink',
           isTextBox: true,
-          fill: colorToFill(element.fill, element.opacity),
-          line: colorToLine(element.stroke, element.strokeWidth, element.opacity),
+          fill: colorToFill(element.fill, element.fillOpacity ?? element.opacity),
+          line: colorToLine(element.stroke, element.strokeWidth, element.strokeOpacity ?? element.opacity),
           shape: element.borderRadius > 0 ? 'roundRect' : 'rect',
+          rectRadius: element.borderRadius > 0 ? pxToInches(element.borderRadius) : undefined,
         })
         continue
       }
@@ -138,8 +179,14 @@ export function buildPptxPresentation(presentation: NormalizedPresentation) {
         w: pxToInches(element.w),
         h: pxToInches(element.h),
         rotate: element.rotate,
-        fill: colorToFill(element.fill, element.opacity),
-        line: colorToLine(element.stroke, element.strokeWidth, element.opacity),
+        flipH: element.flipH,
+        flipV: element.flipV,
+        fill: colorToFill(element.fill, element.fillOpacity ?? element.opacity),
+        line: colorToLine(element.stroke, element.strokeWidth, element.strokeOpacity ?? element.opacity),
+        rectRadius:
+          element.shape === 'roundRect' && element.borderRadius > 0
+            ? pxToInches(element.borderRadius)
+            : undefined,
       })
 
       if (element.label.trim()) {
@@ -152,7 +199,7 @@ export function buildPptxPresentation(presentation: NormalizedPresentation) {
           w: pxToInches(element.w),
           h: pxToInches(element.h),
           margin: [element.padding, element.padding, element.padding, element.padding],
-          fontFace: DEFAULT_FONT_FACE,
+          fontFace: element.fontFace,
           fontSize: element.fontSize,
           color: cleanHex(element.textColor, '111827'),
           bold: element.bold,
@@ -175,31 +222,32 @@ export function buildPptxPresentation(presentation: NormalizedPresentation) {
   return pptx
 }
 
-function buildBrandDots() {
-  return Array.from({ length: 15 * 17 }, (_, index) => ({
+function buildBrandDots(dots: readonly BrandFrameRect[]) {
+  return dots.map((dot) => ({
     rect: {
-      x: pxToInches(15 + (index % 15) * 19),
-      y: pxToInches(6 + Math.floor(index / 15) * 19),
-      w: pxToInches(2.5),
-      h: pxToInches(2.5),
-      fill: { color: 'E8EEF8' },
+      x: pxToInches(dot.x),
+      y: pxToInches(dot.y),
+      w: pxToInches(dot.w),
+      h: pxToInches(dot.h),
+      fill: { color: WEST_MONROE_BRAND_COLOR },
       line: { transparency: 100 },
     },
   }))
 }
 
 type PptxLineSegment = Pick<NormalizedLineElement, 'x1' | 'x2' | 'y1' | 'y2'> & {
+  hasBeginArrow: boolean
   hasEndArrow: boolean
 }
 
 function toPptxLineSegments(element: NormalizedLineElement): PptxLineSegment[] {
   if (element.lineType !== 'elbow') {
-    return [{ x1: element.x1, x2: element.x2, y1: element.y1, y2: element.y2, hasEndArrow: true }]
+    return [{ x1: element.x1, x2: element.x2, y1: element.y1, y2: element.y2, hasBeginArrow: true, hasEndArrow: true }]
   }
 
   return [
-    { x1: element.x1, x2: element.x2, y1: element.y1, y2: element.y1, hasEndArrow: false },
-    { x1: element.x2, x2: element.x2, y1: element.y1, y2: element.y2, hasEndArrow: true },
+    { x1: element.x1, x2: element.x2, y1: element.y1, y2: element.y1, hasBeginArrow: true, hasEndArrow: false },
+    { x1: element.x2, x2: element.x2, y1: element.y1, y2: element.y2, hasBeginArrow: false, hasEndArrow: true },
   ].filter((segment) => segment.x1 !== segment.x2 || segment.y1 !== segment.y2)
 }
 
@@ -215,14 +263,30 @@ function toPptxLineGeometry(element: Pick<NormalizedLineElement, 'x1' | 'x2' | '
 }
 
 function buildImageOptions(element: NormalizedImageElement) {
+  const crop = element.crop
+  const visibleWidth = crop ? Math.max(1 - crop.left - crop.right, 0.001) : 1
+  const visibleHeight = crop ? Math.max(1 - crop.top - crop.bottom, 0.001) : 1
+  const sourceBoxWidth = element.w / visibleWidth
+  const sourceBoxHeight = element.h / visibleHeight
   const base = {
     x: pxToInches(element.x),
     y: pxToInches(element.y),
-    w: pxToInches(element.w),
-    h: pxToInches(element.h),
+    w: pxToInches(sourceBoxWidth),
+    h: pxToInches(sourceBoxHeight),
     altText: element.altText,
     transparency: opacityToTransparency(element.opacity),
     rotate: element.rotate,
+    flipH: element.flipH,
+    flipV: element.flipV,
+    sizing: crop
+      ? {
+          type: 'crop' as const,
+          x: pxToInches(crop.left * sourceBoxWidth),
+          y: pxToInches(crop.top * sourceBoxHeight),
+          w: pxToInches(element.w),
+          h: pxToInches(element.h),
+        }
+      : undefined,
   }
 
   if (element.src.startsWith('data:')) {
@@ -247,7 +311,7 @@ function toPptxTextRuns(runs: NormalizedTextRun[], maxFontSizePt?: number) {
       underline: run.underline ? {} : undefined,
       breakLine: run.breakLine && index < runs.length - 1,
       color: cleanHex(run.color, '111827'),
-      fontFace: DEFAULT_FONT_FACE,
+      fontFace: run.fontFace,
       fontSize: Math.min(run.fontSize, maxFontSizePt ?? run.fontSize),
     },
   }))

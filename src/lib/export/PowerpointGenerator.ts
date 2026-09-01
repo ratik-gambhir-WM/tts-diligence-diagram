@@ -1,4 +1,5 @@
-import type { NormalizedPresentation, PowerPointWriteOptions } from './PowerpointTypes'
+import type { NormalizedPresentation } from '../shared/PowerpointTypes'
+import type { PowerPointWriteOptions } from './PowerpointTypes'
 import {
   applyDefaultThemeToPptx,
   downloadPptxBytes,
@@ -8,9 +9,9 @@ import {
 import { buildPptxPresentation } from './PowerpointRenderer'
 import { slugify } from './PowerpointUtils'
 
-export { normalizePresentationSpec } from './PowerpointNormalizer'
+export { normalizePresentationSpec } from '../shared/PowerpointNormalizer'
 export { buildPptxPresentation } from './PowerpointRenderer'
-export { getConnectorAwareElementOrder } from './PowerpointLayering'
+export { getConnectorAwareElementOrder } from '../shared/PowerpointLayering'
 export type {
   DashStyle,
   HorizontalAlign,
@@ -24,11 +25,10 @@ export type {
   NormalizedSlide,
   NormalizedTextElement,
   NormalizedTextRun,
-  PowerPointFileHandle,
-  PowerPointWriteOptions,
   ValidationIssue,
   VerticalAlign,
-} from './PowerpointTypes'
+} from '../shared/PowerpointTypes'
+export type { PowerPointFileHandle, PowerPointWriteOptions } from './PowerpointTypes'
 
 export function buildSuggestedFileName(presentation: NormalizedPresentation) {
   const stem = slugify(presentation.meta.title || 'generated-presentation')

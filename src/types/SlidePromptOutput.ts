@@ -49,7 +49,9 @@ export type SlideTextElement = {
 }
 
 export type SlideLineElement = {
+  endArrow?: 'none' | 'triangle' | 'arrow' | 'diamond' | 'oval' | 'stealth'
   id: string
+  rotate?: number
   stroke: string
   strokeWidth: number
   type: 'line'
@@ -59,13 +61,28 @@ export type SlideLineElement = {
   y2: number
 }
 
-export type SlideElement = SlideShapeElement | SlideTextElement | SlideLineElement
+export type GeneratedSlideElement = SlideShapeElement | SlideTextElement
+export type SlideElement = GeneratedSlideElement | SlideLineElement
 
 export type SlidePromptOutput = {
   presentation: {
     slides: Array<{
       backgroundColor: string
       elements: SlideElement[]
+      height: number
+      id: string
+      name: string
+      width: number
+    }>
+    title: string
+  }
+}
+
+export type GeneratedSlidePromptOutput = {
+  presentation: {
+    slides: Array<{
+      backgroundColor: string
+      elements: GeneratedSlideElement[]
       height: number
       id: string
       name: string
@@ -248,29 +265,72 @@ const textElementSchema = {
   ],
 } as const
 
-const lineElementSchema = {
-  type: 'object',
-  additionalProperties: false,
-  properties: {
-    id: { type: 'string' },
-    type: {
-      type: 'string',
-      enum: ['line'],
-    },
-    x1: { type: 'number' },
-    y1: { type: 'number' },
-    x2: { type: 'number' },
-    y2: { type: 'number' },
-    stroke: { type: 'string' },
-    strokeWidth: { type: 'number' },
+const lineElementPropertiesSchema = {
+  id: { type: 'string' },
+  type: {
+    type: 'string',
+    enum: ['line'],
   },
-  required: ['id', 'type', 'x1', 'y1', 'x2', 'y2', 'stroke', 'strokeWidth'],
+  x1: { type: 'number' },
+  y1: { type: 'number' },
+  x2: { type: 'number' },
+  y2: { type: 'number' },
+  stroke: { type: 'string' },
+  strokeWidth: { type: 'number' },
 } as const
 
-export const powerpointArchitectureSlideSchema = {
-  name: 'powerpoint_architecture_slide',
-  strict: true,
-  schema: {
+const lineElementRequiredKeys = [
+  'id',
+  'type',
+  'x1',
+  'y1',
+  'x2',
+  'y2',
+  'stroke',
+  'strokeWidth',
+] as const
+
+const lineElementSchema = {
+  anyOf: [
+    {
+      type: 'object',
+      additionalProperties: false,
+      properties: lineElementPropertiesSchema,
+      required: lineElementRequiredKeys,
+    },
+    {
+      type: 'object',
+      additionalProperties: false,
+      properties: {
+        ...lineElementPropertiesSchema,
+        endArrow: {
+          type: 'string',
+          enum: ['none', 'triangle', 'arrow', 'diamond', 'oval', 'stealth'],
+        },
+      },
+      required: [...lineElementRequiredKeys, 'endArrow'],
+    },
+    {
+      type: 'object',
+      additionalProperties: false,
+      properties: {
+        ...lineElementPropertiesSchema,
+        endArrow: {
+          type: 'string',
+          enum: ['none', 'triangle', 'arrow', 'diamond', 'oval', 'stealth'],
+        },
+        rotate: { type: 'number' },
+      },
+      required: [...lineElementRequiredKeys, 'endArrow', 'rotate'],
+    },
+  ],
+} as const
+
+function createArchitectureSlideSchema(
+  elementSchemas: readonly [typeof shapeElementSchema, typeof textElementSchema] |
+    readonly [typeof shapeElementSchema, typeof lineElementSchema, typeof textElementSchema],
+) {
+  return {
     type: 'object',
     additionalProperties: false,
     properties: {
@@ -293,7 +353,7 @@ export const powerpointArchitectureSlideSchema = {
                 elements: {
                   type: 'array',
                   items: {
-                    anyOf: [shapeElementSchema, lineElementSchema, textElementSchema],
+                    anyOf: elementSchemas,
                   },
                 },
               },
@@ -305,7 +365,24 @@ export const powerpointArchitectureSlideSchema = {
       },
     },
     required: ['presentation'],
-  },
+  } as const
+}
+
+export const powerpointArchitectureSlideSchema = {
+  name: 'powerpoint_architecture_slide',
+  strict: true,
+  schema: createArchitectureSlideSchema([
+    shapeElementSchema,
+    lineElementSchema,
+    textElementSchema,
+  ]),
+} as const
+
+export const generatedArchitectureSlideSchema = {
+  name: 'generated_powerpoint_architecture_slide',
+  strict: true,
+  schema: createArchitectureSlideSchema([shapeElementSchema, textElementSchema]),
 } as const
 
 export const SLIDE_PROMPT_OUTPUT_FORMAT = powerpointArchitectureSlideSchema
+export const GENERATED_SLIDE_PROMPT_OUTPUT_FORMAT = generatedArchitectureSlideSchema

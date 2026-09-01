@@ -2,7 +2,6 @@ import { useState } from 'react'
 import type { ChangeEvent } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
-import '@xyflow/react/dist/style.css'
 
 import { getDefaultDiagramTemplate, type DiagramTemplate } from './lib/diagramTemplates'
 import {

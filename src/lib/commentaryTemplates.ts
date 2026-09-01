@@ -7,10 +7,11 @@ import sdlcSsaSpec from './export/json-commentary-templates/slide-03-phase-1.com
 import { ensureCommentaryBulletOrdering } from './commentaryBulletOrdering'
 import type { DiagramTemplate } from './diagramTemplates'
 import { normalizeBrandedSlideFrameImageIds } from './export/PowerpointBranding'
+import type { JsonValue } from './shared/PowerpointTypes'
 
 export type CommentaryTemplate = DiagramTemplate
 
-export function normalizeCommentaryTemplateSpec(input: unknown) {
+export function normalizeCommentaryTemplateSpec<TInput extends JsonValue>(input: TInput): TInput {
   return ensureCommentaryBulletOrdering(normalizeBrandedSlideFrameImageIds(input))
 }
 

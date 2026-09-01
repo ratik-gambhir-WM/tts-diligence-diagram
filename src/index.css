@@ -2,6 +2,19 @@
 @import "tailwindcss";
 
 @layer base {
+  :root {
+    --slide-canvas-canvas-bg: #eef2f8;
+    --slide-canvas-grid-line: rgba(20, 29, 54, 0.05);
+    --slide-canvas-selection: rgba(20, 81, 225, 0.72);
+    --slide-canvas-edit-outline: rgba(20, 81, 225, 0.9);
+    --slide-canvas-resize: #1451e1;
+    --slide-canvas-shadow-strong: rgba(26, 32, 56, 0.18);
+    --slide-canvas-shadow-border: rgba(27, 39, 67, 0.12);
+    --slide-canvas-empty-bg: #f8fafc;
+    --slide-canvas-empty-border: rgba(20, 29, 54, 0.22);
+    --slide-canvas-empty-text: #5f6b7a;
+  }
+
   :root,
   [data-theme="dark"],
   .theme-dark {
@@ -25,22 +38,6 @@
     --theme-input-bg: #dfe8fb;
     --theme-input-text: #070a1b;
 
-    --slide-flow-canvas-bg: #eef2f8;
-    --slide-flow-grid-line: rgba(20, 29, 54, 0.05);
-    --slide-flow-selection: rgba(20, 81, 225, 0.55);
-    --slide-flow-edit-outline: rgba(20, 81, 225, 0.85);
-    --slide-flow-resize: #1451e1;
-    --slide-flow-shadow-strong: rgba(26, 32, 56, 0.18);
-    --slide-flow-shadow-border: rgba(27, 39, 67, 0.12);
-    --slide-flow-empty-bg: #f8fafc;
-    --slide-flow-empty-border: rgba(20, 29, 54, 0.22);
-    --slide-flow-empty-text: #5f6b7a;
-
-    --diagram-node-text: #060150;
-    --diagram-node-fill: #ffffff;
-    --diagram-node-fill-soft: #eef2f8;
-    --diagram-node-fill-muted: #dce4ef;
-    --diagram-node-shadow: rgba(6, 1, 80, 0.14);
   }
 
   [data-theme="light"],
@@ -65,22 +62,6 @@
     --theme-input-bg: #ffffff;
     --theme-input-text: #060150;
 
-    --slide-flow-canvas-bg: #eef2f8;
-    --slide-flow-grid-line: rgba(20, 29, 54, 0.05);
-    --slide-flow-selection: rgba(20, 81, 225, 0.55);
-    --slide-flow-edit-outline: rgba(20, 81, 225, 0.85);
-    --slide-flow-resize: #1451e1;
-    --slide-flow-shadow-strong: rgba(26, 32, 56, 0.18);
-    --slide-flow-shadow-border: rgba(27, 39, 67, 0.12);
-    --slide-flow-empty-bg: #f8fafc;
-    --slide-flow-empty-border: rgba(20, 29, 54, 0.22);
-    --slide-flow-empty-text: #5f6b7a;
-
-    --diagram-node-text: #060150;
-    --diagram-node-fill: #ffffff;
-    --diagram-node-fill-soft: #eef2f8;
-    --diagram-node-fill-muted: #dce4ef;
-    --diagram-node-shadow: rgba(6, 1, 80, 0.14);
   }
 
   /*
@@ -106,22 +87,6 @@
     --theme-input-bg: #ffffff;
     --theme-input-text: #000000;
 
-    --slide-flow-canvas-bg: #eef2f8;
-    --slide-flow-grid-line: rgba(20, 29, 54, 0.05);
-    --slide-flow-selection: rgba(20, 81, 225, 0.55);
-    --slide-flow-edit-outline: rgba(20, 81, 225, 0.85);
-    --slide-flow-resize: #1451e1;
-    --slide-flow-shadow-strong: rgba(26, 32, 56, 0.18);
-    --slide-flow-shadow-border: rgba(27, 39, 67, 0.12);
-    --slide-flow-empty-bg: #f8fafc;
-    --slide-flow-empty-border: rgba(20, 29, 54, 0.22);
-    --slide-flow-empty-text: #5f6b7a;
-
-    --diagram-node-text: #060150;
-    --diagram-node-fill: #ffffff;
-    --diagram-node-fill-soft: #eef2f8;
-    --diagram-node-fill-muted: #dce4ef;
-    --diagram-node-shadow: rgba(6, 1, 80, 0.14);
   }
   */
 
@@ -1025,59 +990,4 @@
     }
   }
 
-  .react-flow__node.rf-cylinder-node {
-    position: relative;
-    overflow: visible !important;
-    border: 0 !important;
-    background: transparent !important;
-    color: var(--diagram-node-text) !important;
-    box-shadow: none !important;
-    line-height: 1.15;
-    text-align: center;
-  }
-
-  .database-node {
-    width: 150px;
-    box-sizing: border-box;
-    position: relative;
-    text-align: center;
-    font-family: var(--font-ui);
-    filter: drop-shadow(0 10px 18px var(--diagram-node-shadow));
-  }
-
-  .database-node .top,
-  .database-node .bottom {
-    height: 20px;
-    box-sizing: border-box;
-    position: relative;
-    border: 2px solid var(--diagram-node-text);
-    border-radius: 50%;
-    background: var(--diagram-node-fill);
-  }
-
-  .database-node .top {
-    z-index: 3;
-    margin-bottom: -10px;
-    background: linear-gradient(180deg, var(--diagram-node-fill) 0%, var(--diagram-node-fill-soft) 100%);
-  }
-
-  .database-node .body {
-    box-sizing: border-box;
-    position: relative;
-    z-index: 2;
-    min-height: 58px;
-    border: 0;
-    background: linear-gradient(180deg, var(--diagram-node-fill) 0%, var(--diagram-node-fill-soft) 100%);
-    padding: 20px 12px 18px;
-    display: grid;
-    align-content: center;
-    gap: 0.25rem;
-    overflow-wrap: anywhere;
-  }
-
-  .database-node .bottom {
-    z-index: 1;
-    margin-top: -10px;
-    background: linear-gradient(180deg, var(--diagram-node-fill-soft) 0%, var(--diagram-node-fill-muted) 100%);
-  }
 }

@@ -9,6 +9,7 @@ import {
   type ValidationIssue,
 } from './PowerpointGenerator'
 import { resolveBundledSlideAssetImageSources } from './PowerpointAssetResolver'
+import type { JsonValue } from '../shared/PowerpointTypes'
 
 export { buildSuggestedFileName } from './PowerpointGenerator'
 export { resolveBundledSlideAssetImageSources } from './PowerpointAssetResolver'
@@ -42,7 +43,7 @@ export interface GeneratePowerPointResult {
 export type GeneratePowerPointFromJsonResult = GeneratePowerPointResult
 
 export async function generatePowerPointFromJson(
-  json: unknown,
+  json: JsonValue,
   options: GeneratePowerPointFromJsonOptions = {},
 ): Promise<GeneratePowerPointFromJsonResult> {
   const { presentation, issues } = normalizeJsonToPresentation(json, {
@@ -53,7 +54,7 @@ export async function generatePowerPointFromJson(
 }
 
 export function buildPowerPointFromJson(
-  json: unknown,
+  json: JsonValue,
   options: NormalizationOptions = {},
 ) {
   const { presentation, issues } = normalizeJsonToPresentation(json, options)
@@ -66,10 +67,10 @@ export function buildPowerPointFromJson(
 }
 
 export function normalizeJsonToPresentation(
-  json: unknown,
+  json: JsonValue,
   options: NormalizationOptions = {},
 ) {
-  const parsed = typeof json === 'string' ? (JSON.parse(json) as unknown) : json
+  const parsed = typeof json === 'string' ? (JSON.parse(json) as JsonValue) : json
   const { presentation, issues } = normalizePresentationSpec(
     resolveBundledSlideAssetImageSources(parsed),
     options,

@@ -1,5 +1,4 @@
 import {
-  DEFAULT_THEME,
   WEST_MONROE_CUSTOM_COLORS,
   WEST_MONROE_THEME_DISPLAY_NAME,
   WEST_MONROE_THEME_FAMILY,
@@ -7,6 +6,7 @@ import {
   WEST_MONROE_THEME_NAME,
   WEST_MONROE_THEME_VERSION_ID,
 } from './PowerpointConstants'
+import { DEFAULT_THEME } from '../shared/PowerpointConstants'
 import { escapeXml } from './PowerpointUtils'
 
 export function applyDefaultThemeXml(xml: string) {
