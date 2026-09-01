@@ -122,6 +122,34 @@ const rotatedLineInput = {
   },
 }
 
+const rotatedShapeInput = {
+  presentation: {
+    slides: [
+      {
+        id: 'rotated-shape-slide',
+        name: 'Rotated shape slide',
+        width: 1280,
+        height: 720,
+        backgroundColor: 'FFFFFF',
+        elements: [
+          {
+            id: 'rotated-shape',
+            type: 'shape',
+            shape: 'rect',
+            x: 100,
+            y: 100,
+            w: 100,
+            h: 80,
+            rotate: 90,
+            fill: 'FFC700',
+            stroke: '070154',
+          },
+        ],
+      },
+    ],
+  },
+}
+
 describe('SvgSlideCanvas', () => {
   it('renders one keyed SVG group per element with a clipped slide viewport', () => {
     const { container, getByRole } = render(<SvgSlideCanvas input={input} />)
@@ -292,6 +320,31 @@ describe('SvgSlideCanvas', () => {
     expect(
       (onChange.mock.calls[0][0] as typeof rotatedLineInput).presentation.slides[0].elements[0],
     ).toMatchObject({ x1: 105, y1: 95, x2: 205, y2: 105 })
+  })
+
+  it('resizes rotated shapes in their local axes while keeping the opposite handle fixed', () => {
+    const onChange = vi.fn()
+    const { container, getByRole } = render(
+      <SvgSlideCanvas input={rotatedShapeInput} onChange={onChange} />,
+    )
+    const shape = container.querySelector<SVGGElement>('[data-element-key]')!
+    const svg = getByRole('application')
+
+    fireEvent.focus(shape)
+    const eastHandle = container.querySelector<SVGRectElement>('[aria-label="Resize e"]')!
+    fireEvent.pointerDown(eastHandle, {
+      button: 0,
+      clientX: 150,
+      clientY: 190,
+      pointerId: 1,
+    })
+    fireEvent.pointerMove(svg, { clientX: 150, clientY: 210, pointerId: 1 })
+    fireEvent.pointerUp(svg, { clientX: 150, clientY: 210, pointerId: 1 })
+
+    expect(onChange).toHaveBeenCalledTimes(1)
+    expect(
+      (onChange.mock.calls[0][0] as typeof rotatedShapeInput).presentation.slides[0].elements[0],
+    ).toMatchObject({ x: 90, y: 110, w: 120, h: 80 })
   })
 
   it('additively selects elements and moves them in one JSON commit', () => {

@@ -667,36 +667,52 @@ function getResizeEdit(
   dx: number,
   dy: number,
 ) {
+  const localDelta = rotateVector({ x: dx, y: dy }, -element.rotate)
   const movesWest = handle.includes('w')
   const movesEast = handle.includes('e')
   const movesNorth = handle.includes('n')
   const movesSouth = handle.includes('s')
-  let x = element.x
-  let y = element.y
   let w = element.w
   let h = element.h
 
   if (movesWest) {
-    const nextWidth = Math.max(36, element.w - dx)
-    x = element.x + element.w - nextWidth
-    w = nextWidth
+    w = Math.max(36, element.w - localDelta.x)
   } else if (movesEast) {
-    w = Math.max(36, element.w + dx)
+    w = Math.max(36, element.w + localDelta.x)
   }
 
   if (movesNorth) {
-    const nextHeight = Math.max(24, element.h - dy)
-    y = element.y + element.h - nextHeight
-    h = nextHeight
+    h = Math.max(24, element.h - localDelta.y)
   } else if (movesSouth) {
-    h = Math.max(24, element.h + dy)
+    h = Math.max(24, element.h + localDelta.y)
   }
+
+  const leftOffset = movesWest ? element.w - w : 0
+  const topOffset = movesNorth ? element.h - h : 0
+  const oldCenter = { x: element.w / 2, y: element.h / 2 }
+  const resizedCenter = rotatePoint(
+    { x: leftOffset + w / 2, y: topOffset + h / 2 },
+    oldCenter,
+    element.rotate,
+  )
+  const x = element.x + resizedCenter.x - w / 2
+  const y = element.y + resizedCenter.y - h / 2
 
   return {
     h: roundCoordinate(h),
     w: roundCoordinate(w),
     x: roundCoordinate(x),
     y: roundCoordinate(y),
+  }
+}
+
+function rotateVector(vector: { x: number; y: number }, degrees: number) {
+  const radians = (degrees * Math.PI) / 180
+  const cosine = Math.cos(radians)
+  const sine = Math.sin(radians)
+  return {
+    x: vector.x * cosine - vector.y * sine,
+    y: vector.x * sine + vector.y * cosine,
   }
 }
 
