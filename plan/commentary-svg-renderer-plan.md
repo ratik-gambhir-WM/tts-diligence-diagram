@@ -42,9 +42,9 @@ Relevant files and responsibilities:
 | Canvas page | `src/pages/TemplateCanvasPage.tsx` | Hosts the renderer, add-shape controls, JSON panel, and PowerPoint export controls. |
 | React Flow surface | `src/lib/slide-flow/SlideFlowCanvas.tsx` | Currently contains rendering, selection, drag, resize, line editing, text editing, and raw JSON mutation in one 1,600-line component. |
 | React Flow model | `src/lib/slide-flow/model.ts` | Converts a normalized slide into React Flow nodes. The normalization part should become renderer-neutral. |
-| Shared normalized model | `src/lib/export/PowerpointTypes.ts` | Defines the four element kinds: shape, text, line, and image. Preserve this contract. |
-| JSON normalization | `src/lib/export/PowerpointNormalizer.ts`, `PowerpointNativeNormalizer.ts`, `PowerpointExtractedNormalizer.ts` | Converts native and extracted slide JSON into the normalized model used by both preview and export. |
-| Layering | `src/lib/export/PowerpointLayering.ts` | Provides connector-aware element order and line occlusion rectangles. Reuse this in SVG DOM order. |
+| Shared normalized model | `src/lib/shared/PowerpointTypes.ts` | Defines the four element kinds: shape, text, line, and image. Preserve this contract. |
+| JSON normalization | `src/lib/shared/PowerpointNormalizer.ts`, `PowerpointNativeNormalizer.ts`, `PowerpointExtractedNormalizer.ts` | Converts native and extracted slide JSON into the normalized model used by preview, import, and export. |
+| Layering | `src/lib/shared/PowerpointLayering.ts` | Provides connector-aware element order and line occlusion rectangles. Reuse this in SVG DOM order. |
 | Asset resolution | `src/lib/export/PowerpointAssetResolver.ts` | Resolves bundled image paths before browser rendering. Reuse unchanged. |
 | PowerPoint output | `src/lib/export/PowerpointRenderer.ts` and related export modules | Produces native PowerPoint shapes and text. Keep independent of the browser SVG renderer. |
 | Existing brand asset | `src/slide-assets/west-monroe-frame.svg`, `element-5.png` | Can supply the browser SVG brand frame and logo. |

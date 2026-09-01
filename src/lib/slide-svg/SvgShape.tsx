@@ -1,6 +1,6 @@
 import { memo } from 'react'
 
-import type { NormalizedShapeElement } from '../export/PowerpointTypes'
+import type { NormalizedShapeElement } from '../shared/PowerpointTypes'
 import { renderShapePrimitive } from './shapes'
 import { SvgTextBlock } from './SvgText'
 

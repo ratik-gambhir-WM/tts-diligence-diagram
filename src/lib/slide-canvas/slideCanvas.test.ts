@@ -10,8 +10,39 @@ import {
   deleteElementsFromInput,
 } from './edits'
 import { buildSlideCanvasModel } from './model'
+import { getElementGeometry } from './geometry'
+import type { NormalizedLineElement } from '../shared/PowerpointTypes'
 
 describe('slide canvas model', () => {
+  it('includes a rotated elbow bend in line geometry', () => {
+    const line: NormalizedLineElement = {
+      beginArrow: 'none',
+      dash: 'solid',
+      endArrow: 'none',
+      id: 'rotated-elbow',
+      kind: 'line',
+      lineType: 'elbow',
+      occlusionRects: [],
+      opacity: 1,
+      rotate: 45,
+      sourcePath: 'slides[0].elements[0]',
+      stroke: '070154',
+      strokeOpacity: 1,
+      strokeWidth: 1,
+      valign: 'middle',
+      x1: 0,
+      x2: 100,
+      y1: 0,
+      y2: 100,
+    }
+
+    const geometry = getElementGeometry(line)
+    expect(geometry.h).toBeCloseTo(141.42, 2)
+    expect(geometry.w).toBeCloseTo(70.71, 2)
+    expect(geometry.x).toBeCloseTo(50, 2)
+    expect(geometry.y).toBeCloseTo(-20.71, 2)
+  })
+
   it.each([
     ['architecture', architectureSpec, 59],
     ['security', securitySpec, 55],
@@ -69,7 +100,7 @@ describe('source-path element mutations', () => {
     )
     expect(secondRef).toBeDefined()
 
-    const updated = applyElementEditToInput(duplicateIdInput, secondRef!, { text: 'Changed' }) as typeof duplicateIdInput
+    const updated = applyElementEditToInput(duplicateIdInput, secondRef!, { text: 'Changed' })
     const elements = updated.presentation.slides[0].elements
     expect(elements[0].text).toBe('First')
     expect(elements[1].text).toBe('Changed')
@@ -83,7 +114,7 @@ describe('source-path element mutations', () => {
     )
     expect(firstRef).toBeDefined()
 
-    const updated = deleteElementsFromInput(duplicateIdInput, [firstRef!]) as typeof duplicateIdInput
+    const updated = deleteElementsFromInput(duplicateIdInput, [firstRef!])
     expect(updated.presentation.slides[0].elements).toHaveLength(1)
     expect(updated.presentation.slides[0].elements[0].text).toBe('Second')
   })
@@ -96,7 +127,7 @@ describe('source-path element mutations', () => {
         edit: { x: 100 + index * 20, y: 200 + index * 20 },
         locator,
       })),
-    ) as typeof duplicateIdInput
+    )
 
     expect(updated.presentation.slides[0].elements).toMatchObject([
       { text: 'First', x: 100, y: 200 },

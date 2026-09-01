@@ -1,8 +1,10 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import JSZip from 'jszip'
-import { normalizePresentationSpec } from '../src/lib/export/PowerpointNormalizer'
+import { normalizePresentationSpec } from '../src/lib/shared/PowerpointNormalizer'
 import type {
+  JsonObject,
+  JsonValue,
   NormalizedElement,
   NormalizedImageElement,
   NormalizedLineElement,
@@ -10,7 +12,8 @@ import type {
   NormalizedShapeElement,
   NormalizedTextElement,
   NormalizedTextRun,
-} from '../src/lib/export/PowerpointTypes'
+  ThrownValue,
+} from '../src/lib/shared/PowerpointTypes'
 
 type XmlNode = {
   tag: string
@@ -34,7 +37,7 @@ type TransformMatrix = {
   translateY: number
 }
 
-type JsonRecord = Record<string, unknown>
+type JsonRecord = JsonObject
 
 const EMU_PER_INCH = 914400
 const PX_PER_INCH = 96
@@ -159,7 +162,7 @@ async function extractSlide(
 }
 
 function extractShapeTreeElements(parent: XmlNode, matrix: TransformMatrix, pathLabel: string) {
-  const elements: Array<Record<string, unknown>> = []
+  const elements: JsonObject[] = []
 
   for (const node of parent.children ?? []) {
     if (node.tag === 'p:grpSp') {
@@ -303,7 +306,7 @@ function extractText(textNode: XmlNode | undefined) {
 }
 
 async function collectSupportParts(zip: JSZip, relationships: ExtractedRelationship[]) {
-  const supportParts: Record<string, Record<string, unknown>> = {}
+  const supportParts: Record<string, JsonObject> = {}
   const themeXml = await maybeReadZipText(zip, 'ppt/theme/theme1.xml')
 
   if (themeXml) {
@@ -449,12 +452,28 @@ function collectRelationshipIds(node: XmlNode): string[] {
   ]
 }
 
-function paragraphText(textBody: unknown) {
-  const body = textBody as { paragraphs?: Array<{ runs?: Array<{ text?: string }> }>; plainText?: string } | undefined
-  const lines = (body?.paragraphs ?? [])
-    .map((paragraph) => (paragraph.runs ?? []).map((run) => run.text ?? '').join(''))
+function paragraphText(textBody: JsonValue | undefined) {
+  if (!isJsonObject(textBody)) {
+    return ''
+  }
+
+  const paragraphs = Array.isArray(textBody.paragraphs) ? textBody.paragraphs : []
+  const lines = paragraphs
+    .filter(isJsonObject)
+    .map((paragraph) => {
+      const runs = Array.isArray(paragraph.runs) ? paragraph.runs.filter(isJsonObject) : []
+      return runs.map((run) => (typeof run.text === 'string' ? run.text : '')).join('')
+    })
     .filter((line) => line.trim())
-  return lines.length ? lines.join('\n') : body?.plainText?.trim() ?? ''
+  return lines.length
+    ? lines.join('\n')
+    : typeof textBody.plainText === 'string'
+      ? textBody.plainText.trim()
+      : ''
+}
+
+function isJsonObject(value: JsonValue | undefined): value is JsonObject {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
 function child(node: XmlNode | undefined, tag: string) {
@@ -796,7 +815,7 @@ function decodeXml(input: string) {
     .replace(/&amp;/g, '&')
 }
 
-main().catch((error: unknown) => {
+main().catch((error: ThrownValue) => {
   const message = error instanceof Error ? error.message : String(error)
   console.error(message)
   process.exitCode = 1

@@ -4,7 +4,7 @@ import {
   WEST_MONROE_BRAND_COLOR,
   type BrandFrameRect,
 } from '../WestMonroeBrandFrame'
-import { DEFAULT_FONT_FACE } from './PowerpointConstants'
+import { DEFAULT_FONT_FACE } from '../shared/PowerpointConstants'
 import type {
   NormalizedImageElement,
   NormalizedLineElement,
@@ -12,15 +12,15 @@ import type {
   NormalizedShapeElement,
   NormalizedTextElement,
   NormalizedTextRun,
-} from './PowerpointTypes'
+} from '../shared/PowerpointTypes'
+import { cleanHex } from '../shared/PowerpointUtils'
 import {
-  cleanHex,
   opacityToTransparency,
   pxToInches,
   toPptxShapeName,
   toPptxVerticalAlign,
 } from './PowerpointUtils'
-import { getConnectorAwareElementOrder } from './PowerpointLayering'
+import { getConnectorAwareElementOrder } from '../shared/PowerpointLayering'
 
 const westMonroeLogoImage = new URL('../../slide-assets/element-5.png', import.meta.url).pathname
 

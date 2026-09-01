@@ -1,10 +1,10 @@
 import { memo, useMemo } from 'react'
 
-import { DEFAULT_FONT_FACE } from '../export/PowerpointConstants'
+import { DEFAULT_FONT_FACE } from '../shared/PowerpointConstants'
 import type {
   NormalizedShapeElement,
   NormalizedTextElement,
-} from '../export/PowerpointTypes'
+} from '../shared/PowerpointTypes'
 import { getSvgTextContent } from './svgTextLayout'
 import { toSvgColor } from './svgUtils'
 

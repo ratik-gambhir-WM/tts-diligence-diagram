@@ -1,12 +1,13 @@
 import { resolveBundledSlideAssetImageSources } from '../export/PowerpointAssetResolver'
-import {
-  getConnectorAwareElementOrder,
-  normalizePresentationSpec,
-  type NormalizedElement,
-  type NormalizedPresentation,
-  type NormalizedSlide,
-  type ValidationIssue,
-} from '../export/PowerpointGenerator'
+import { getConnectorAwareElementOrder } from '../shared/PowerpointLayering'
+import { normalizePresentationSpec } from '../shared/PowerpointNormalizer'
+import type {
+  JsonValue,
+  NormalizedElement,
+  NormalizedPresentation,
+  NormalizedSlide,
+  ValidationIssue,
+} from '../shared/PowerpointTypes'
 
 export type SlideElementRef = {
   element: NormalizedElement
@@ -28,7 +29,7 @@ export interface BuildSlideCanvasModelOptions {
 }
 
 export function buildSlideCanvasModel(
-  input: unknown,
+  input: JsonValue,
   options: BuildSlideCanvasModelOptions = {},
 ): SlideCanvasModel {
   const slideIndex = options.slideIndex ?? 0

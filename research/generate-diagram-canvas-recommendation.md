@@ -422,7 +422,7 @@ These results establish feasibility, not visual parity. Diagram screenshot and r
 - `src/lib/slide-flow/SlideFlowCanvas.tsx` — current React Flow implementation.
 - `src/lib/slide-flow/model.ts` — mapping from normalized slide elements to React Flow nodes.
 - `src/lib/slide-svg/` — root SVG renderer, text layout, primitives, interaction, and tests.
-- `src/lib/export/PowerpointLayering.ts` — connector-aware layer ordering and occlusion.
+- `src/lib/shared/PowerpointLayering.ts` — connector-aware layer ordering and occlusion.
 - `src/lib/export/json-slide-templates/` — six architecture template fixtures.
 
 ### External primary documentation

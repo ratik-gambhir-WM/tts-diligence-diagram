@@ -1,9 +1,11 @@
-import { DEFAULT_FONT_FACE } from '../export/PowerpointConstants'
+import { DEFAULT_FONT_FACE } from '../shared/PowerpointConstants'
 import type {
   NormalizedShapeElement,
   NormalizedTextElement,
   NormalizedTextRun,
-} from '../export/PowerpointTypes'
+  JsonObject,
+  JsonValue,
+} from '../shared/PowerpointTypes'
 
 export function buildNormalizedTextRuns(
   element: NormalizedShapeElement | NormalizedTextElement,
@@ -31,7 +33,7 @@ export function buildNormalizedTextRuns(
   }))
 }
 
-export function buildRawTextRuns(element: Record<string, unknown>, text: string) {
+export function buildRawTextRuns(element: JsonObject, text: string) {
   const existingRuns = Array.isArray(element.runs) ? element.runs.filter(isRecord) : []
   const fallbackRun = existingRuns[0]
   const lines = text.split('\n')
@@ -74,18 +76,18 @@ export function buildRawTextRuns(element: Record<string, unknown>, text: string)
   })
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
+function isRecord(value: JsonValue | undefined): value is JsonObject {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
-function asString(value: unknown) {
+function asString(value: JsonValue | undefined) {
   return typeof value === 'string' ? value : ''
 }
 
-function asNumber(value: unknown) {
+function asNumber(value: JsonValue | undefined) {
   return typeof value === 'number' && Number.isFinite(value) ? value : undefined
 }
 
-function asBoolean(value: unknown) {
+function asBoolean(value: JsonValue | undefined) {
   return typeof value === 'boolean' ? value : undefined
 }

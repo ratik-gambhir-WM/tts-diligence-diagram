@@ -10,12 +10,13 @@ import {
   type RefObject,
 } from 'react'
 
-import type { NormalizedElement } from '../export/PowerpointTypes'
+import type { JsonValue, NormalizedElement } from '../shared/PowerpointTypes'
 import {
   applyElementEditsToInput,
   deleteElementsFromInput,
   getElementAccessibleLabel,
   getElementGeometry,
+  getRenderedLinePoints,
   roundCoordinate,
   type ElementEdit,
   type SlideElementRef,
@@ -72,11 +73,11 @@ type ActiveSelectionBox = {
   startPoint: { x: number; y: number }
 }
 
-type UseSvgInteractionOptions = {
+type UseSvgInteractionOptions<TInput extends JsonValue> = {
   coordinateRootRef: RefObject<SVGGraphicsElement | null>
   elementRefs: SlideElementRef[]
-  input: unknown
-  onChange?: (input: unknown) => void
+  input: TInput
+  onChange?: (input: TInput) => void
   svgRef: RefObject<SVGSVGElement | null>
 }
 
@@ -85,13 +86,13 @@ const INITIAL_STATE: SvgInteractionState = {
   selectedKeys: new Set(),
 }
 
-export function useSvgInteraction({
+export function useSvgInteraction<TInput extends JsonValue>({
   coordinateRootRef,
   elementRefs,
   input,
   onChange,
   svgRef,
-}: UseSvgInteractionOptions) {
+}: UseSvgInteractionOptions<TInput>) {
   const [state, dispatch] = useReducer(interactionReducer, INITIAL_STATE)
   const [announcement, setAnnouncement] = useState('')
   const activeRef = useRef<ActiveInteraction | undefined>(undefined)
@@ -598,9 +599,7 @@ function getInteractionEdit(
   }
 
   if (active.mode === 'moving-line-point' && element.kind === 'line') {
-    return active.handle === 'line-start'
-      ? { x1: roundCoordinate(element.x1 + dx), y1: roundCoordinate(element.y1 + dy) }
-      : { x2: roundCoordinate(element.x2 + dx), y2: roundCoordinate(element.y2 + dy) }
+    return getLinePointEdit(element, active.handle === 'line-start' ? 'start' : 'end', dx, dy)
   }
 
   if (element.kind === 'line' || !active.handle) {
@@ -608,6 +607,58 @@ function getInteractionEdit(
   }
 
   return getResizeEdit(element, active.handle as ResizeHandle, dx, dy)
+}
+
+function getLinePointEdit(
+  element: Extract<NormalizedElement, { kind: 'line' }>,
+  point: 'end' | 'start',
+  dx: number,
+  dy: number,
+): ElementEdit {
+  if (!element.rotate) {
+    return point === 'start'
+      ? { x1: roundCoordinate(element.x1 + dx), y1: roundCoordinate(element.y1 + dy) }
+      : { x2: roundCoordinate(element.x2 + dx), y2: roundCoordinate(element.y2 + dy) }
+  }
+
+  const rendered = getRenderedLinePoints(element)
+  const start = {
+    x: rendered.x1 + (point === 'start' ? dx : 0),
+    y: rendered.y1 + (point === 'start' ? dy : 0),
+  }
+  const end = {
+    x: rendered.x2 + (point === 'end' ? dx : 0),
+    y: rendered.y2 + (point === 'end' ? dy : 0),
+  }
+  const center = {
+    x: (start.x + end.x) / 2,
+    y: (start.y + end.y) / 2,
+  }
+  const rawStart = rotatePoint(start, center, -element.rotate)
+  const rawEnd = rotatePoint(end, center, -element.rotate)
+
+  return {
+    x1: roundCoordinate(rawStart.x),
+    x2: roundCoordinate(rawEnd.x),
+    y1: roundCoordinate(rawStart.y),
+    y2: roundCoordinate(rawEnd.y),
+  }
+}
+
+function rotatePoint(
+  point: { x: number; y: number },
+  center: { x: number; y: number },
+  degrees: number,
+) {
+  const radians = (degrees * Math.PI) / 180
+  const cosine = Math.cos(radians)
+  const sine = Math.sin(radians)
+  const x = point.x - center.x
+  const y = point.y - center.y
+  return {
+    x: center.x + x * cosine - y * sine,
+    y: center.y + x * sine + y * cosine,
+  }
 }
 
 function getResizeEdit(

@@ -5,6 +5,7 @@ import {
 } from '../types/SlidePromptOutput'
 import { DIAGRAM_TEMPLATES, type DiagramTemplate } from './diagramTemplates'
 import { createOpenAIResponse } from './OpenAI'
+import type { JsonValue } from './shared/PowerpointTypes'
 
 type GenerateArchitectureDiagramParams = {
   uploadedFiles: File[]
@@ -14,7 +15,7 @@ type DiagramExampleForPrompt = {
   description: string
   id: string
   imageAttachmentLabel: string
-  jsonSpec: unknown
+  jsonSpec: JsonValue
   name: string
 }
 

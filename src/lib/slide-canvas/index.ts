@@ -10,10 +10,12 @@ export {
 export {
   getElementAccessibleLabel,
   getElementGeometry,
+  getRenderedLinePoints,
   roundCoordinate,
   type BoxGeometry,
   type ElementGeometry,
   type LineGeometry,
+  type RenderedLinePoints,
 } from './geometry'
 export {
   buildSlideCanvasModel,

@@ -1,6 +1,8 @@
 import { DEFAULT_FONT_FACE, DEFAULT_HEIGHT_PX, DEFAULT_WIDTH_PX } from './PowerpointConstants'
 import type {
   NormalizationOptions,
+  JsonObject,
+  JsonValue,
   NormalizedElement,
   NormalizedImageElement,
   NormalizedLineElement,
@@ -8,7 +10,6 @@ import type {
   NormalizedShapeElement,
   NormalizedSlide,
   NormalizedTextElement,
-  UnknownRecord,
   ValidationIssue,
 } from './PowerpointTypes'
 import { addConnectorOcclusionRects } from './PowerpointLayering'
@@ -33,14 +34,14 @@ import {
 } from './PowerpointUtils'
 
 export function normalizeNativePresentation(
-  input: UnknownRecord,
+  input: JsonObject,
   issues: ValidationIssue[],
   options: NormalizationOptions,
 ): NormalizedPresentation | undefined {
   const presentationNode = isRecord(input.presentation) ? input.presentation : input
   const slidesSource = Array.isArray(presentationNode.slides)
     ? presentationNode.slides
-    : Array.isArray((presentationNode.slide as UnknownRecord | undefined)?.elements)
+    : isRecord(presentationNode.slide) && Array.isArray(presentationNode.slide.elements)
       ? [presentationNode.slide]
       : Array.isArray(input.slides)
         ? input.slides
@@ -59,6 +60,7 @@ export function normalizeNativePresentation(
   }
 
   const width = resolveNativeDimension(
+    presentationNode,
     presentationNode.canvas,
     presentationNode.size,
     presentationNode.layout,
@@ -66,6 +68,7 @@ export function normalizeNativePresentation(
     DEFAULT_WIDTH_PX,
   )
   const height = resolveNativeDimension(
+    presentationNode,
     presentationNode.canvas,
     presentationNode.size,
     presentationNode.layout,
@@ -99,8 +102,8 @@ export function normalizeNativePresentation(
   return {
     meta: {
       title: asString(presentationNode.title) || 'Generated Presentation',
-      width,
-      height,
+      width: slides[0].width,
+      height: slides[0].height,
       preserveElementOrder: presentationNode.preserveElementOrder === true,
       showBranding: presentationNode.showBranding !== false,
       sourceType: 'native-presentation',
@@ -110,7 +113,7 @@ export function normalizeNativePresentation(
 }
 
 export function normalizeNativeSlide(
-  slideSource: unknown,
+  slideSource: JsonValue | undefined,
   index: number,
   defaultWidth: number,
   defaultHeight: number,
@@ -128,6 +131,7 @@ export function normalizeNativeSlide(
   }
 
   const width = resolveNativeDimension(
+    slideSource,
     slideSource.canvas,
     slideSource.size,
     slideSource.layout,
@@ -135,6 +139,7 @@ export function normalizeNativeSlide(
     defaultWidth,
   )
   const height = resolveNativeDimension(
+    slideSource,
     slideSource.canvas,
     slideSource.size,
     slideSource.layout,
@@ -163,7 +168,7 @@ export function normalizeNativeSlide(
 }
 
 function normalizeNativeElement(
-  input: unknown,
+  input: JsonValue | undefined,
   width: number,
   height: number,
   issues: ValidationIssue[],
@@ -356,7 +361,7 @@ function normalizeNativeElement(
   return element
 }
 
-function normalizeImageCrop(input: unknown): NormalizedImageElement['crop'] {
+function normalizeImageCrop(input: JsonValue | undefined): NormalizedImageElement['crop'] {
   if (!isRecord(input)) {
     return undefined
   }
@@ -372,7 +377,7 @@ function normalizeImageCrop(input: unknown): NormalizedImageElement['crop'] {
 }
 
 function normalizeNativeTextRuns(
-  input: unknown,
+  input: JsonValue | undefined,
   fallbackFontFace: string,
   fallbackFontSize: number,
   fallbackColor: string,
@@ -382,7 +387,7 @@ function normalizeNativeTextRuns(
   }
 
   return input
-    .filter((run): run is UnknownRecord => isRecord(run))
+    .filter((run): run is JsonObject => isRecord(run))
     .map((run) => ({
       text: asString(run.text) || '',
       bold: coerceBoolean(run.bold),
@@ -396,36 +401,45 @@ function normalizeNativeTextRuns(
 }
 
 function resolveNativeDimension(
-  canvas: unknown,
-  size: unknown,
-  layout: unknown,
+  source: JsonValue | undefined,
+  canvas: JsonValue | undefined,
+  size: JsonValue | undefined,
+  layout: JsonValue | undefined,
   axis: 'width' | 'height',
   fallback: number,
 ) {
+  const sourceNode = isRecord(source) ? source : undefined
   const canvasNode = isRecord(canvas) ? canvas : undefined
   const sizeNode = isRecord(size) ? size : undefined
   const layoutNode = isRecord(layout) ? layout : undefined
   const key = axis === 'width' ? 'width' : 'height'
   const inchesKey = axis === 'width' ? 'widthInches' : 'heightInches'
 
-  const value =
+  const pixelValue =
+    sourceNode?.[key] ??
     canvasNode?.[key] ??
     sizeNode?.[key] ??
     layoutNode?.[key] ??
-    layoutNode?.[axis === 'width' ? 'w' : 'h'] ??
+    layoutNode?.[axis === 'width' ? 'w' : 'h']
+
+  if (typeof pixelValue === 'number') {
+    return pixelValue
+  }
+
+  const inchesValue =
+    sourceNode?.[inchesKey] ??
+    canvasNode?.[inchesKey] ??
+    sizeNode?.[inchesKey] ??
     layoutNode?.[inchesKey]
 
-  if (typeof value === 'number') {
-    if (String(inchesKey) in (layoutNode ?? {})) {
-      return inchesToPx(value)
-    }
-    return value
+  if (typeof inchesValue === 'number') {
+    return inchesToPx(inchesValue)
   }
 
   return fallback
 }
 
-function resolvePosition(value: unknown, canvasSize: number) {
+function resolvePosition(value: JsonValue | undefined, canvasSize: number) {
   if (typeof value === 'number') {
     return value
   }

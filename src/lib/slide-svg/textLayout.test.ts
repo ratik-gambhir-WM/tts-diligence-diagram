@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import type { NormalizedTextRun } from '../export/PowerpointTypes'
+import type { NormalizedTextRun } from '../shared/PowerpointTypes'
 import { layoutSvgText } from './textLayout'
 
 const baseRun: NormalizedTextRun = {

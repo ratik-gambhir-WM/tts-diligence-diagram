@@ -1,6 +1,7 @@
 import { DEFAULT_HEIGHT_PX, DEFAULT_WIDTH_PX } from './PowerpointConstants'
 import type {
   ExtractedSlideSpec,
+  JsonValue,
   NormalizationOptions,
   NormalizedPresentation,
   NormalizedSlide,
@@ -11,7 +12,7 @@ import { normalizeNativePresentation, normalizeNativeSlide } from './PowerpointN
 import { isRecord } from './PowerpointUtils'
 
 export function normalizePresentationSpec(
-  input: unknown,
+  input: JsonValue | undefined,
   options: NormalizationOptions = {},
 ): {
   presentation?: NormalizedPresentation
@@ -68,7 +69,7 @@ export function normalizePresentationSpec(
 }
 
 function normalizeSingleSlideLike(
-  input: unknown,
+  input: JsonValue | undefined,
   issues: ValidationIssue[],
   pathLabel: string,
   options: NormalizationOptions,

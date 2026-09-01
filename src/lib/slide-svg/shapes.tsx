@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 
-import type { NormalizedShapeElement } from '../export/PowerpointTypes'
+import type { NormalizedShapeElement } from '../shared/PowerpointTypes'
 import { toSvgColor } from './svgUtils'
 
 export const SUPPORTED_SHAPE_NAMES = new Set([

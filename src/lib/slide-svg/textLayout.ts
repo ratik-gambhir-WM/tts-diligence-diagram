@@ -2,7 +2,7 @@ import type {
   HorizontalAlign,
   NormalizedTextRun,
   VerticalAlign,
-} from '../export/PowerpointTypes'
+} from '../shared/PowerpointTypes'
 
 export type TextMeasure = (
   text: string,

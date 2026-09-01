@@ -9,6 +9,11 @@ import PptxGenJS from 'pptxgenjs'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { importPowerPoint } from '../src/lib/import/PowerpointImporter'
+import type {
+  PowerPointCanvasElement,
+  PowerPointCanvasShapeElement,
+  PowerPointCanvasTextElement,
+} from '../src/lib/import/PowerpointImportTypes'
 
 const execFileAsync = promisify(execFile)
 let testDir = ''
@@ -85,7 +90,7 @@ beforeAll(async () => {
       colW: [1.65, 2.75],
       border: { type: 'solid', color: 'CED7E6', pt: 0.5 },
       margin: 0.08,
-      valign: 'mid',
+      valign: 'middle',
     },
   )
   await pptx.writeFile({ fileName: sourcePath })
@@ -127,7 +132,7 @@ describe('PowerPoint XML to TemplateCanvas JSON script', () => {
         showBranding: boolean
         slides: Array<{
           backgroundColor: string
-          elements: Array<Record<string, unknown>>
+          elements: PowerPointCanvasElement[]
           id: string
         }>
       }
@@ -235,14 +240,15 @@ describe('PowerPoint XML to TemplateCanvas JSON script', () => {
     const json = JSON.parse(await readFile(outputPath, 'utf8')) as {
       presentation: {
         slides: Array<{
-          elements: Array<Record<string, unknown>>
+          elements: PowerPointCanvasElement[]
         }>
       }
     }
     const elements = json.presentation.slides[0].elements
-    const cell = (text: string) => elements.find((element) => element.text === text) as
-      | Record<string, number | string>
-      | undefined
+    const cell = (text: string) => elements.find(
+      (element): element is PowerPointCanvasShapeElement | PowerPointCanvasTextElement =>
+        'text' in element && element.text === text,
+    )
     const header = cell('Approach')
     const provider = cell('Hosting Provider')
     const methodology = cell('Hosting Methodology')

@@ -2,9 +2,9 @@ const COMMENTARY_FINDING_X_MIN = 430
 const COMMENTARY_FINDING_Y_MIN = 90
 const ORDERED_BULLET_PREFIX_SPACING = ' '
 
-type MutableRecord = Record<string, unknown>
+type MutableRecord = JsonObject
 
-export function ensureCommentaryBulletOrdering(input: unknown): unknown {
+export function ensureCommentaryBulletOrdering<TInput extends JsonValue>(input: TInput): TInput {
   const nextInput = cloneJsonValue(input)
 
   normalizeCommentaryFindingElements(nextInput)
@@ -12,7 +12,7 @@ export function ensureCommentaryBulletOrdering(input: unknown): unknown {
   return nextInput
 }
 
-function normalizeCommentaryFindingElements(value: unknown) {
+function normalizeCommentaryFindingElements(value: JsonValue | undefined) {
   if (Array.isArray(value)) {
     value.forEach(normalizeCommentaryFindingElements)
     return
@@ -78,28 +78,32 @@ function indexToLowerAlpha(index: number) {
   return label
 }
 
-function cloneJsonValue<T>(value: T): T {
+function cloneJsonValue<T extends JsonValue>(value: T): T {
   if (Array.isArray(value)) {
     return value.map((item) => cloneJsonValue(item)) as T
   }
 
   if (isRecord(value)) {
     return Object.fromEntries(
-      Object.entries(value).map(([key, entry]) => [key, cloneJsonValue(entry)]),
+      Object.entries(value).map(([key, entry]) => [
+        key,
+        entry === undefined ? undefined : cloneJsonValue(entry),
+      ]),
     ) as T
   }
 
   return value
 }
 
-function isRecord(value: unknown): value is MutableRecord {
+function isRecord(value: JsonValue | undefined): value is MutableRecord {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
-function asNumber(value: unknown) {
+function asNumber(value: JsonValue | undefined) {
   return typeof value === 'number' && Number.isFinite(value) ? value : Number.NaN
 }
 
-function asString(value: unknown) {
+function asString(value: JsonValue | undefined) {
   return typeof value === 'string' ? value : ''
 }
+import type { JsonObject, JsonValue } from './shared/PowerpointTypes'

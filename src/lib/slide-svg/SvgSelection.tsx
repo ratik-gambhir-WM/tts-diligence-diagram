@@ -1,7 +1,7 @@
 import { memo, type PointerEvent as ReactPointerEvent } from 'react'
 
 import type { SlideElementRef } from '../slide-canvas'
-import { getLinePath } from './SvgLine'
+import { getLinePath, getLineTransform } from './SvgLine'
 import type { ResizeHandle } from './useSvgInteraction'
 
 const HANDLE_SPECS: Array<{
@@ -43,7 +43,7 @@ export const SvgSelection = memo(function SvgSelection({
   const element = elementRef.element
   if (element.kind === 'line') {
     return (
-      <g className="svg-slide-selection">
+      <g className="svg-slide-selection" transform={getLineTransform(element)}>
         <path
           d={getLinePath(element)}
           fill="none"

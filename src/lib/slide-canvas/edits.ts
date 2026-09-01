@@ -1,7 +1,9 @@
 import type {
+  JsonObject,
+  JsonValue,
   NormalizedElement,
   NormalizedLineElement,
-} from '../export/PowerpointTypes'
+} from '../shared/PowerpointTypes'
 import type { SlideElementRef } from './model'
 import { buildNormalizedTextRuns, buildRawTextRuns } from './textRuns'
 
@@ -27,18 +29,18 @@ export type ElementEditRequest = {
   locator: ElementMutationLocator
 }
 
-export function applyElementEditToInput(
-  input: unknown,
+export function applyElementEditToInput<TInput extends JsonValue>(
+  input: TInput,
   locator: ElementMutationLocator,
   edit: ElementEdit,
-) {
+): TInput {
   return applyElementEditsToInput(input, [{ edit, locator }])
 }
 
-export function applyElementEditsToInput(
-  input: unknown,
+export function applyElementEditsToInput<TInput extends JsonValue>(
+  input: TInput,
   requests: ElementEditRequest[],
-) {
+): TInput {
   const nextInput = cloneJsonValue(input)
   requests.forEach(({ edit, locator }) => {
     const target = locateRawElement(nextInput, locator)
@@ -50,15 +52,15 @@ export function applyElementEditsToInput(
   return nextInput
 }
 
-export function deleteElementsFromInput(
-  input: unknown,
+export function deleteElementsFromInput<TInput extends JsonValue>(
+  input: TInput,
   locators: ElementMutationLocator[],
-) {
+): TInput {
   const nextInput = cloneJsonValue(input)
   const targets = new Set(
     locators
       .map((locator) => locateRawElement(nextInput, locator))
-      .filter((target): target is Record<string, unknown> => target !== undefined),
+      .filter((target): target is JsonObject => target !== undefined),
   )
 
   if (targets.size > 0) {
@@ -113,9 +115,9 @@ export function applyElementEdit(element: NormalizedElement, edit: ElementEdit):
 }
 
 function locateRawElement(
-  input: unknown,
+  input: JsonValue,
   locator: ElementMutationLocator,
-): Record<string, unknown> | undefined {
+): JsonObject | undefined {
   const elementIndex = getElementIndex(locator.sourcePath)
   const slide = getRawSlides(input)[locator.slideIndex]
   const sourceCandidate =
@@ -127,12 +129,12 @@ function locateRawElement(
     return sourceCandidate
   }
 
-  const matches: Record<string, unknown>[] = []
+  const matches: JsonObject[] = []
   collectMatchingRawElements(input, locator, matches)
   return matches.length === 1 ? matches[0] : undefined
 }
 
-function getRawSlides(input: unknown): Record<string, unknown>[] {
+function getRawSlides(input: JsonValue): JsonObject[] {
   if (Array.isArray(input)) {
     return input.filter(isRecord)
   }
@@ -172,13 +174,13 @@ function getElementIndex(sourcePath: string) {
 }
 
 function rawElementMatches(
-  rawElement: Record<string, unknown>,
+  rawElement: JsonObject,
   locator: ElementMutationLocator,
 ) {
   return getRawKind(rawElement) === locator.element.kind && getRawIds(rawElement).has(locator.element.id)
 }
 
-function getRawIds(rawElement: Record<string, unknown>) {
+function getRawIds(rawElement: JsonObject) {
   const ids = new Set<string>()
   if (typeof rawElement.id === 'string') {
     ids.add(rawElement.id)
@@ -194,7 +196,7 @@ function getRawIds(rawElement: Record<string, unknown>) {
   return ids
 }
 
-function getRawKind(rawElement: Record<string, unknown>): NormalizedElement['kind'] | undefined {
+function getRawKind(rawElement: JsonObject): NormalizedElement['kind'] | undefined {
   const rawKind = String(
     rawElement.kind ?? rawElement.type ?? rawElement.elementType ?? rawElement.shape ?? '',
   ).toLowerCase()
@@ -216,9 +218,9 @@ function getRawKind(rawElement: Record<string, unknown>): NormalizedElement['kin
 }
 
 function collectMatchingRawElements(
-  value: unknown,
+  value: JsonValue | undefined,
   locator: ElementMutationLocator,
-  matches: Record<string, unknown>[],
+  matches: JsonObject[],
 ) {
   if (Array.isArray(value)) {
     value.forEach((item) => collectMatchingRawElements(item, locator, matches))
@@ -236,7 +238,7 @@ function collectMatchingRawElements(
   Object.values(value).forEach((item) => collectMatchingRawElements(item, locator, matches))
 }
 
-function deleteRawElementObjects(value: unknown, targets: Set<Record<string, unknown>>): boolean {
+function deleteRawElementObjects(value: JsonValue | undefined, targets: Set<JsonObject>): boolean {
   if (Array.isArray(value)) {
     let didDelete = false
     for (let index = value.length - 1; index >= 0; index -= 1) {
@@ -258,7 +260,7 @@ function deleteRawElementObjects(value: unknown, targets: Set<Record<string, unk
   return Object.values(value).some((item) => deleteRawElementObjects(item, targets))
 }
 
-function applyRawElementEdit(element: Record<string, unknown>, edit: ElementEdit) {
+function applyRawElementEdit(element: JsonObject, edit: ElementEdit) {
   for (const key of ['x1', 'y1', 'x2', 'y2', 'lineType'] as const) {
     if (edit[key] !== undefined) {
       element[key] = edit[key]
@@ -288,7 +290,7 @@ function applyRawElementEdit(element: Record<string, unknown>, edit: ElementEdit
   }
 }
 
-function cloneJsonValue<T>(value: T): T {
+function cloneJsonValue<T extends JsonValue>(value: T): T {
   if (typeof structuredClone === 'function') {
     return structuredClone(value)
   }
@@ -299,13 +301,16 @@ function cloneJsonValue<T>(value: T): T {
 
   if (isRecord(value)) {
     return Object.fromEntries(
-      Object.entries(value).map(([key, entry]) => [key, cloneJsonValue(entry)]),
+      Object.entries(value).map(([key, entry]) => [
+        key,
+        entry === undefined ? undefined : cloneJsonValue(entry),
+      ]),
     ) as T
   }
 
   return value
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
+function isRecord(value: JsonValue | undefined): value is JsonObject {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }

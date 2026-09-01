@@ -8,6 +8,7 @@ import {
   type CSSProperties,
   type PointerEvent as ReactPointerEvent,
 } from 'react'
+import type { JsonValue } from '../shared/PowerpointTypes'
 
 import {
   applyElementEdit,
@@ -28,21 +29,21 @@ import { useSvgInteraction } from './useSvgInteraction'
 import { useSvgViewport } from './useSvgViewport'
 import './svg-slide.css'
 
-export interface SvgSlideCanvasProps {
+export interface SvgSlideCanvasProps<TInput extends JsonValue> {
   className?: string
-  input: unknown
-  onChange?: (input: unknown) => void
+  input: TInput
+  onChange?: (input: TInput) => void
   showBranding?: boolean
   slideIndex?: number
 }
 
-export function SvgSlideCanvas({
+export function SvgSlideCanvas<TInput extends JsonValue>({
   className,
   input,
   onChange,
   showBranding,
   slideIndex = 0,
-}: SvgSlideCanvasProps) {
+}: SvgSlideCanvasProps<TInput>) {
   const model = useMemo(
     () => buildSlideCanvasModel(input, { slideIndex }),
     [input, slideIndex],

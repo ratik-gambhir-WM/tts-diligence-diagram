@@ -2,6 +2,7 @@ import { fireEvent, render } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 
 import securitySpec from '../export/json-commentary-templates/slide-02-phase-1.compact copy.json'
+import type { JsonObject, JsonValue } from '../shared/PowerpointTypes'
 import { normalizeCommentaryTemplateSpec } from '../commentaryTemplates'
 import { DIAGRAM_TEMPLATES } from '../diagramTemplates'
 import { applyElementEditToInput, buildSlideCanvasModel } from '../slide-canvas'
@@ -87,6 +88,33 @@ const richTextInput = {
                 breakLine: true,
               },
             ],
+          },
+        ],
+      },
+    ],
+  },
+}
+
+const rotatedLineInput = {
+  presentation: {
+    slides: [
+      {
+        id: 'rotated-line-slide',
+        name: 'Rotated line slide',
+        width: 1280,
+        height: 720,
+        backgroundColor: 'FFFFFF',
+        elements: [
+          {
+            id: 'rotated-line',
+            type: 'line',
+            x1: 100,
+            y1: 100,
+            x2: 200,
+            y2: 100,
+            rotate: 90,
+            stroke: '070154',
+            strokeWidth: 1,
           },
         ],
       },
@@ -229,6 +257,41 @@ describe('SvgSlideCanvas', () => {
     expect(container.querySelector('.svg-slide-live-region')?.textContent).toContain(
       'moved to 101, 100',
     )
+  })
+
+  it('keeps rotated line hit targets, selection, and endpoint edits aligned', () => {
+    const onChange = vi.fn()
+    const { container, getByRole } = render(
+      <SvgSlideCanvas input={rotatedLineInput} onChange={onChange} />,
+    )
+    const line = container.querySelector<SVGGElement>('.svg-slide-element-line')!
+    const hitTarget = line.querySelector<SVGPathElement>('.svg-slide-hit-target')!
+    const visibleTransform = line.querySelector<SVGGElement>('g[transform]')?.getAttribute('transform')
+
+    expect(visibleTransform).toBe('rotate(90 150 100)')
+    expect(hitTarget.getAttribute('transform')).toBe(visibleTransform)
+
+    fireEvent.focus(line)
+    const selection = container.querySelector<SVGGElement>('.svg-slide-selection')!
+    expect(selection.getAttribute('transform')).toBe(visibleTransform)
+
+    const startHandle = selection.querySelector<SVGCircleElement>(
+      '[aria-label="Move line start"]',
+    )!
+    const svg = getByRole('application')
+    fireEvent.pointerDown(startHandle, {
+      button: 0,
+      clientX: 150,
+      clientY: 50,
+      pointerId: 1,
+    })
+    fireEvent.pointerMove(svg, { clientX: 160, clientY: 50, pointerId: 1 })
+    fireEvent.pointerUp(svg, { clientX: 160, clientY: 50, pointerId: 1 })
+
+    expect(onChange).toHaveBeenCalledTimes(1)
+    expect(
+      (onChange.mock.calls[0][0] as typeof rotatedLineInput).presentation.slides[0].elements[0],
+    ).toMatchObject({ x1: 105, y1: 95, x2: 205, y2: 105 })
   })
 
   it('additively selects elements and moves them in one JSON commit', () => {
@@ -577,11 +640,11 @@ describe('architecture diagram SVG compatibility', () => {
   })
 })
 
-function countRawTextRuns(value: unknown): number {
+function countRawTextRuns(value: JsonValue | undefined): number {
   if (Array.isArray(value)) {
-    return value.reduce((total, item) => total + countRawTextRuns(item), 0)
+    return value.reduce<number>((total, item) => total + countRawTextRuns(item), 0)
   }
-  if (typeof value !== 'object' || value === null) {
+  if (!isJsonObject(value)) {
     return 0
   }
 
@@ -590,4 +653,8 @@ function countRawTextRuns(value: unknown): number {
       total + (key === 'runs' && Array.isArray(item) ? item.length : countRawTextRuns(item)),
     0,
   )
+}
+
+function isJsonObject(value: JsonValue | undefined): value is JsonObject {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }

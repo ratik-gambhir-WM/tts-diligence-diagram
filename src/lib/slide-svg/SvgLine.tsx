@@ -1,6 +1,6 @@
 import { memo } from 'react'
 
-import type { NormalizedLineElement } from '../export/PowerpointTypes'
+import type { NormalizedLineElement } from '../shared/PowerpointTypes'
 import { toSvgColor } from './svgUtils'
 
 export const SvgLine = memo(function SvgLine({
@@ -15,12 +15,10 @@ export const SvgLine = memo(function SvgLine({
   const hasStartArrow = !!element.beginArrow && element.beginArrow !== 'none'
   const hasEndArrow = element.endArrow !== 'none'
   const hasMask = element.occlusionRects.length > 0
-  const midX = (element.x1 + element.x2) / 2
-  const midY = (element.y1 + element.y2) / 2
   const path = getLinePath(element)
 
   return (
-    <g transform={element.rotate ? `rotate(${element.rotate} ${midX} ${midY})` : undefined}>
+    <g transform={getLineTransform(element)}>
       <defs>
         {hasEndArrow ? (
           <marker
@@ -88,6 +86,16 @@ export function getLinePath(element: NormalizedLineElement) {
   return element.lineType === 'elbow'
     ? `M ${element.x1} ${element.y1} L ${element.x2} ${element.y1} L ${element.x2} ${element.y2}`
     : `M ${element.x1} ${element.y1} L ${element.x2} ${element.y2}`
+}
+
+export function getLineTransform(element: NormalizedLineElement) {
+  if (!element.rotate) {
+    return undefined
+  }
+
+  const midX = (element.x1 + element.x2) / 2
+  const midY = (element.y1 + element.y2) / 2
+  return `rotate(${element.rotate} ${midX} ${midY})`
 }
 
 function renderArrowMarker(arrow: NonNullable<NormalizedLineElement['beginArrow']>, stroke: string) {

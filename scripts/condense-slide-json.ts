@@ -1,7 +1,9 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
-import { normalizePresentationSpec } from '../src/lib/export/PowerpointNormalizer'
+import { normalizePresentationSpec } from '../src/lib/shared/PowerpointNormalizer'
 import type {
+  JsonObject,
+  JsonValue,
   NormalizedElement,
   NormalizedImageElement,
   NormalizedLineElement,
@@ -9,9 +11,10 @@ import type {
   NormalizedShapeElement,
   NormalizedTextElement,
   NormalizedTextRun,
-} from '../src/lib/export/PowerpointTypes'
+  ThrownValue,
+} from '../src/lib/shared/PowerpointTypes'
 
-type JsonRecord = Record<string, unknown>
+type JsonRecord = JsonObject
 
 async function main() {
   const [, , inputArg = 'src/json/file.json', outputArg = 'src/json/file.compact.json'] =
@@ -19,7 +22,7 @@ async function main() {
   const inputPath = path.resolve(process.cwd(), inputArg)
   const outputPath = path.resolve(process.cwd(), outputArg)
   const raw = await readFile(inputPath, 'utf8')
-  const parsed = JSON.parse(raw) as unknown
+  const parsed = JSON.parse(raw) as JsonValue
   const { presentation, issues } = normalizePresentationSpec(parsed, {
     baseDir: path.dirname(inputPath),
   })
@@ -278,7 +281,7 @@ function formatBytes(bytes: number) {
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`
 }
 
-main().catch((error: unknown) => {
+main().catch((error: ThrownValue) => {
   const message = error instanceof Error ? error.message : String(error)
   console.error(message)
   process.exitCode = 1

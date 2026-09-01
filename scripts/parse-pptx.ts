@@ -1,6 +1,7 @@
 import path from 'node:path'
 
 import { importPowerPoint } from '../src/lib/import/PowerpointImporter'
+import type { ThrownValue } from '../src/lib/shared/PowerpointTypes'
 
 type CliOptions = {
   embedAssets: boolean
@@ -84,7 +85,7 @@ async function main() {
   }
 }
 
-main().catch((error: unknown) => {
+main().catch((error: ThrownValue) => {
   const message = error instanceof Error ? error.message : String(error)
   console.error(message)
   process.exitCode = 1

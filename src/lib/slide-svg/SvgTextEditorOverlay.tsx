@@ -11,7 +11,7 @@ import type {
   NormalizedShapeElement,
   NormalizedTextElement,
   NormalizedTextRun,
-} from '../export/PowerpointTypes'
+} from '../shared/PowerpointTypes'
 import type { SvgTextLayout } from './textLayout'
 import { getSvgTextContent } from './svgTextLayout'
 import { toSvgColor } from './svgUtils'

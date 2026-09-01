@@ -4,6 +4,7 @@ import type { ChangeEvent } from 'react'
 import type { DiagramTemplate } from '../lib/diagramTemplates'
 import { addBrandedSlideFrame } from '../lib/export/PowerpointBranding'
 import { generatePowerPointFromJson, type PowerPointFileHandle } from '../lib/export/exporter'
+import type { JsonObject, JsonValue } from '../lib/shared/PowerpointTypes'
 import { buildSlideCanvasModel } from '../lib/slide-canvas/model'
 import { SvgSlideCanvas } from '../lib/slide-svg/SvgSlideCanvas'
 
@@ -23,7 +24,7 @@ type AddNodeShape = 'database' | 'elbowLine' | 'rectangle' | 'square' | 'straigh
 type TemplateCanvasPageProps = {
   onOpenInputPage: () => void
   onOpenPicker: () => void
-  onTemplateJsonChange: (jsonSpec: unknown) => void
+  onTemplateJsonChange: (jsonSpec: JsonValue) => void
   showJsonByDefault: boolean
   statusMessage: string
   template: DiagramTemplate
@@ -502,12 +503,15 @@ type AddCanvasNodeOptions = {
   slideWidth?: number
 }
 
-type NativeSlideElement = Record<string, unknown>
-type NativeSlideRecord = Record<string, unknown> & {
-  elements?: unknown[]
+type NativeSlideElement = JsonObject
+type NativeSlideRecord = JsonObject & {
+  elements?: JsonValue[]
 }
 
-function addCanvasNodeToTemplateJson(input: unknown, options: AddCanvasNodeOptions) {
+function addCanvasNodeToTemplateJson<TInput extends JsonValue>(
+  input: TInput,
+  options: AddCanvasNodeOptions,
+): TInput {
   const nextInput = cloneTemplateJson(input)
   const targetSlide = getEditableSlideRecord(nextInput)
 
@@ -524,7 +528,7 @@ function addCanvasNodeToTemplateJson(input: unknown, options: AddCanvasNodeOptio
   return nextInput
 }
 
-function removeLineElementsFromTemplateJson(input: unknown) {
+function removeLineElementsFromTemplateJson<TInput extends JsonValue>(input: TInput): TInput {
   const nextInput = cloneTemplateJson(input)
   const targetSlide = getEditableSlideRecord(nextInput)
 
@@ -536,15 +540,15 @@ function removeLineElementsFromTemplateJson(input: unknown) {
   return nextInput
 }
 
-function cloneTemplateJson(input: unknown) {
+function cloneTemplateJson<TInput extends JsonValue>(input: TInput): TInput {
   if (typeof structuredClone === 'function') {
     return structuredClone(input)
   }
 
-  return JSON.parse(JSON.stringify(input)) as unknown
+  return JSON.parse(JSON.stringify(input)) as TInput
 }
 
-function getEditableSlideRecord(input: unknown): NativeSlideRecord | undefined {
+function getEditableSlideRecord(input: JsonValue): NativeSlideRecord | undefined {
   if (Array.isArray(input)) {
     return input.find(hasElementsArray) ?? (input[0] && isRecordValue(input[0]) ? input[0] : undefined)
   }
@@ -574,11 +578,11 @@ function getEditableSlideRecord(input: unknown): NativeSlideRecord | undefined {
   return undefined
 }
 
-function hasElementsArray(value: unknown): value is NativeSlideRecord {
+function hasElementsArray(value: JsonValue | undefined): value is NativeSlideRecord {
   return isRecordValue(value) && Array.isArray(value.elements)
 }
 
-function isRecordValue(value: unknown): value is Record<string, unknown> {
+function isRecordValue(value: JsonValue | undefined): value is JsonObject {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
@@ -633,7 +637,7 @@ function getReadableTextColor(backgroundColor: string) {
   return ['E8EEF8', 'FFC700', '1DD566', '00A3FF'].includes(backgroundColor) ? '070154' : 'FFFFFF'
 }
 
-function isLineElementRecord(value: unknown) {
+function isLineElementRecord(value: JsonValue) {
   if (!isRecordValue(value)) {
     return false
   }

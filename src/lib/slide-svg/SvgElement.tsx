@@ -5,7 +5,7 @@ import {
   type SlideElementRef,
 } from '../slide-canvas'
 import { SvgImage } from './SvgImage'
-import { getLinePath, SvgLine } from './SvgLine'
+import { getLinePath, getLineTransform, SvgLine } from './SvgLine'
 import { SvgShape } from './SvgShape'
 import { SvgTextBlock } from './SvgText'
 
@@ -61,6 +61,7 @@ export const SvgElement = memo(function SvgElement({
           fill="none"
           stroke="transparent"
           strokeWidth={Math.max(element.strokeWidth, 16)}
+          transform={getLineTransform(element)}
         />
       </g>
     )

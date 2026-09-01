@@ -11,7 +11,7 @@ const slideAssetUrlByName = new Map(
   }),
 )
 
-export function resolveBundledSlideAssetImageSources(input: unknown): unknown {
+export function resolveBundledSlideAssetImageSources(input: JsonValue): JsonValue {
   if (Array.isArray(input)) {
     return input.map(resolveBundledSlideAssetImageSources)
   }
@@ -24,7 +24,7 @@ export function resolveBundledSlideAssetImageSources(input: unknown): unknown {
     asLowercaseString(input.kind) === 'image' ||
     asLowercaseString(input.type) === 'image' ||
     asLowercaseString(input.type) === 'picture'
-  const resolved: Record<string, unknown> = {}
+  const resolved: JsonObject = {}
 
   for (const [key, value] of Object.entries(input)) {
     if (isImageElement && (key === 'src' || key === 'path' || key === 'data')) {
@@ -32,13 +32,13 @@ export function resolveBundledSlideAssetImageSources(input: unknown): unknown {
       continue
     }
 
-    resolved[key] = resolveBundledSlideAssetImageSources(value)
+    resolved[key] = value === undefined ? undefined : resolveBundledSlideAssetImageSources(value)
   }
 
   return resolved
 }
 
-function resolveBundledSlideAssetUrl(value: unknown) {
+function resolveBundledSlideAssetUrl(value: JsonValue | undefined) {
   if (typeof value !== 'string') {
     return value
   }
@@ -51,10 +51,11 @@ function resolveBundledSlideAssetUrl(value: unknown) {
   return slideAssetUrlByName.get(fileName) ?? value
 }
 
-function isPlainRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null
+function isPlainRecord(value: JsonValue | undefined): value is JsonObject {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
-function asLowercaseString(value: unknown) {
+function asLowercaseString(value: JsonValue | undefined) {
   return typeof value === 'string' ? value.toLowerCase() : undefined
 }
+import type { JsonObject, JsonValue } from '../shared/PowerpointTypes'

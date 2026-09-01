@@ -1,6 +1,6 @@
 import { memo } from 'react'
 
-import type { NormalizedImageElement } from '../export/PowerpointTypes'
+import type { NormalizedImageElement } from '../shared/PowerpointTypes'
 
 export const SvgImage = memo(function SvgImage({
   clipId,

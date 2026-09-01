@@ -7,7 +7,7 @@ import type {
   WheelEvent as ReactWheelEvent,
 } from 'react'
 
-import type { NormalizedSlide } from '../export/PowerpointTypes'
+import type { NormalizedSlide } from '../shared/PowerpointTypes'
 
 export function SvgSlideViewport({
   children,

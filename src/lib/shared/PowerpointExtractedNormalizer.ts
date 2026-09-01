@@ -205,6 +205,8 @@ function normalizeExtractedElement(
   const lineNode = findChild(element.shapeProperties, 'a:ln')
   const fillReference = findChild(element.style, 'a:fillRef')
   const lineReference = findChild(element.style, 'a:lnRef')
+  const hasLineReference = !!lineReference && lineReference.attributes?.idx !== '0'
+  const lineFill = findChild(lineNode, 'a:solidFill')
   const hasNoFill = hasChild(element.shapeProperties, 'a:noFill')
   const fill = hasNoFill
     ? 'transparent'
@@ -212,11 +214,10 @@ function normalizeExtractedElement(
       ? parseColor(fillNode, theme, 'transparent')
       : parseColor(fillReference, theme, 'transparent')
   const strokeVisible =
-    !!lineNode &&
     !hasChild(lineNode, 'a:noFill') &&
-    (!!findChild(lineNode, 'a:solidFill') || !!lineReference)
+    (!!lineFill || hasLineReference)
   const stroke = strokeVisible
-    ? findChild(lineNode, 'a:solidFill')
+    ? lineFill
       ? parseLineColor(lineNode, theme, '334155')
       : parseColor(lineReference, theme, '334155')
     : 'transparent'
@@ -231,7 +232,7 @@ function normalizeExtractedElement(
   const padding = bodyPadding(textBody?.bodyProperties)
   const shapeName = presetShape
   const fillOpacity = parseColorOpacity(fillNode ?? fillReference)
-  const strokeOpacity = parseColorOpacity(findChild(lineNode, 'a:solidFill') ?? lineReference)
+  const strokeOpacity = parseColorOpacity(lineFill ?? lineReference)
 
   if (!label && w <= 0 && h <= 0) {
     return []

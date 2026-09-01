@@ -1,9 +1,9 @@
-import { DEFAULT_FONT_FACE } from '../export/PowerpointConstants'
+import { DEFAULT_FONT_FACE } from '../shared/PowerpointConstants'
 import type {
   NormalizedShapeElement,
   NormalizedTextElement,
   NormalizedTextRun,
-} from '../export/PowerpointTypes'
+} from '../shared/PowerpointTypes'
 import type { SlideElementRef } from '../slide-canvas/model'
 import { createCanvasTextMeasurer, layoutSvgText } from './textLayout'
 

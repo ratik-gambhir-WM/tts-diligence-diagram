@@ -12,6 +12,7 @@ import slideTextOnlyInstructions from '../prompts/SlideTextOnlyPrompt.md?raw'
 import { SLIDE_PROMPT_OUTPUT_FORMAT } from '../types/SlidePromptOutput'
 import type { SlidePromptOutput } from '../types/SlidePromptOutput'
 import { getExtension } from '../utils/files'
+import type { JsonValue } from './shared/PowerpointTypes'
 
 type CreateOpenAIResponseParams = {
   attachments?: File[]
@@ -24,7 +25,7 @@ type CreateOpenAIResponseParams = {
 type GenerateSlidePromptOutputParams = {
   attachments?: File[]
   prompt?: string
-  templateJson: unknown
+  templateJson: JsonValue
 }
 
 const DEFAULT_MODEL = import.meta.env.VITE_OPENAI_MODEL || 'gpt-5.2'
@@ -173,7 +174,7 @@ export async function createOpenAIResponse({
   })
 }
 
-function buildSlideTextOnlyPrompt(templateJson: unknown, prompt?: string) {
+function buildSlideTextOnlyPrompt(templateJson: JsonValue, prompt?: string) {
   const userContext = prompt?.trim()
 
   return [

@@ -1,6 +1,6 @@
 import { memo, type PointerEvent as ReactPointerEvent } from 'react'
 
-import type { NormalizedSlide } from '../export/PowerpointTypes'
+import type { NormalizedSlide } from '../shared/PowerpointTypes'
 import type { SlideElementRef } from '../slide-canvas'
 import { SvgBrandFrame } from './SvgBrandFrame'
 import { SvgElement } from './SvgElement'
