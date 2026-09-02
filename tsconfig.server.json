@@ -1,0 +1,25 @@
+{
+  "compilerOptions": {
+    "target": "ES2023",
+    "lib": ["ES2023", "DOM"],
+    "module": "ESNext",
+    "skipLibCheck": true,
+    "moduleResolution": "Bundler",
+    "allowImportingTsExtensions": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedSideEffectImports": true,
+    "types": ["node"]
+  },
+  "include": [
+    "server/**/*.ts",
+    "src/lib/WestMonroeBrandFrame.ts",
+    "src/lib/export/PowerpointGenerator.ts",
+    "src/lib/import/**/*.ts",
+    "src/lib/shared/**/*.ts"
+  ]
+}

@@ -18,6 +18,8 @@ pnpm-debug.log*
 
 coverage/
 
+/data/*.sqlite*
+
 .vite/
 
 .DS_Store
