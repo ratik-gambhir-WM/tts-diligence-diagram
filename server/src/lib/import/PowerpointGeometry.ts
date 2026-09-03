@@ -1,4 +1,11 @@
-import { EMU_PER_INCH } from '../shared/PowerpointConstants'
+import {
+  DEGREES_PER_CIRCLE,
+  EMU_PER_DEGREE,
+  EMU_PER_INCH,
+  DEGREES_PER_HALF_CIRCLE,
+  GEOMETRY_DECIMAL_PLACES,
+  ZERO_ANGLE_TOLERANCE,
+} from '../shared/PowerpointConstants'
 import type { XmlNode } from '../shared/PowerpointTypes'
 import type { TransformMatrix } from './PowerpointImportTypes'
 import { emuToPx, firstDefined, round } from './PowerpointImportUtils'
@@ -29,7 +36,7 @@ export function extractElementTransform(
   const x = transformedCenter.x - w / 2
   const y = transformedCenter.y - h / 2
   const parentRotation = (Math.atan2(matrix.b, matrix.a) * 180) / Math.PI
-  const ownRotation = xfrm?.attributes?.rot ? Number(xfrm.attributes.rot) / 60000 : 0
+  const ownRotation = xfrm?.attributes?.rot ? Number(xfrm.attributes.rot) / EMU_PER_DEGREE : 0
   const rotation = normalizeDegrees(parentRotation + ownRotation)
   const matrixIsReflected = matrix.a * matrix.d - matrix.b * matrix.c < 0
 
@@ -41,10 +48,10 @@ export function extractElementTransform(
     rotation,
     flipH: xfrm?.attributes?.flipH === '1',
     flipV: (xfrm?.attributes?.flipV === '1') !== matrixIsReflected,
-    xInches: round(x / EMU_PER_INCH, 4),
-    yInches: round(y / EMU_PER_INCH, 4),
-    widthInches: round(w / EMU_PER_INCH, 4),
-    heightInches: round(h / EMU_PER_INCH, 4),
+    xInches: round(x / EMU_PER_INCH, GEOMETRY_DECIMAL_PLACES),
+    yInches: round(y / EMU_PER_INCH, GEOMETRY_DECIMAL_PLACES),
+    widthInches: round(w / EMU_PER_INCH, GEOMETRY_DECIMAL_PLACES),
+    heightInches: round(h / EMU_PER_INCH, GEOMETRY_DECIMAL_PLACES),
   }
 }
 
@@ -81,7 +88,7 @@ export function groupTransform(node: XmlNode): TransformMatrix {
   const rotation = rotateAround(
     centerX,
     centerY,
-    xfrm?.attributes?.rot ? Number(xfrm.attributes.rot) / 60000 : 0,
+    xfrm?.attributes?.rot ? Number(xfrm.attributes.rot) / EMU_PER_DEGREE : 0,
   )
 
   return multiplyTransform(rotation, multiplyTransform(flip, base))
@@ -156,5 +163,7 @@ function scaleAround(
 
 function normalizeDegrees(value: number) {
   const normalized = ((value % 360) + 360) % 360
-  return Math.abs(normalized) < 0.0001 ? 0 : round(normalized, 4)
+  return Math.abs(normalized) < ZERO_ANGLE_TOLERANCE
+    ? 0
+    : round(normalized, GEOMETRY_DECIMAL_PLACES)
 }

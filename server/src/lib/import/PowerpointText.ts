@@ -12,6 +12,16 @@ import type {
 import { cleanHex } from '../shared/PowerpointUtils'
 import { firstDefined, positiveInt } from './PowerpointImportUtils'
 import { child, children, findDescendant } from './PowerpointXml'
+import {
+  DEFAULT_FONT_FACE,
+  DEFAULT_THEME,
+  OOXML_FONT_SIZE_SCALE,
+} from '../shared/PowerpointConstants'
+
+const DARK_COLOR_RED_WEIGHT = 0.299
+const DARK_COLOR_GREEN_WEIGHT = 0.587
+const DARK_COLOR_BLUE_WEIGHT = 0.114
+const DARK_COLOR_LUMINANCE_THRESHOLD = 145
 
 export function extractText(textNode: XmlNode | undefined, fallbackTextNodes: Array<XmlNode | undefined> = []) {
   if (!textNode) {
@@ -232,7 +242,7 @@ function resolveRunColor(properties: Record<string, string>, theme: ThemeTypogra
 
 function resolveRunFontSize(properties: Record<string, string>) {
   const size = Number(properties.sz)
-  return Number.isFinite(size) && size > 0 ? size / 100 : undefined
+  return Number.isFinite(size) && size > 0 ? size / OOXML_FONT_SIZE_SCALE : undefined
 }
 
 function extractRunTypeface(runProperties: XmlNode | undefined) {
@@ -269,9 +279,9 @@ function extractFillColorValue(fillNode: XmlNode | undefined) {
 function extractThemeTypography(supportParts: ExtractedSlideRecord['supportParts']): ThemeTypography {
   const rawXml = supportParts?.['ppt/theme/theme1.xml']?.rawXml
   const fallback = {
-    bodyFont: 'Arial',
-    headingFont: 'Arial',
-    colors: defaultThemeColors(),
+    bodyFont: DEFAULT_FONT_FACE,
+    headingFont: DEFAULT_FONT_FACE,
+    colors: { ...DEFAULT_THEME },
   }
 
   if (!rawXml) {
@@ -292,7 +302,7 @@ function extractThemeFont(rawXml: string, fontKind: 'majorFont' | 'minorFont') {
 }
 
 function extractThemeColors(rawXml: string) {
-  const colors: Record<string, string> = defaultThemeColors()
+  const colors: Record<string, string> = { ...DEFAULT_THEME }
 
   for (const key of Object.keys(colors)) {
     const match = rawXml.match(
@@ -307,23 +317,6 @@ function extractThemeColors(rawXml: string) {
   }
 
   return colors
-}
-
-function defaultThemeColors() {
-  return {
-    dk1: '070154',
-    lt1: 'FFFFFF',
-    dk2: '0047FF',
-    lt2: 'F6EB20',
-    accent1: 'F900D3',
-    accent2: '50658E',
-    accent3: 'CED7E6',
-    accent4: 'E8EEF8',
-    accent5: '00E8FA',
-    accent6: '00A3FF',
-    hlink: '0563C1',
-    folHlink: '954F72',
-  } satisfies Record<string, string>
 }
 
 function mapSchemeColorKey(value: string) {
@@ -397,7 +390,11 @@ export function isDarkHex(value: string) {
   const red = Number.parseInt(normalized.slice(0, 2), 16)
   const green = Number.parseInt(normalized.slice(2, 4), 16)
   const blue = Number.parseInt(normalized.slice(4, 6), 16)
-  return red * 0.299 + green * 0.587 + blue * 0.114 < 145
+  const luminance =
+    red * DARK_COLOR_RED_WEIGHT +
+    green * DARK_COLOR_GREEN_WEIGHT +
+    blue * DARK_COLOR_BLUE_WEIGHT
+  return luminance < DARK_COLOR_LUMINANCE_THRESHOLD
 }
 
 export function schemeColorFallback(value: string | undefined) {

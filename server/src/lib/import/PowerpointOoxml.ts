@@ -1,7 +1,12 @@
 import path from 'node:path'
 import type JSZip from 'jszip'
 
-import { EMU_PER_INCH, PX_PER_INCH } from '../shared/PowerpointConstants'
+import {
+  DEFAULT_SLIDE_HEIGHT_EMU,
+  DEFAULT_SLIDE_WIDTH_EMU,
+  EMU_PER_INCH,
+  PX_PER_INCH,
+} from '../shared/PowerpointConstants'
 import type { ExtractedRelationship } from '../shared/PowerpointTypes'
 import type { ExtractedSupportPartRecord } from './PowerpointImportTypes'
 import { round } from './PowerpointImportUtils'
@@ -26,7 +31,7 @@ export async function collectSupportParts(zip: JSZip, relationships: ExtractedRe
       continue
     }
 
-    const bytes = await maybeReadZipBytes(zip, relationship.resolvedTarget)
+    const bytes = await zip.file(relationship.resolvedTarget)?.async('nodebuffer')
     if (!bytes) {
       continue
     }
@@ -54,8 +59,8 @@ export function extractSlidePaths(presentationXml: string, relationships: Extrac
 export function extractSlideSize(presentationXml: string) {
   const presentation = parseXml(presentationXml)
   const sldSz = findDescendant(presentation, 'p:sldSz')
-  const cx = Number(sldSz?.attributes?.cx) || 12192000
-  const cy = Number(sldSz?.attributes?.cy) || 6858000
+  const cx = Number(sldSz?.attributes?.cx) || DEFAULT_SLIDE_WIDTH_EMU
+  const cy = Number(sldSz?.attributes?.cy) || DEFAULT_SLIDE_HEIGHT_EMU
   return {
     cx,
     cy,
@@ -89,11 +94,6 @@ export async function readZipText(zip: JSZip, filePath: string) {
 
 export async function maybeReadZipText(zip: JSZip, filePath: string) {
   return zip.file(filePath)?.async('text')
-}
-
-export async function maybeReadZipBytes(zip: JSZip, filePath: string) {
-  const bytes = await zip.file(filePath)?.async('nodebuffer')
-  return bytes
 }
 
 export function relationshipPathFor(partPath: string) {

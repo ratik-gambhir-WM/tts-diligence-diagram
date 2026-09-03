@@ -1,5 +1,14 @@
 import { extractElementTransform } from './PowerpointGeometry'
-import { EMU_PER_INCH, PX_PER_INCH } from '../shared/PowerpointConstants'
+import {
+  DEFAULT_TABLE_FONT_SIZE_PT,
+  DEFAULT_BACKGROUND_COLOR,
+  DEFAULT_TEXT_COLOR,
+  EMU_PER_INCH,
+  MIN_ELEMENT_SIZE_PX,
+  OOXML_FONT_SIZE_SCALE,
+  POINTS_PER_INCH,
+  PX_PER_INCH,
+} from '../shared/PowerpointConstants'
 import type { XmlNode } from '../shared/PowerpointTypes'
 import type { ExtractedElementRecord, TransformMatrix } from './PowerpointImportTypes'
 import {
@@ -18,6 +27,14 @@ import {
 } from './PowerpointText'
 import { child, children, descendants, findDescendant, hasChild } from './PowerpointXml'
 
+const TABLE_ID_SCALE = 1000
+const TABLE_CELL_ROW_ID_SCALE = 100
+const DEFAULT_TABLE_PART_WEIGHT = 1
+const TABLE_EXTRA_LINE_WEIGHT = 0.5
+const TABLE_AVERAGE_CHARACTER_WIDTH_FACTOR = 0.46
+const DEFAULT_TABLE_INSET_INCHES = 0.1
+const TABLE_DECIMAL_PLACES = 4
+
 export function extractTableElements(
   node: XmlNode,
   matrix: TransformMatrix,
@@ -35,8 +52,13 @@ export function extractTableElements(
   const gridColumns = children(child(table, 'a:tblGrid'), 'a:gridCol')
   const columnCount = Math.max(
     gridColumns.length,
-    ...rows.map((row) => children(row, 'a:tc').reduce((sum, cell) => sum + positiveInt(cell.attributes?.gridSpan, 1), 0)),
-    1,
+    ...rows.map((row) =>
+      children(row, 'a:tc').reduce(
+        (sum, cell) => sum + positiveInt(cell.attributes?.gridSpan, MIN_ELEMENT_SIZE_PX),
+        0,
+      ),
+    ),
+    MIN_ELEMENT_SIZE_PX,
   )
   const columnWidths = resolveTablePartSizes(
     gridColumns.map((column) => Number(column.attributes?.w) || 0),
@@ -45,12 +67,12 @@ export function extractTableElements(
   )
   const rowHeights = resolveTablePartSizes(
     rows.map((row) => Number(row.attributes?.h) || 0),
-    Math.max(rows.length, 1),
+    Math.max(rows.length, MIN_ELEMENT_SIZE_PX),
     frame.heightPx,
     tableAutoRowWeights(rows, columnWidths),
   )
-  const totalColumnWidth = positiveNumber(sum(columnWidths), 1)
-  const totalRowHeight = positiveNumber(sum(rowHeights), 1)
+  const totalColumnWidth = positiveNumber(sum(columnWidths), MIN_ELEMENT_SIZE_PX)
+  const totalRowHeight = positiveNumber(sum(rowHeights), MIN_ELEMENT_SIZE_PX)
   const elements: ExtractedElementRecord[] = []
   const fallbackLine = tableDefaultLine(table)
 
@@ -58,8 +80,14 @@ export function extractTableElements(
     let columnIndex = 0
 
     for (const cell of children(row, 'a:tc')) {
-      const gridSpan = Math.min(positiveInt(cell.attributes?.gridSpan, 1), columnCount - columnIndex)
-      const rowSpan = Math.min(positiveInt(cell.attributes?.rowSpan, 1), rows.length - rowIndex)
+      const gridSpan = Math.min(
+        positiveInt(cell.attributes?.gridSpan, MIN_ELEMENT_SIZE_PX),
+        columnCount - columnIndex,
+      )
+      const rowSpan = Math.min(
+        positiveInt(cell.attributes?.rowSpan, MIN_ELEMENT_SIZE_PX),
+        rows.length - rowIndex,
+      )
 
       if (cell.attributes?.hMerge === '1' || cell.attributes?.vMerge === '1') {
         columnIndex += gridSpan
@@ -70,15 +98,17 @@ export function extractTableElements(
       const cellHeight = (frame.heightPx * sum(rowHeights.slice(rowIndex, rowIndex + rowSpan))) / totalRowHeight
       const cellX = frame.xPx + (frame.widthPx * sum(columnWidths.slice(0, columnIndex))) / totalColumnWidth
       const cellY = frame.yPx + (frame.heightPx * sum(rowHeights.slice(0, rowIndex))) / totalRowHeight
-      const idBase = nonVisual.id ? nonVisual.id * 1000 : (baseIndex + 1) * 1000
+      const idBase = nonVisual.id
+        ? nonVisual.id * TABLE_ID_SCALE
+        : (baseIndex + 1) * TABLE_ID_SCALE
 
       elements.push({
         path: `${pathLabel}#table[${baseIndex + 1}].row[${rowIndex + 1}].cell[${columnIndex + 1}]`,
-        zIndex: baseIndex + elements.length / 1000,
+        zIndex: baseIndex + elements.length / TABLE_ID_SCALE,
         tag: 'a:tc',
         kind: 'shape',
         nonVisual: {
-          id: idBase + rowIndex * 100 + columnIndex + 1,
+          id: idBase + rowIndex * TABLE_CELL_ROW_ID_SCALE + columnIndex + 1,
           name: `${nonVisual.name || 'Table'} Cell ${rowIndex + 1}-${columnIndex + 1}`,
           hidden: nonVisual.hidden,
         },
@@ -88,10 +118,10 @@ export function extractTableElements(
           widthPx: round(cellWidth),
           heightPx: round(cellHeight),
           rotation: frame.rotation,
-          xInches: round(cellX / PX_PER_INCH, 4),
-          yInches: round(cellY / PX_PER_INCH, 4),
-          widthInches: round(cellWidth / PX_PER_INCH, 4),
-          heightInches: round(cellHeight / PX_PER_INCH, 4),
+          xInches: round(cellX / PX_PER_INCH, TABLE_DECIMAL_PLACES),
+          yInches: round(cellY / PX_PER_INCH, TABLE_DECIMAL_PLACES),
+          widthInches: round(cellWidth / PX_PER_INCH, TABLE_DECIMAL_PLACES),
+          heightInches: round(cellHeight / PX_PER_INCH, TABLE_DECIMAL_PLACES),
         },
         presetGeometry: {
           preset: 'rect',
@@ -167,7 +197,9 @@ function tableCellTextStyle(cell: XmlNode): XmlNode {
     .map((runProperties) => cloneColorNode(child(runProperties, 'a:solidFill')))
     .find((colorNode) => !!colorNode)
   const fillColor = tableCellFillColor(child(cell, 'a:tcPr'))
-  const fallbackColor = fillColor && isDarkHex(fillColor) ? 'FFFFFF' : '111827'
+  const fallbackColor = fillColor && isDarkHex(fillColor)
+    ? DEFAULT_BACKGROUND_COLOR
+    : DEFAULT_TEXT_COLOR
 
   return {
     tag: 'p:style',
@@ -230,24 +262,29 @@ function resolveTablePartSizes(
 
   if (remainingSize > 0) {
     const missingWeightTotal = missingIndexes.reduce(
-      (total, index) => total + positiveNumber(autoWeights[index], 1),
+      (total, index) => total + positiveNumber(autoWeights[index], DEFAULT_TABLE_PART_WEIGHT),
       0,
     )
     for (const index of missingIndexes) {
-      resolved[index] = (remainingSize * positiveNumber(autoWeights[index], 1)) / missingWeightTotal
+      resolved[index] =
+        (remainingSize * positiveNumber(autoWeights[index], DEFAULT_TABLE_PART_WEIGHT)) /
+        missingWeightTotal
     }
     return resolved
   }
 
   const explicitPerWeight = explicitSizes
-    .map((value, index) => value / positiveNumber(autoWeights[index], 1))
+    .map((value, index) => value / positiveNumber(autoWeights[index], DEFAULT_TABLE_PART_WEIGHT))
     .filter((value) => value > 0)
     .sort((left, right) => left - right)
   const typicalSizePerWeight =
-    explicitPerWeight[Math.floor(explicitPerWeight.length / 2)] || targetSize / Math.max(count, 1) || 1
+    explicitPerWeight[Math.floor(explicitPerWeight.length / 2)] ||
+    targetSize / Math.max(count, MIN_ELEMENT_SIZE_PX) ||
+    DEFAULT_TABLE_PART_WEIGHT
 
   for (const index of missingIndexes) {
-    resolved[index] = typicalSizePerWeight * positiveNumber(autoWeights[index], 1)
+    resolved[index] =
+      typicalSizePerWeight * positiveNumber(autoWeights[index], DEFAULT_TABLE_PART_WEIGHT)
   }
 
   return scaleTableParts(resolved, targetSize)
@@ -256,7 +293,7 @@ function resolveTablePartSizes(
 function scaleTableParts(values: number[], totalSizePx: number) {
   const currentTotal = values.reduce((total, value) => total + value, 0)
   if (currentTotal <= 0) {
-    return values.map(() => totalSizePx / Math.max(values.length, 1))
+    return values.map(() => totalSizePx / Math.max(values.length, MIN_ELEMENT_SIZE_PX))
   }
   return values.map((value) => (value * totalSizePx) / currentTotal)
 }
@@ -264,12 +301,12 @@ function scaleTableParts(values: number[], totalSizePx: number) {
 function tableAutoRowWeights(rows: XmlNode[], columnWidths: number[]) {
   return rows.map((row) => {
     let columnIndex = 0
-    let rowWeight = 1
+    let rowWeight = DEFAULT_TABLE_PART_WEIGHT
 
     for (const cell of children(row, 'a:tc')) {
       const gridSpan = Math.min(
-        positiveInt(cell.attributes?.gridSpan, 1),
-        Math.max(columnWidths.length - columnIndex, 1),
+        positiveInt(cell.attributes?.gridSpan, MIN_ELEMENT_SIZE_PX),
+        Math.max(columnWidths.length - columnIndex, MIN_ELEMENT_SIZE_PX),
       )
       const cellWidth = columnWidths
         .slice(columnIndex, columnIndex + gridSpan)
@@ -277,8 +314,13 @@ function tableAutoRowWeights(rows: XmlNode[], columnWidths: number[]) {
 
       if (cell.attributes?.hMerge !== '1' && cell.attributes?.vMerge !== '1') {
         const lineCount = estimateTableCellLineCount(cell, cellWidth)
-        const rowSpan = positiveInt(cell.attributes?.rowSpan, 1)
-        rowWeight = Math.max(rowWeight, (1 + Math.max(lineCount - 1, 0) * 0.5) / rowSpan)
+        const rowSpan = positiveInt(cell.attributes?.rowSpan, MIN_ELEMENT_SIZE_PX)
+        rowWeight = Math.max(
+          rowWeight,
+          (DEFAULT_TABLE_PART_WEIGHT +
+            Math.max(lineCount - DEFAULT_TABLE_PART_WEIGHT, 0) * TABLE_EXTRA_LINE_WEIGHT) /
+            rowSpan,
+        )
       }
 
       columnIndex += gridSpan
@@ -296,15 +338,26 @@ function estimateTableCellLineCount(cell: XmlNode, cellWidthPx: number) {
   const leftInset = tableCellInsetPx(tcPr?.attributes?.marL)
   const rightInset = tableCellInsetPx(tcPr?.attributes?.marR)
   const availableWidth = Math.max(cellWidthPx - leftInset - rightInset, fontSizePoints)
-  const averageCharacterWidth = Math.max(fontSizePoints * (PX_PER_INCH / 72) * 0.46, 1)
-  const lineCapacity = Math.max(Math.floor(availableWidth / averageCharacterWidth), 1)
+  const averageCharacterWidth = Math.max(
+    fontSizePoints * (PX_PER_INCH / POINTS_PER_INCH) * TABLE_AVERAGE_CHARACTER_WIDTH_FACTOR,
+    MIN_ELEMENT_SIZE_PX,
+  )
+  const lineCapacity = Math.max(
+    Math.floor(availableWidth / averageCharacterWidth),
+    MIN_ELEMENT_SIZE_PX,
+  )
 
   return Math.max(
     logicalLines.reduce(
-      (total, line) => total + Math.max(Math.ceil(Math.max(line.trim().length, 1) / lineCapacity), 1),
+      (total, line) =>
+        total +
+        Math.max(
+          Math.ceil(Math.max(line.trim().length, MIN_ELEMENT_SIZE_PX) / lineCapacity),
+          MIN_ELEMENT_SIZE_PX,
+        ),
       0,
     ),
-    1,
+    MIN_ELEMENT_SIZE_PX,
   )
 }
 
@@ -313,10 +366,14 @@ function tableCellFontSizePoints(cell: XmlNode) {
   const sizeNode = [...descendants(textBody, 'a:rPr'), ...descendants(textBody, 'a:defRPr'), ...descendants(textBody, 'a:endParaRPr')]
     .find((node) => Number(node.attributes?.sz) > 0)
   const size = Number(sizeNode?.attributes?.sz)
-  return Number.isFinite(size) && size > 0 ? size / 100 : 12
+  return Number.isFinite(size) && size > 0
+    ? size / OOXML_FONT_SIZE_SCALE
+    : DEFAULT_TABLE_FONT_SIZE_PT
 }
 
 function tableCellInsetPx(value: string | undefined) {
   const emu = Number(value)
-  return Number.isFinite(emu) && emu >= 0 ? (emu / EMU_PER_INCH) * PX_PER_INCH : PX_PER_INCH * 0.1
+  return Number.isFinite(emu) && emu >= 0
+    ? (emu / EMU_PER_INCH) * PX_PER_INCH
+    : PX_PER_INCH * DEFAULT_TABLE_INSET_INCHES
 }

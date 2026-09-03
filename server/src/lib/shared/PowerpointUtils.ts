@@ -1,4 +1,14 @@
-import { EMU_PER_INCH, PX_PER_INCH, shapeAliases } from './PowerpointConstants'
+import {
+  DEFAULT_LINE_WIDTH_PT,
+  DEFAULT_OPACITY,
+  DEFAULT_TEXT_PADDING_PT,
+  EMU_PER_INCH,
+  EMU_PER_POINT,
+  OOXML_PERCENT_SCALE,
+  POINTS_PER_INCH,
+  PX_PER_INCH,
+  shapeAliases,
+} from './PowerpointConstants'
 import type {
   JsonObject,
   DashStyle,
@@ -40,12 +50,12 @@ export function parseColor(fillNode: XmlNode | undefined, theme: Record<string, 
 export function parseColorOpacity(fillNode: XmlNode | undefined) {
   const colorNode = fillNode?.children?.find((child) => isColorTag(child.tag))
   if (!colorNode) {
-    return 1
+    return DEFAULT_OPACITY
   }
 
-  let opacity = 1
+  let opacity = DEFAULT_OPACITY
   for (const modifier of colorNode.children ?? []) {
-    const value = Number(modifier.attributes?.val ?? 100000) / 100000
+    const value = Number(modifier.attributes?.val ?? OOXML_PERCENT_SCALE) / OOXML_PERCENT_SCALE
     if (modifier.tag === 'a:alpha') {
       opacity = value
     } else if (modifier.tag === 'a:alphaMod') {
@@ -84,12 +94,12 @@ export function applyColorModifiers(baseHex: string, children: XmlNode[]) {
 
   for (const child of children) {
     if (child.tag === 'a:shade') {
-      const factor = Number(child.attributes?.val ?? '100000') / 100000
+      const factor = Number(child.attributes?.val ?? OOXML_PERCENT_SCALE) / OOXML_PERCENT_SCALE
       rgb = rgb.map((channel) => Math.round(channel * factor)) as [number, number, number]
     }
 
     if (child.tag === 'a:tint') {
-      const factor = Number(child.attributes?.val ?? '0') / 100000
+      const factor = Number(child.attributes?.val ?? '0') / OOXML_PERCENT_SCALE
       rgb = rgb.map((channel) => Math.round(channel + (255 - channel) * factor)) as [
         number,
         number,
@@ -228,7 +238,7 @@ export function bodyPadding(bodyProperties: Record<string, string> | undefined) 
   ]
   const definedInsets = rawInsets.filter((value): value is string => value !== undefined)
   if (!definedInsets.length) {
-    return 8
+    return DEFAULT_TEXT_PADDING_PT
   }
 
   const insets = definedInsets.map(emuToPoints)
@@ -266,9 +276,9 @@ export function normalizeImageFit(value: string | undefined): NormalizedImageEle
 export function emuLineWidthToPoints(value: string | undefined) {
   const width = Number(value)
   if (!Number.isFinite(width) || width <= 0) {
-    return 1
+    return DEFAULT_LINE_WIDTH_PT
   }
-  return width / 12700
+  return width / EMU_PER_POINT
 }
 
 export function emuToPoints(value: string | undefined) {
@@ -276,7 +286,7 @@ export function emuToPoints(value: string | undefined) {
   if (!Number.isFinite(emu) || emu <= 0) {
     return 0
   }
-  return (emu / EMU_PER_INCH) * 72
+  return (emu / EMU_PER_INCH) * POINTS_PER_INCH
 }
 
 export function inchesToPx(inches: number) {

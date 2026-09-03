@@ -14,6 +14,8 @@ import { hydrateTemplateAssetSources } from './TemplateAssets'
 const MAX_JSON_DEPTH = 100
 const MAX_JSON_NODES = 100_000
 const MAX_EMBEDDED_IMAGE_BYTES = 40 * 1024 * 1024
+const BASE64_BYTES_PER_QUARTET = 3
+const BASE64_CHARACTERS_PER_QUARTET = 4
 
 export type ExportedPowerPoint = {
   bytes: Uint8Array
@@ -129,7 +131,9 @@ function validateImageSources(presentation: NormalizedPresentation) {
       }
 
       const base64 = match[1] ?? ''
-      embeddedBytes += Math.floor((base64.length * 3) / 4)
+      embeddedBytes += Math.floor(
+        (base64.length * BASE64_BYTES_PER_QUARTET) / BASE64_CHARACTERS_PER_QUARTET,
+      )
       if (embeddedBytes > MAX_EMBEDDED_IMAGE_BYTES) {
         throw new ApiError(
           413,

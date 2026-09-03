@@ -1,7 +1,17 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises'
 import path from 'node:path'
 import JSZip from 'jszip'
-import { EMU_PER_INCH, PX_PER_INCH } from '../shared/PowerpointConstants'
+import {
+  BACKGROUND_ELEMENT_ID_BASE,
+  BACKGROUND_Z_INDEX_OFFSET,
+  EMU_PER_INCH,
+  GEOMETRY_DECIMAL_PLACES,
+  INHERITED_LAYOUT_Z_INDEX,
+  INHERITED_MASTER_Z_INDEX,
+  PX_PER_INCH,
+  SLIDE_BACKGROUND_Z_INDEX,
+  SLIDE_BOUNDS_TOLERANCE_PX,
+} from '../shared/PowerpointConstants'
 import { normalizePresentationSpec } from '../shared/PowerpointNormalizer'
 import type {
   ExtractedRelationship,
@@ -221,7 +231,7 @@ async function extractSlide(
     slideAst,
     slidePath,
     'Slide',
-    -2500,
+    SLIDE_BACKGROUND_Z_INDEX,
     slideSize,
   )
   const shapeTree = findDescendant(slideAst, 'p:spTree')
@@ -258,8 +268,8 @@ async function extractSlide(
     slideSize: {
       cx: slideSize.cx,
       cy: slideSize.cy,
-      widthInches: round(slideSize.cx / EMU_PER_INCH, 4),
-      heightInches: round(slideSize.cy / EMU_PER_INCH, 4),
+      widthInches: round(slideSize.cx / EMU_PER_INCH, GEOMETRY_DECIMAL_PLACES),
+      heightInches: round(slideSize.cy / EMU_PER_INCH, GEOMETRY_DECIMAL_PLACES),
       widthPx: slideSize.widthPx,
       heightPx: slideSize.heightPx,
     },
@@ -285,13 +295,25 @@ async function extractInheritedSlideParts(
     relationship.Type?.includes('/slideLayout'),
   )
   const layout = layoutRelationship?.resolvedTarget
-    ? await extractRelatedDrawablePart(zip, layoutRelationship.resolvedTarget, 'layout', -2000, slideSize)
+    ? await extractRelatedDrawablePart(
+        zip,
+        layoutRelationship.resolvedTarget,
+        'layout',
+        INHERITED_LAYOUT_Z_INDEX,
+        slideSize,
+      )
     : emptyDrawablePart()
   const masterRelationship = layout.rawRelationships.find((relationship) =>
     relationship.Type?.includes('/slideMaster'),
   )
   const master = masterRelationship?.resolvedTarget
-    ? await extractRelatedDrawablePart(zip, masterRelationship.resolvedTarget, 'master', -3000, slideSize)
+    ? await extractRelatedDrawablePart(
+        zip,
+        masterRelationship.resolvedTarget,
+        'master',
+        INHERITED_MASTER_Z_INDEX,
+        slideSize,
+      )
     : emptyDrawablePart()
 
   return {
@@ -332,7 +354,7 @@ async function extractRelatedDrawablePart(
     partAst,
     `${partPath}#${label}`,
     `${label[0]?.toUpperCase() ?? ''}${label.slice(1)}`,
-    zOffset - 1000,
+    zOffset + BACKGROUND_Z_INDEX_OFFSET,
     slideSize,
     partPath,
   )
@@ -382,7 +404,7 @@ function extractBackgroundImageElement(
   }
 
   const scopedId = relationshipScope ? scopedRelationshipId(relationshipScope, relationshipId) : relationshipId
-  const id = 900000 + Math.abs(Math.trunc(zIndex))
+  const id = BACKGROUND_ELEMENT_ID_BASE + Math.abs(Math.trunc(zIndex))
 
   return {
     path: `${pathLabel}#background-image`,
@@ -401,8 +423,8 @@ function extractBackgroundImageElement(
       rotation: 0,
       xInches: 0,
       yInches: 0,
-      widthInches: round(slideSize.widthPx / PX_PER_INCH, 4),
-      heightInches: round(slideSize.heightPx / PX_PER_INCH, 4),
+      widthInches: round(slideSize.widthPx / PX_PER_INCH, GEOMETRY_DECIMAL_PLACES),
+      heightInches: round(slideSize.heightPx / PX_PER_INCH, GEOMETRY_DECIMAL_PLACES),
     },
     relationshipIds: [scopedId],
     xmlAst: background,
@@ -465,13 +487,11 @@ function isCompletelyOutsideSlide(element: ExtractedElementRecord, slideSize: Sl
   const y = coerceNumber(transform?.yPx, 0)
   const width = coerceNumber(transform?.widthPx, 0)
   const height = coerceNumber(transform?.heightPx, 0)
-  const tolerance = 1
-
   return (
-    x + width < -tolerance ||
-    y + height < -tolerance ||
-    x > slideSize.widthPx + tolerance ||
-    y > slideSize.heightPx + tolerance
+    x + width < -SLIDE_BOUNDS_TOLERANCE_PX ||
+    y + height < -SLIDE_BOUNDS_TOLERANCE_PX ||
+    x > slideSize.widthPx + SLIDE_BOUNDS_TOLERANCE_PX ||
+    y > slideSize.heightPx + SLIDE_BOUNDS_TOLERANCE_PX
   )
 }
 

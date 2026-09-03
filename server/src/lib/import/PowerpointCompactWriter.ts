@@ -20,6 +20,7 @@ import type {
   PowerPointCanvasTextRun,
 } from './PowerpointImportTypes'
 import { optionalNumber, prune, round } from './PowerpointImportUtils'
+import { DEFAULT_OPACITY, DEFAULT_TEXT_PADDING_PT } from '../shared/PowerpointConstants'
 
 export async function compactPresentation(
   presentation: NormalizedPresentation,
@@ -80,14 +81,14 @@ function compactShape(element: NormalizedShapeElement): PowerPointCanvasShapeEle
     rotate: optionalNumber(element.rotate, 0),
     flipH: element.flipH || undefined,
     flipV: element.flipV || undefined,
-    opacity: optionalNumber(element.opacity, 1),
+    opacity: optionalNumber(element.opacity, DEFAULT_OPACITY),
     fill: element.fill,
-    fillOpacity: optionalNumber(element.fillOpacity ?? 1, 1),
+    fillOpacity: optionalNumber(element.fillOpacity ?? DEFAULT_OPACITY, DEFAULT_OPACITY),
     stroke: element.stroke,
-    strokeOpacity: optionalNumber(element.strokeOpacity ?? 1, 1),
+    strokeOpacity: optionalNumber(element.strokeOpacity ?? DEFAULT_OPACITY, DEFAULT_OPACITY),
     strokeWidth: round(element.strokeWidth),
     borderRadius: optionalNumber(round(element.borderRadius), 0),
-    padding: hasText ? optionalNumber(round(element.padding), 8) : undefined,
+    padding: hasText ? optionalNumber(round(element.padding), DEFAULT_TEXT_PADDING_PT) : undefined,
     text: element.label || undefined,
     align: hasText && element.align !== 'left' ? element.align : undefined,
     valign: hasText && element.valign !== 'middle' ? element.valign : undefined,
@@ -110,14 +111,14 @@ function compactText(element: NormalizedTextElement): PowerPointCanvasTextElemen
     rotate: optionalNumber(element.rotate, 0),
     flipH: element.flipH || undefined,
     flipV: element.flipV || undefined,
-    opacity: optionalNumber(element.opacity, 1),
+    opacity: optionalNumber(element.opacity, DEFAULT_OPACITY),
     fill: element.fill,
-    fillOpacity: optionalNumber(element.fillOpacity ?? 1, 1),
+    fillOpacity: optionalNumber(element.fillOpacity ?? DEFAULT_OPACITY, DEFAULT_OPACITY),
     stroke: element.stroke,
-    strokeOpacity: optionalNumber(element.strokeOpacity ?? 1, 1),
+    strokeOpacity: optionalNumber(element.strokeOpacity ?? DEFAULT_OPACITY, DEFAULT_OPACITY),
     strokeWidth: round(element.strokeWidth),
     borderRadius: optionalNumber(round(element.borderRadius), 0),
-    padding: optionalNumber(round(element.padding), 8),
+    padding: optionalNumber(round(element.padding), DEFAULT_TEXT_PADDING_PT),
     text: element.text || undefined,
     align: element.align === 'left' ? undefined : element.align,
     valign: element.valign === 'middle' ? undefined : element.valign,
@@ -140,9 +141,9 @@ function compactLine(element: NormalizedLineElement): PowerPointCanvasLineElemen
     y2: round(element.y2),
     rotate: optionalNumber(element.rotate, 0),
     beginArrow: !element.beginArrow || element.beginArrow === 'none' ? undefined : element.beginArrow,
-    opacity: optionalNumber(element.opacity, 1),
+    opacity: optionalNumber(element.opacity, DEFAULT_OPACITY),
     stroke: element.stroke,
-    strokeOpacity: optionalNumber(element.strokeOpacity ?? 1, 1),
+    strokeOpacity: optionalNumber(element.strokeOpacity ?? DEFAULT_OPACITY, DEFAULT_OPACITY),
     strokeWidth: round(element.strokeWidth),
     dash: element.dash === 'solid' ? undefined : element.dash,
     endArrow: element.endArrow === 'none' ? undefined : element.endArrow,
@@ -164,10 +165,17 @@ async function compactImage(
     rotate: optionalNumber(element.rotate, 0),
     flipH: element.flipH || undefined,
     flipV: element.flipV || undefined,
-    opacity: optionalNumber(element.opacity, 1),
+    opacity: optionalNumber(element.opacity, DEFAULT_OPACITY),
     src: options.embedAssets ? element.src : await externalizeImage(element.src, outputPath),
     fit: element.fit,
-    crop: compactCrop(element.crop),
+    crop: element.crop
+      ? prune({
+          top: optionalNumber(round(element.crop.top), 0),
+          right: optionalNumber(round(element.crop.right), 0),
+          bottom: optionalNumber(round(element.crop.bottom), 0),
+          left: optionalNumber(round(element.crop.left), 0),
+        })
+      : undefined,
     borderRadius: optionalNumber(round(element.borderRadius), 0),
     altText: element.altText || undefined,
   })
@@ -190,19 +198,6 @@ function compactRuns(runs: NormalizedTextRun[], text: string): PowerPointCanvasT
       breakLine: run.breakLine || undefined,
     }),
   )
-}
-
-function compactCrop(crop: NormalizedImageElement['crop']) {
-  if (!crop) {
-    return undefined
-  }
-
-  return prune({
-    top: optionalNumber(round(crop.top), 0),
-    right: optionalNumber(round(crop.right), 0),
-    bottom: optionalNumber(round(crop.bottom), 0),
-    left: optionalNumber(round(crop.left), 0),
-  })
 }
 
 async function externalizeImage(src: string, outputPath: string) {

@@ -2,9 +2,8 @@ import PptxGenJS from 'pptxgenjs'
 import {
   getWestMonroeBrandFrameLayout,
   WEST_MONROE_BRAND_COLOR,
-  type BrandFrameRect,
 } from '../WestMonroeBrandFrame'
-import { DEFAULT_FONT_FACE } from '../shared/PowerpointConstants'
+import { DEFAULT_FONT_FACE, DEFAULT_OPACITY } from '../shared/PowerpointConstants'
 import type {
   NormalizedImageElement,
   NormalizedLineElement,
@@ -15,6 +14,20 @@ import type {
 } from '../shared/PowerpointTypes'
 import { cleanHex } from '../shared/PowerpointUtils'
 import {
+  PPTX_AVERAGE_GLYPH_WIDTH_FACTOR,
+  PPTX_DEFAULT_BACKGROUND_COLOR,
+  PPTX_DEFAULT_FONT_SIZE_PT,
+  PPTX_DEFAULT_LINE_COLOR,
+  PPTX_DEFAULT_TEXT_COLOR,
+  PPTX_FULL_TRANSPARENCY,
+  PPTX_LINE_SPACING_MULTIPLE,
+  PPTX_MIN_DIMENSION_PX,
+  PPTX_MIN_FONT_SIZE_PT,
+  PPTX_MIN_VISIBLE_CROP_FRACTION,
+  PPTX_STACKED_LINE_HEIGHT_MULTIPLE,
+  PPTX_TEXT_SHRINK_FACTOR,
+} from './PowerpointConstants'
+import {
   opacityToTransparency,
   pxToInches,
   toPptxShapeName,
@@ -22,7 +35,7 @@ import {
 } from './PowerpointUtils'
 import { getConnectorAwareElementOrder } from '../shared/PowerpointLayering'
 
-const westMonroeLogoImage = new URL('../../slide-assets/element-5.png', import.meta.url).pathname
+const WEST_MONROE_LOGO_IMAGE_PATH = new URL('../../slide-assets/element-5.png', import.meta.url).pathname
 
 export function buildPptxPresentation(presentation: NormalizedPresentation) {
   const pptx = new PptxGenJS()
@@ -58,13 +71,22 @@ export function buildPptxPresentation(presentation: NormalizedPresentation) {
             w: pxToInches(brandFrame.footer.w),
             h: pxToInches(brandFrame.footer.h),
             fill: { color: WEST_MONROE_BRAND_COLOR },
-            line: { transparency: 100 },
+            line: { transparency: PPTX_FULL_TRANSPARENCY },
           },
         },
-        ...buildBrandDots(brandFrame.dots),
+        ...brandFrame.dots.map((dot) => ({
+          rect: {
+            x: pxToInches(dot.x),
+            y: pxToInches(dot.y),
+            w: pxToInches(dot.w),
+            h: pxToInches(dot.h),
+            fill: { color: WEST_MONROE_BRAND_COLOR },
+            line: { transparency: PPTX_FULL_TRANSPARENCY },
+          },
+        })),
         {
           image: {
-            path: westMonroeLogoImage,
+            path: WEST_MONROE_LOGO_IMAGE_PATH,
             x: pxToInches(brandFrame.logo.x),
             y: pxToInches(brandFrame.logo.y),
             w: pxToInches(brandFrame.logo.w),
@@ -78,7 +100,7 @@ export function buildPptxPresentation(presentation: NormalizedPresentation) {
     const slide = presentation.meta.showBranding
       ? pptx.addSlide('WEST_MONROE_BRANDED_FRAME')
       : pptx.addSlide()
-    slide.background = { color: cleanHex(slideSpec.backgroundColor, 'FFFFFF') }
+    slide.background = { color: cleanHex(slideSpec.backgroundColor, PPTX_DEFAULT_BACKGROUND_COLOR) }
 
     const elements = slideSpec.preserveElementOrder
       ? slideSpec.elements
@@ -96,7 +118,7 @@ export function buildPptxPresentation(presentation: NormalizedPresentation) {
             flipV: lineGeometry.flipV,
             rotate: element.rotate,
             line: {
-              color: cleanHex(element.stroke, '000000'),
+              color: cleanHex(element.stroke, PPTX_DEFAULT_LINE_COLOR),
               width: element.strokeWidth,
               transparency: opacityToTransparency(element.strokeOpacity ?? element.opacity),
               dashType:
@@ -126,12 +148,12 @@ export function buildPptxPresentation(presentation: NormalizedPresentation) {
           margin: [element.padding, element.padding, element.padding, element.padding],
           fontFace: element.fontFace,
           fontSize: element.fontSize,
-          color: cleanHex(element.color, '111827'),
+          color: cleanHex(element.color, PPTX_DEFAULT_TEXT_COLOR),
           bold: element.runs.length ? element.runs.every((run) => run.bold) : element.bold,
           italic: element.runs.length ? element.runs.every((run) => run.italic) : element.italic,
           align: element.align,
           valign: toPptxVerticalAlign(element.valign),
-          lineSpacingMultiple: 1.05,
+          lineSpacingMultiple: PPTX_LINE_SPACING_MULTIPLE,
           paraSpaceAfter: 0,
           paraSpaceBefore: 0,
           fill: colorToFill(element.fill, element.fillOpacity ?? element.opacity),
@@ -156,7 +178,7 @@ export function buildPptxPresentation(presentation: NormalizedPresentation) {
           margin: [element.padding, element.padding, element.padding, element.padding],
           fontFace: element.fontFace,
           fontSize: element.fontSize,
-          color: cleanHex(element.textColor, '111827'),
+          color: cleanHex(element.textColor, PPTX_DEFAULT_TEXT_COLOR),
           bold: element.bold,
           align: element.align,
           valign: toPptxVerticalAlign(element.valign),
@@ -201,18 +223,18 @@ export function buildPptxPresentation(presentation: NormalizedPresentation) {
           margin: [element.padding, element.padding, element.padding, element.padding],
           fontFace: element.fontFace,
           fontSize: element.fontSize,
-          color: cleanHex(element.textColor, '111827'),
+          color: cleanHex(element.textColor, PPTX_DEFAULT_TEXT_COLOR),
           bold: element.bold,
           align: element.align,
           valign: toPptxVerticalAlign(element.valign),
-          lineSpacingMultiple: 1.05,
+          lineSpacingMultiple: PPTX_LINE_SPACING_MULTIPLE,
           paraSpaceAfter: 0,
           paraSpaceBefore: 0,
           rotate: element.rotate,
           fit: 'shrink',
           isTextBox: true,
-          fill: { color: 'FFFFFF', transparency: 100 },
-          line: { color: 'FFFFFF', transparency: 100, width: 0 },
+          fill: { color: PPTX_DEFAULT_BACKGROUND_COLOR, transparency: PPTX_FULL_TRANSPARENCY },
+          line: { color: PPTX_DEFAULT_BACKGROUND_COLOR, transparency: PPTX_FULL_TRANSPARENCY, width: 0 },
           shape: 'rect',
         })
       }
@@ -220,19 +242,6 @@ export function buildPptxPresentation(presentation: NormalizedPresentation) {
   }
 
   return pptx
-}
-
-function buildBrandDots(dots: readonly BrandFrameRect[]) {
-  return dots.map((dot) => ({
-    rect: {
-      x: pxToInches(dot.x),
-      y: pxToInches(dot.y),
-      w: pxToInches(dot.w),
-      h: pxToInches(dot.h),
-      fill: { color: WEST_MONROE_BRAND_COLOR },
-      line: { transparency: 100 },
-    },
-  }))
 }
 
 type PptxLineSegment = Pick<NormalizedLineElement, 'x1' | 'x2' | 'y1' | 'y2'> & {
@@ -264,8 +273,12 @@ function toPptxLineGeometry(element: Pick<NormalizedLineElement, 'x1' | 'x2' | '
 
 function buildImageOptions(element: NormalizedImageElement) {
   const crop = element.crop
-  const visibleWidth = crop ? Math.max(1 - crop.left - crop.right, 0.001) : 1
-  const visibleHeight = crop ? Math.max(1 - crop.top - crop.bottom, 0.001) : 1
+  const visibleWidth = crop
+    ? Math.max(1 - crop.left - crop.right, PPTX_MIN_VISIBLE_CROP_FRACTION)
+    : DEFAULT_OPACITY
+  const visibleHeight = crop
+    ? Math.max(1 - crop.top - crop.bottom, PPTX_MIN_VISIBLE_CROP_FRACTION)
+    : DEFAULT_OPACITY
   const sourceBoxWidth = element.w / visibleWidth
   const sourceBoxHeight = element.h / visibleHeight
   const base = {
@@ -310,7 +323,7 @@ function toPptxTextRuns(runs: NormalizedTextRun[], maxFontSizePt?: number) {
       italic: run.italic,
       underline: run.underline ? {} : undefined,
       breakLine: run.breakLine && index < runs.length - 1,
-      color: cleanHex(run.color, '111827'),
+      color: cleanHex(run.color, PPTX_DEFAULT_TEXT_COLOR),
       fontFace: run.fontFace,
       fontSize: Math.min(run.fontSize, maxFontSizePt ?? run.fontSize),
     },
@@ -319,15 +332,18 @@ function toPptxTextRuns(runs: NormalizedTextRun[], maxFontSizePt?: number) {
 
 function getMaxStackedFontSizePt(element: NormalizedShapeElement) {
   const lineCount = Math.max(
-    element.textRuns.reduce((count, run) => count + Math.max(run.text.split('\n').length, 1), 0),
+    element.textRuns.reduce(
+      (count, run) => count + Math.max(run.text.split('\n').length, PPTX_MIN_DIMENSION_PX),
+      0,
+    ),
     element.label.split('\n').length,
-    1,
+    PPTX_MIN_DIMENSION_PX,
   )
   const largestRunSize = Math.max(...element.textRuns.map((run) => run.fontSize), element.fontSize)
-  const availableHeight = Math.max(element.h - element.padding * 2, 1)
-  const heightLimitedSize = availableHeight / (lineCount * 1.28)
+  const availableHeight = Math.max(element.h - element.padding * 2, PPTX_MIN_DIMENSION_PX)
+  const heightLimitedSize = availableHeight / (lineCount * PPTX_STACKED_LINE_HEIGHT_MULTIPLE)
 
-  return Math.max(Math.min(largestRunSize, heightLimitedSize), 5)
+  return Math.max(Math.min(largestRunSize, heightLimitedSize), PPTX_MIN_FONT_SIZE_PT)
 }
 
 function getMaxTextBoxFontSizePt(element: NormalizedTextElement) {
@@ -336,15 +352,18 @@ function getMaxTextBoxFontSizePt(element: NormalizedTextElement) {
   }
 
   const largestRunSize = Math.max(...element.runs.map((run) => run.fontSize), element.fontSize)
-  const availableHeight = Math.max(element.h - element.padding * 2, 1)
-  const availableWidth = Math.max(element.w - element.padding * 2, 1)
+  const availableHeight = Math.max(element.h - element.padding * 2, PPTX_MIN_DIMENSION_PX)
+  const availableWidth = Math.max(element.w - element.padding * 2, PPTX_MIN_DIMENSION_PX)
   const estimatedHeight = estimateTextRunHeight(element.runs, element.text, availableWidth)
 
   if (estimatedHeight <= availableHeight) {
     return largestRunSize
   }
 
-  return Math.max(largestRunSize * (availableHeight / estimatedHeight) * 0.96, 5)
+  return Math.max(
+    largestRunSize * (availableHeight / estimatedHeight) * PPTX_TEXT_SHRINK_FACTOR,
+    PPTX_MIN_FONT_SIZE_PT,
+  )
 }
 
 function estimateTextRunHeight(
@@ -355,26 +374,32 @@ function estimateTextRunHeight(
   const lines = getTextRunLines(runs, fallbackText)
 
   return lines.reduce((height, line) => {
-    const fontSize = Math.max(line.fontSize, 1)
-    const averageGlyphWidth = fontSize * 0.5
-    const charactersPerLine = Math.max(Math.floor(availableWidth / averageGlyphWidth), 1)
-    const wrappedLineCount = Math.max(Math.ceil(line.text.trim().length / charactersPerLine), 1)
+    const fontSize = Math.max(line.fontSize, PPTX_MIN_DIMENSION_PX)
+    const averageGlyphWidth = fontSize * PPTX_AVERAGE_GLYPH_WIDTH_FACTOR
+    const charactersPerLine = Math.max(
+      Math.floor(availableWidth / averageGlyphWidth),
+      PPTX_MIN_DIMENSION_PX,
+    )
+    const wrappedLineCount = Math.max(
+      Math.ceil(line.text.trim().length / charactersPerLine),
+      PPTX_MIN_DIMENSION_PX,
+    )
 
-    return height + wrappedLineCount * fontSize * 1.05
+    return height + wrappedLineCount * fontSize * PPTX_LINE_SPACING_MULTIPLE
   }, 0)
 }
 
 function getTextRunLines(runs: NormalizedTextRun[], fallbackText: string) {
   if (!runs.length) {
     return fallbackText.split('\n').map((line) => ({
-      fontSize: 16,
+      fontSize: PPTX_DEFAULT_FONT_SIZE_PT,
       text: line,
     }))
   }
 
   const lines: { fontSize: number; text: string }[] = []
   let currentLine = ''
-  let currentFontSize = runs[0]?.fontSize ?? 16
+  let currentFontSize = runs[0]?.fontSize ?? PPTX_DEFAULT_FONT_SIZE_PT
 
   for (const run of runs) {
     const parts = run.text.split('\n')
@@ -404,18 +429,29 @@ function getTextRunLines(runs: NormalizedTextRun[], fallbackText: string) {
   return lines
 }
 
-function colorToFill(color: string, opacity = 1) {
+function colorToFill(color: string, opacity = DEFAULT_OPACITY) {
   if (color === 'transparent') {
-    return { color: 'FFFFFF', transparency: 100 }
+    return { color: PPTX_DEFAULT_BACKGROUND_COLOR, transparency: PPTX_FULL_TRANSPARENCY }
   }
 
-  return { color: cleanHex(color, 'FFFFFF'), transparency: opacityToTransparency(opacity) }
+  return {
+    color: cleanHex(color, PPTX_DEFAULT_BACKGROUND_COLOR),
+    transparency: opacityToTransparency(opacity),
+  }
 }
 
-function colorToLine(color: string, width: number, opacity = 1) {
+function colorToLine(color: string, width: number, opacity = DEFAULT_OPACITY) {
   if (color === 'transparent' || width <= 0) {
-    return { color: 'FFFFFF', transparency: 100, width: 0 }
+    return {
+      color: PPTX_DEFAULT_BACKGROUND_COLOR,
+      transparency: PPTX_FULL_TRANSPARENCY,
+      width: 0,
+    }
   }
 
-  return { color: cleanHex(color, '000000'), transparency: opacityToTransparency(opacity), width }
+  return {
+    color: cleanHex(color, PPTX_DEFAULT_LINE_COLOR),
+    transparency: opacityToTransparency(opacity),
+    width,
+  }
 }

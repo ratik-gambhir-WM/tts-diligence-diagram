@@ -1,4 +1,17 @@
-import { DEFAULT_FONT_FACE, DEFAULT_HEIGHT_PX, DEFAULT_WIDTH_PX } from './PowerpointConstants'
+import {
+  DEFAULT_BACKGROUND_COLOR,
+  DEFAULT_CONNECTOR_WIDTH_PT,
+  DEFAULT_FONT_FACE,
+  DEFAULT_HEIGHT_PX,
+  DEFAULT_LINE_WIDTH_PT,
+  DEFAULT_OPACITY,
+  DEFAULT_SHAPE_FILL_COLOR,
+  DEFAULT_SHAPE_FONT_SIZE_PT,
+  DEFAULT_STROKE_COLOR,
+  DEFAULT_TEXT_COLOR,
+  DEFAULT_TEXT_PADDING_PT,
+  DEFAULT_WIDTH_PX,
+} from './PowerpointConstants'
 import type {
   NormalizationOptions,
   JsonObject,
@@ -161,7 +174,7 @@ export function normalizeNativeSlide(
     name: asString(slideSource.name) || asString(slideSource.title) || `Slide ${index + 1}`,
     width,
     height,
-    backgroundColor: cleanHex(asString(slideSource.backgroundColor), 'FFFFFF'),
+    backgroundColor: cleanHex(asString(slideSource.backgroundColor), DEFAULT_BACKGROUND_COLOR),
     preserveElementOrder,
     elements,
   }
@@ -213,7 +226,7 @@ function normalizeNativeElement(
       kind: 'line',
       id: asString(input.id) || pathLabel,
       sourcePath: pathLabel,
-      opacity: clamp01(coerceNumber(input.opacity, 1)),
+      opacity: clamp01(coerceNumber(input.opacity, DEFAULT_OPACITY)),
       rotate: coerceNumber(input.rotate, 0),
       flipH: coerceBoolean(input.flipH) || undefined,
       flipV: coerceBoolean(input.flipV) || undefined,
@@ -223,9 +236,9 @@ function normalizeNativeElement(
       y1,
       x2,
       y2,
-      stroke: cleanHex(asString(input.stroke) || asString(input.color), '334155'),
-      strokeOpacity: clamp01(coerceNumber(input.strokeOpacity, 1)),
-      strokeWidth: coerceNumber(input.strokeWidth, 1.5),
+      stroke: cleanHex(asString(input.stroke) || asString(input.color), DEFAULT_STROKE_COLOR),
+      strokeOpacity: clamp01(coerceNumber(input.strokeOpacity, DEFAULT_OPACITY)),
+      strokeWidth: coerceNumber(input.strokeWidth, DEFAULT_CONNECTOR_WIDTH_PT),
       dash: normalizeDash(asString(input.dash)),
       beginArrow: normalizeArrow(asString(input.beginArrow) || asString(input.startArrow)),
       endArrow: normalizeArrow(asString(input.endArrow) || asString(input.arrow)),
@@ -249,7 +262,7 @@ function normalizeNativeElement(
       kind: 'image',
       id: asString(input.id) || pathLabel,
       sourcePath: pathLabel,
-      opacity: clamp01(coerceNumber(input.opacity, 1)),
+      opacity: clamp01(coerceNumber(input.opacity, DEFAULT_OPACITY)),
       rotate: coerceNumber(input.rotate, 0),
       flipH: coerceBoolean(input.flipH) || undefined,
       flipV: coerceBoolean(input.flipV) || undefined,
@@ -271,12 +284,12 @@ function normalizeNativeElement(
   const y = resolvePosition(input.y ?? input.top, height)
   const w = resolvePosition(input.w ?? input.width, width)
   const h = resolvePosition(input.h ?? input.height, height)
-  const padding = coerceNumber(input.padding, 8)
+  const padding = coerceNumber(input.padding, DEFAULT_TEXT_PADDING_PT)
   const align = normalizeAlign(asString(input.align))
   const valign = normalizeValign(asString(input.valign))
-  const fontSize = coerceNumber(input.fontSize, 18)
+  const fontSize = coerceNumber(input.fontSize, DEFAULT_SHAPE_FONT_SIZE_PT)
   const fontFace = asString(input.fontFace) || DEFAULT_FONT_FACE
-  const textColor = cleanHex(asString(input.color) || asString(input.textColor), '111827')
+  const textColor = cleanHex(asString(input.color) || asString(input.textColor), DEFAULT_TEXT_COLOR)
   const textContent = asString(input.text) || asString(input.label) || ''
   const nativeRuns = normalizeNativeTextRuns(input.runs, fontFace, fontSize, textColor)
   const runs =
@@ -301,7 +314,7 @@ function normalizeNativeElement(
       kind: 'text',
       id: asString(input.id) || pathLabel,
       sourcePath: pathLabel,
-      opacity: clamp01(coerceNumber(input.opacity, 1)),
+      opacity: clamp01(coerceNumber(input.opacity, DEFAULT_OPACITY)),
       rotate: coerceNumber(input.rotate, 0),
       flipH: coerceBoolean(input.flipH) || undefined,
       flipV: coerceBoolean(input.flipV) || undefined,
@@ -311,10 +324,10 @@ function normalizeNativeElement(
       w,
       h,
       text: textContent,
-      fill: cleanHex(asString(input.fill), 'FFFFFF'),
-      fillOpacity: clamp01(coerceNumber(input.fillOpacity, 1)),
-      stroke: cleanHex(asString(input.stroke), 'FFFFFF'),
-      strokeOpacity: clamp01(coerceNumber(input.strokeOpacity, 1)),
+      fill: cleanHex(asString(input.fill), DEFAULT_BACKGROUND_COLOR),
+      fillOpacity: clamp01(coerceNumber(input.fillOpacity, DEFAULT_OPACITY)),
+      stroke: cleanHex(asString(input.stroke), DEFAULT_BACKGROUND_COLOR),
+      strokeOpacity: clamp01(coerceNumber(input.strokeOpacity, DEFAULT_OPACITY)),
       strokeWidth: coerceNumber(input.strokeWidth, 0),
       borderRadius: coerceNumber(input.borderRadius, 0),
       padding,
@@ -333,7 +346,7 @@ function normalizeNativeElement(
     kind: 'shape',
     id: asString(input.id) || pathLabel,
     sourcePath: pathLabel,
-    opacity: clamp01(coerceNumber(input.opacity, 1)),
+    opacity: clamp01(coerceNumber(input.opacity, DEFAULT_OPACITY)),
     rotate: coerceNumber(input.rotate, 0),
     flipH: coerceBoolean(input.flipH) || undefined,
     flipV: coerceBoolean(input.flipV) || undefined,
@@ -344,11 +357,11 @@ function normalizeNativeElement(
     h,
     shape: normalizeShapeName(asString(input.shape) || rawKind),
     label: textContent,
-    fill: cleanHex(asString(input.fill), 'E5EEF8'),
-    fillOpacity: clamp01(coerceNumber(input.fillOpacity, 1)),
-    stroke: cleanHex(asString(input.stroke), '334155'),
-    strokeOpacity: clamp01(coerceNumber(input.strokeOpacity, 1)),
-    strokeWidth: coerceNumber(input.strokeWidth, 1),
+    fill: cleanHex(asString(input.fill), DEFAULT_SHAPE_FILL_COLOR),
+    fillOpacity: clamp01(coerceNumber(input.fillOpacity, DEFAULT_OPACITY)),
+    stroke: cleanHex(asString(input.stroke), DEFAULT_STROKE_COLOR),
+    strokeOpacity: clamp01(coerceNumber(input.strokeOpacity, DEFAULT_OPACITY)),
+    strokeWidth: coerceNumber(input.strokeWidth, DEFAULT_LINE_WIDTH_PT),
     borderRadius: coerceNumber(input.borderRadius, 0),
     padding,
     align,

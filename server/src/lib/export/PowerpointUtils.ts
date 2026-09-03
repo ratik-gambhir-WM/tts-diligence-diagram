@@ -1,6 +1,7 @@
 import type { VerticalAlign } from '../shared/PowerpointTypes'
 import { PX_PER_INCH } from '../shared/PowerpointConstants'
 import { clamp01, normalizeShapeName } from '../shared/PowerpointUtils'
+import { PPTX_FULL_TRANSPARENCY } from './PowerpointConstants'
 
 export function toPptxShapeName(shape: string) {
   return normalizeShapeName(shape) as never
@@ -19,7 +20,7 @@ export function toPptxVerticalAlign(value: VerticalAlign) {
 }
 
 export function opacityToTransparency(opacity: number) {
-  return Math.round((1 - clamp01(opacity)) * 100)
+  return Math.round((1 - clamp01(opacity)) * PPTX_FULL_TRANSPARENCY)
 }
 
 export function pxToInches(px: number) {

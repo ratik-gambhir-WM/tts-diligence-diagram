@@ -1,8 +1,19 @@
 import {
+  DEFAULT_BACKGROUND_COLOR,
   DEFAULT_FONT_FACE,
   DEFAULT_HEIGHT_PX,
+  DEFAULT_OPACITY,
+  DEFAULT_ROUND_RECT_RATIO,
+  DEFAULT_STROKE_COLOR,
+  DEFAULT_TEXT_COLOR,
+  DEFAULT_TEXT_FONT_SIZE_PT,
   DEFAULT_THEME,
   DEFAULT_WIDTH_PX,
+  MAX_ROUND_RECT_RATIO,
+  MIN_ELEMENT_SIZE_PX,
+  OOXML_FONT_SIZE_SCALE,
+  OOXML_PERCENT_SCALE,
+  PX_PER_INCH,
 } from './PowerpointConstants'
 import type {
   ExtractedRelationship,
@@ -85,7 +96,7 @@ export function normalizeExtractedPresentation(
         name: slideName,
         width,
         height,
-        backgroundColor: 'FFFFFF',
+        backgroundColor: DEFAULT_BACKGROUND_COLOR,
         preserveElementOrder: true,
         elements,
       },
@@ -110,10 +121,10 @@ function normalizeExtractedElement(
   const id = `element-${element.nonVisual?.id ?? index + 1}`
   const sourcePath = element.path || `shapeTree.elements[${index}]`
   const transform = element.transform ?? {}
-  const x = coerceNumber(transform.xPx, transform.xInches ? transform.xInches * 96 : 0)
-  const y = coerceNumber(transform.yPx, transform.yInches ? transform.yInches * 96 : 0)
-  const w = coerceNumber(transform.widthPx, transform.widthInches ? transform.widthInches * 96 : 0)
-  const h = coerceNumber(transform.heightPx, transform.heightInches ? transform.heightInches * 96 : 0)
+  const x = coerceNumber(transform.xPx, transform.xInches ? transform.xInches * PX_PER_INCH : 0)
+  const y = coerceNumber(transform.yPx, transform.yInches ? transform.yInches * PX_PER_INCH : 0)
+  const w = coerceNumber(transform.widthPx, transform.widthInches ? transform.widthInches * PX_PER_INCH : 0)
+  const h = coerceNumber(transform.heightPx, transform.heightInches ? transform.heightInches * PX_PER_INCH : 0)
   const rotate = coerceNumber(transform.rotation, 0)
   const presetShape = normalizeShapeName(element.presetGeometry?.preset)
 
@@ -126,7 +137,7 @@ function normalizeExtractedElement(
         kind: 'line',
         id,
         sourcePath,
-        opacity: 1,
+        opacity: DEFAULT_OPACITY,
         rotate,
         valign: 'middle',
         lineType: 'straight',
@@ -134,7 +145,7 @@ function normalizeExtractedElement(
         y1: clampNumber(reverseY ? y + h : y, 0, slideHeight),
         x2: clampNumber(reverseX ? x : x + w, 0, slideWidth),
         y2: clampNumber(reverseY ? y : y + h, 0, slideHeight),
-        stroke: parseLineColor(lineNode, theme, '334155'),
+        stroke: parseLineColor(lineNode, theme, DEFAULT_STROKE_COLOR),
         strokeOpacity: parseColorOpacity(findChild(lineNode, 'a:solidFill')),
         strokeWidth: emuLineWidthToPoints(lineNode?.attributes?.w),
         dash: parseDashStyle(lineNode),
@@ -218,14 +229,14 @@ function normalizeExtractedElement(
     (!!lineFill || hasLineReference)
   const stroke = strokeVisible
     ? lineFill
-      ? parseLineColor(lineNode, theme, '334155')
-      : parseColor(lineReference, theme, '334155')
+      ? parseLineColor(lineNode, theme, DEFAULT_STROKE_COLOR)
+      : parseColor(lineReference, theme, DEFAULT_STROKE_COLOR)
     : 'transparent'
   const strokeWidth = strokeVisible ? emuLineWidthToPoints(lineNode?.attributes?.w) : 0
   const textColor =
     textRuns.find((run) => run.color)?.color ??
-    parseFontColor(element.style, theme, stroke === 'transparent' ? '111827' : 'FFFFFF')
-  const fontSize = textRuns.find((run) => run.fontSize)?.fontSize ?? 16
+    parseFontColor(element.style, theme, stroke === 'transparent' ? DEFAULT_TEXT_COLOR : DEFAULT_BACKGROUND_COLOR)
+  const fontSize = textRuns.find((run) => run.fontSize)?.fontSize ?? DEFAULT_TEXT_FONT_SIZE_PT
   const fontFace = textRuns.find((run) => run.fontFace)?.fontFace ?? DEFAULT_FONT_FACE
   const align = normalizeAlign(textBody?.paragraphs?.[0]?.properties?.algn)
   const valign = normalizeBodyAnchor(textBody?.bodyProperties?.anchor)
@@ -251,14 +262,14 @@ function normalizeExtractedElement(
         kind: 'text',
         id,
         sourcePath,
-        opacity: 1,
+        opacity: DEFAULT_OPACITY,
         rotate,
         flipH: transform.flipH || undefined,
         flipV: transform.flipV || undefined,
         valign,
         x,
         y,
-        w: Math.max(w, 1),
+        w: Math.max(w, MIN_ELEMENT_SIZE_PX),
         h: Math.max(h, fontSize * Math.max(textRuns.length, 1)),
         text: label,
         fill: 'transparent',
@@ -296,7 +307,7 @@ function normalizeExtractedElement(
       kind: 'shape',
       id,
       sourcePath,
-      opacity: 1,
+      opacity: DEFAULT_OPACITY,
       rotate,
       flipH: transform.flipH || undefined,
       flipV: transform.flipV || undefined,
@@ -350,7 +361,9 @@ function parseBorderRadius(
 
   const adjustment = findChild(findChild(element.presetGeometry?.xmlAst, 'a:avLst'), 'a:gd')
   const match = /^val\s+(-?\d+(?:\.\d+)?)$/u.exec(adjustment?.attributes?.fmla ?? '')
-  const ratio = match ? clampNumber(Number(match[1]) / 100000, 0, 0.5) : 1 / 6
+  const ratio = match
+    ? clampNumber(Number(match[1]) / OOXML_PERCENT_SCALE, 0, MAX_ROUND_RECT_RATIO)
+    : DEFAULT_ROUND_RECT_RATIO
   return Math.min(width, height) * ratio
 }
 
@@ -400,8 +413,8 @@ function extractGraphicFrameImage(
     valign: 'middle',
     x,
     y,
-    w: Math.max(w, 1),
-    h: Math.max(h, 1),
+    w: Math.max(w, MIN_ELEMENT_SIZE_PX),
+    h: Math.max(h, MIN_ELEMENT_SIZE_PX),
     src: `data:${mimeType};base64,${base64}`,
     fit: 'stretch',
     crop: extractImageCrop(element.xmlAst),
@@ -414,7 +427,11 @@ function extractGraphicFrameImage(
 function extractImageOpacity(node: XmlNode | undefined) {
   const blip = findFirstDescendant(node, 'a:blip')
   const alpha = findChild(blip, 'a:alphaModFix')
-  return clampNumber(Number(alpha?.attributes?.amt ?? 100000) / 100000, 0, 1)
+  return clampNumber(
+    Number(alpha?.attributes?.amt ?? OOXML_PERCENT_SCALE) / OOXML_PERCENT_SCALE,
+    0,
+    1,
+  )
 }
 
 function extractImageCrop(node: XmlNode | undefined): NormalizedImageElement['crop'] {
@@ -424,10 +441,10 @@ function extractImageCrop(node: XmlNode | undefined): NormalizedImageElement['cr
   }
 
   const crop = {
-    top: clampNumber(Number(srcRect.attributes?.t ?? 0) / 100000, 0, 1),
-    right: clampNumber(Number(srcRect.attributes?.r ?? 0) / 100000, 0, 1),
-    bottom: clampNumber(Number(srcRect.attributes?.b ?? 0) / 100000, 0, 1),
-    left: clampNumber(Number(srcRect.attributes?.l ?? 0) / 100000, 0, 1),
+    top: clampNumber(Number(srcRect.attributes?.t ?? 0) / OOXML_PERCENT_SCALE, 0, 1),
+    right: clampNumber(Number(srcRect.attributes?.r ?? 0) / OOXML_PERCENT_SCALE, 0, 1),
+    bottom: clampNumber(Number(srcRect.attributes?.b ?? 0) / OOXML_PERCENT_SCALE, 0, 1),
+    left: clampNumber(Number(srcRect.attributes?.l ?? 0) / OOXML_PERCENT_SCALE, 0, 1),
   }
 
   return crop.top || crop.right || crop.bottom || crop.left ? crop : undefined
@@ -509,7 +526,7 @@ function normalizeExtractedTextRuns(
   styleNode: XmlNode | undefined,
 ) {
   const runs: NormalizedTextRun[] = []
-  const defaultColor = parseFontColor(styleNode, theme, '111827')
+  const defaultColor = parseFontColor(styleNode, theme, DEFAULT_TEXT_COLOR)
 
   for (const paragraph of textBody?.paragraphs ?? []) {
     const paragraphRuns = paragraph.runs ?? []
@@ -527,7 +544,9 @@ function normalizeExtractedTextRuns(
         underline: !!properties.u && properties.u !== 'none',
         color: defaultColor,
         fontFace: DEFAULT_FONT_FACE,
-        fontSize: properties.sz ? Number(properties.sz) / 100 : 16,
+        fontSize: properties.sz
+          ? Number(properties.sz) / OOXML_FONT_SIZE_SCALE
+          : DEFAULT_TEXT_FONT_SIZE_PT,
         breakLine: runIndex === paragraphRuns.length - 1,
       })
     })
@@ -541,7 +560,7 @@ function normalizeExtractedTextRuns(
       underline: false,
       color: defaultColor,
       fontFace: DEFAULT_FONT_FACE,
-      fontSize: 16,
+      fontSize: DEFAULT_TEXT_FONT_SIZE_PT,
     })
   }
 

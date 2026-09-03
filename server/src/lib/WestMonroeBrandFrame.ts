@@ -3,6 +3,12 @@ export const WEST_MONROE_BRAND_COLOR = 'E8EEF8'
 const REFERENCE_WIDTH = 1280
 const REFERENCE_HEIGHT = 720
 const FOOTER_HEIGHT = 75
+const REFERENCE_DOT_COLUMNS = 15
+const REFERENCE_DOT_ROWS = 17
+const REFERENCE_DOT_START_X = 15
+const REFERENCE_DOT_START_Y = 6
+const REFERENCE_DOT_SPACING = 19
+const REFERENCE_DOT_SIZE = 2.5
 
 const REFERENCE_LOGO = {
   x: 48.33,
@@ -11,11 +17,11 @@ const REFERENCE_LOGO = {
   h: 32.02,
 } as const
 
-const REFERENCE_DOTS = Array.from({ length: 15 * 17 }, (_, index) => ({
-  x: 15 + (index % 15) * 19,
-  y: 6 + Math.floor(index / 15) * 19,
-  w: 2.5,
-  h: 2.5,
+const REFERENCE_DOTS = Array.from({ length: REFERENCE_DOT_COLUMNS * REFERENCE_DOT_ROWS }, (_, index) => ({
+  x: REFERENCE_DOT_START_X + (index % REFERENCE_DOT_COLUMNS) * REFERENCE_DOT_SPACING,
+  y: REFERENCE_DOT_START_Y + Math.floor(index / REFERENCE_DOT_COLUMNS) * REFERENCE_DOT_SPACING,
+  w: REFERENCE_DOT_SIZE,
+  h: REFERENCE_DOT_SIZE,
 }))
 
 export type BrandFrameRect = Readonly<{
