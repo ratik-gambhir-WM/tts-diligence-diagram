@@ -18,11 +18,10 @@ mandatory JSDoc, function-length limits, or nonexistent lint/type-check scripts.
 1. Read the root `AGENTS.md`, run `git status --short`, and inspect the nearest implementation and
    tests.
 2. Identify the runtime before choosing types or imports:
-   - `tsconfig.app.json`: browser/shared source, ES2022, DOM, bundler resolution.
-   - `tsconfig.node.json`: Vite configuration, ES2023, Node types.
-   - `scripts/**` and `src/lib/import/**`: Node execution through `tsx`, but scripts are not
-     currently included by the project-reference typecheck.
-3. Inspect `package.json` and the lockfile before using library- or TypeScript-version-specific
+   - `web/tsconfig.app.json`: browser source, ES2022, DOM, bundler resolution.
+   - `web/tsconfig.node.json`: Vite configuration, ES2023, Node types.
+   - `server/tsconfig.json`: Express, OOXML, SQLite, server tests, and Node CLIs.
+3. Inspect the affected workspace `package.json` and the root lockfile before using library- or TypeScript-version-specific
    behavior. The current compiler is TypeScript 5.9 in strict, no-emit mode.
 4. Trace a changed contract to all producers, validators/normalizers, consumers, serializers, and
    tests before editing it.
@@ -32,7 +31,7 @@ mandatory JSDoc, function-length limits, or nonexistent lint/type-check scripts.
 - Use ESM imports and the existing bundler resolution. Do not introduce CommonJS helpers without a
   demonstrated external compatibility requirement.
 - Browser-reachable modules must not import `node:*`, `process`, filesystem-backed configuration,
-  or `src/lib/import/**`.
+  or anything under `server/`.
 - Shared model and normalization code should remain deterministic and free of React, DOM, network,
   filesystem, and environment access.
 - Use `import type` when an import is type-only. Do not rely on type erasure to excuse a runtime
@@ -73,7 +72,7 @@ Type annotations disappear at runtime. Validate every external boundary:
 - uploaded file metadata and bytes;
 - PPTX ZIP entries and XML-derived values;
 - CLI arguments and filesystem paths;
-- future Express params, query, headers, and bodies.
+- Express params, query, headers, and bodies.
 
 Apply validation in layers:
 
@@ -145,15 +144,15 @@ Test the narrowest invariant at the layer that owns it:
 Run from the repository root:
 
 ```sh
-npm test -- path/to/affected.test.ts
-npm exec tsc -- -b
+npm run test --workspace @tts-mermaid/web -- path/to/affected.test.ts
+npm run typecheck
 npm test
 npm run build
 ```
 
 For PowerPoint work, include the relevant normalizer/canvas tests and
-`npm test -- scripts/parse-pptx.test.ts`. Because `scripts/**` is outside the current project
-references, run a safe CLI smoke test with disposable files when the changed path is not fully
+`npm run test --workspace @tts-mermaid/server -- scripts/parse-pptx.test.ts`. Server scripts are
+typechecked. Run a safe CLI smoke test with disposable files when the changed path is not fully
 exercised by Vitest.
 
 There is no lint script, and Vite build does not replace TypeScript checking. Report exact checks,

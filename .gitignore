@@ -19,7 +19,7 @@ pnpm-debug.log*
 
 coverage/
 
-/data/*.sqlite*
+/server/data/*.sqlite*
 
 .vite/
 

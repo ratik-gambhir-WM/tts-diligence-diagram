@@ -11,9 +11,9 @@ interaction behavior, and user-owned work.
 ## Read before editing
 
 1. Read the root `AGENTS.md` and run `git status --short`.
-2. Read `package.json`, `package-lock.json`, `vite.config.ts`, `tsconfig.app.json`, and
-   `vitest.config.ts` when the task touches their concerns.
-3. Trace the changed route from `src/App.tsx` through its page, components/hooks, library calls,
+2. Read `web/package.json`, the root `package-lock.json`, `web/vite.config.ts`,
+   `web/tsconfig.app.json`, and `web/vitest.config.ts` when the task touches their concerns.
+3. Trace the changed route from `web/src/App.tsx` through its page, components/hooks, library calls,
    and nearby tests.
 4. For canvas work, trace `buildSlideCanvasModel` -> `SvgSlideCanvas` -> the relevant interaction or
    viewport hook -> immutable edit application.
@@ -21,9 +21,9 @@ interaction behavior, and user-owned work.
 
 ## Preserve the browser boundary
 
-- The browser graph begins at `src/main.tsx`. Never import `node:*`, the OOXML importer, filesystem
+- The browser graph begins at `web/src/main.tsx`. Never import `node:*`, the OOXML importer, filesystem
   paths, or process-global configuration into it.
-- Keep Node PowerPoint parsing under `src/lib/import/` and `scripts/`.
+- Keep Node PowerPoint parsing under `server/src/lib/import/` and `server/scripts/`.
 - Treat all `VITE_*` configuration as public. The current direct OpenAI client and
   `dangerouslyAllowBrowser` option are development-only; never add another secret to the bundle.
 - Uploaded files, pasted JSON, template JSON, model output, PPTX files, and File System Access
@@ -64,7 +64,7 @@ interaction behavior, and user-owned work.
 
 ## UI and accessibility
 
-- Reuse `src/components/`, existing page shells/navigation, Tailwind 4 conventions, and the
+- Reuse `web/src/components/`, existing page shells/navigation, Tailwind 4 conventions, and the
   established canvas CSS before adding another styling system.
 - Prefer native buttons, inputs, labels, and dialogs. Preserve accessible names, focus order,
   keyboard interaction, and focus restoration.
@@ -80,7 +80,7 @@ interaction behavior, and user-owned work.
 
 - Keep OpenAI request construction in the current adapter boundary rather than scattering SDK calls
   across components.
-- Keep PowerPoint generation behind `src/lib/export/exporter.ts`; pages coordinate UX and should not
+- Keep PowerPoint generation behind `web/src/lib/export/exporter.ts`; pages coordinate UX and should not
   duplicate normalization or ZIP manipulation.
 - Parse JSON once at a boundary, narrow it through normalization/validation, and render the typed
   model. A TypeScript cast is not runtime validation.
@@ -106,8 +106,8 @@ interaction behavior, and user-owned work.
 Run from the repository root:
 
 ```sh
-npm test -- src/path/to/affected.test.ts
-npm exec tsc -- -b
+npm run test --workspace @tts-mermaid/web -- src/path/to/affected.test.ts
+npm run typecheck
 npm test
 npm run build
 ```

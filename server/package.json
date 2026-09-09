@@ -1,0 +1,30 @@
+{
+  "name": "@tts-mermaid/server",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "engines": {
+    "node": ">=22.5"
+  },
+  "scripts": {
+    "dev": "node --watch --import tsx src/server.ts",
+    "start": "node --import tsx src/server.ts",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "pptx:to-json": "node --import tsx scripts/parse-pptx.ts"
+  },
+  "dependencies": {
+    "express": "^5.2.1",
+    "jszip": "^3.10.1",
+    "pptxgenjs": "^4.0.1"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/node": "^25.3.5",
+    "@types/supertest": "^7.2.1",
+    "supertest": "^7.2.2",
+    "tsx": "^4.23.12",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.10"
+  }
+}

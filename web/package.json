@@ -1,0 +1,36 @@
+{
+  "name": "@tts-mermaid/web",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "typecheck": "tsc -b",
+    "test": "vitest run",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "jszip": "^3.10.1",
+    "motion": "^12.40.0",
+    "openai": "^6.29.0",
+    "pptxgenjs": "^4.0.1",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-router-dom": "^7.13.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.2.1",
+    "@testing-library/react": "^16.3.2",
+    "@testing-library/user-event": "^14.6.3",
+    "@types/node": "^25.3.5",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.0.0",
+    "jsdom": "^29.1.1",
+    "tailwindcss": "^4.2.1",
+    "typescript": "^5.9.3",
+    "vite": "^7.0.0",
+    "vitest": "^4.1.10"
+  }
+}

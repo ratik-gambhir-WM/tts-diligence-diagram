@@ -1,6 +1,6 @@
 ---
 name: express-development
-description: Add, design, implement, review, secure, test, and troubleshoot an Express API for tts-mermaid, especially a server-side OpenAI boundary, upload/JSON/PPTX endpoints, and browser-to-server contracts. Use when Express or HTTP server work is explicitly in scope; this repository has no Express server today, so do not treat this skill as evidence that one already exists.
+description: Add, design, implement, review, secure, test, and troubleshoot the Express API in tts-mermaid, especially upload/JSON/PPTX endpoints and browser-to-server contracts.
 ---
 
 # tts-mermaid Express development
@@ -8,22 +8,20 @@ description: Add, design, implement, review, secure, test, and troubleshoot an E
 Create a narrow, production-shaped server boundary without coupling Express to the React tree or
 moving slide-domain logic into handlers.
 
-## First determine whether a server exists
+## Establish the server context
 
-Read the root `AGENTS.md`, run `git status --short`, and inspect `package.json`, lockfile, TypeScript
-configs, and deployment constraints. At the time this skill was created:
+Read the root `AGENTS.md`, run `git status --short`, and inspect `server/package.json`, the root
+lockfile, `server/tsconfig.json`, `server/vitest.config.ts`, and deployment constraints.
 
-- Express is not installed.
-- There is no `server/`, API contract, server TypeScript config, server script, auth system,
-  persistence layer, deployment manifest, or server test harness.
-- The React app calls OpenAI directly from the browser with a public Vite-injected key. That is a
-  development-only trust boundary and the strongest likely reason to add a server.
+- Express 5 is installed in its own npm workspace.
+- `server/src/app.ts` is the testable app factory and `server/src/server.ts` owns listening and
+  shutdown. SQLite persistence and PowerPoint import/export are server-owned.
+- The sibling React package is under `web/` and must never import this package's Node modules.
 
-Do not invent existing routes or silently add a server during unrelated UI work. When a user asks
-to introduce one, default to a `server/` source boundary, an explicit server TypeScript config, and
-real root package scripts unless the chosen deployment requires a separate package.
+Do not invent routes or deployment behavior that the current server does not implement. Preserve
+the workspace boundary and package-owned dependencies.
 
-## Recommended new-server shape
+## Server shape
 
 Use the smallest subset justified by the feature:
 
@@ -165,16 +163,15 @@ valuable decks, or user output directories in routine tests.
 
 ## Verification gate
 
-When Express is introduced, add named package scripts for server development, typechecking, and
-tests, then document and run the real commands. A proportional gate includes:
+Use the existing named package scripts for server development, typechecking, and tests. A
+proportional gate includes:
 
 1. focused service and request tests;
 2. server TypeScript checking;
 3. the complete server suite;
-4. existing `npm exec tsc -- -b` and `npm test` checks;
+4. existing `npm run typecheck` and `npm test` checks;
 5. `npm run build` plus inspection that server modules/secrets are absent from `dist`;
 6. a disposable local HTTP smoke test only when it adds evidence beyond request-level tests.
 
-There is currently no server command to run. Never claim an Express check passed until the change
-actually creates and executes it. Report exact checks, skipped integration/security verification,
-and remaining deployment assumptions.
+Never claim an Express check passed until the relevant command actually executes. Report exact
+checks, skipped integration/security verification, and remaining deployment assumptions.

@@ -1,7 +1,8 @@
 # PowerPoint import and export APIs
 
-This Node-only server keeps its PowerPoint implementation under `server/src/lib`; it does not
-change or enter the React/Vite module graph. Uploaded `.pptx` files are OOXML ZIP packages. Their
+This package is the Node-only sibling of the React app in `../web`. It keeps its PowerPoint
+implementation under `src/lib`; nothing in this package enters the React/Vite module graph.
+Uploaded `.pptx` files are OOXML ZIP packages. Their
 compact canvas JSON is stored in SQLite. Imported image bytes are stored separately from the JSON
 as BLOB assets.
 
@@ -17,7 +18,7 @@ Configuration is read once at startup:
 
 - `PORT` defaults to `3001`.
 - `HOST` defaults to `0.0.0.0` and must be an IP address.
-- `SQLITE_DB_PATH` defaults to `data/templates.sqlite`.
+- `SQLITE_DB_PATH` defaults to `server/data/templates.sqlite` from the repository root.
 - `MAX_PPTX_UPLOAD_BYTES` defaults to `26214400` (25 MiB).
 - `MAX_EXPORT_JSON_BYTES` defaults to `52428800` (50 MiB).
 

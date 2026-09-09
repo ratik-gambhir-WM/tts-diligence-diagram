@@ -9,7 +9,7 @@ import { SqliteTemplateRepository } from '../src/repositories/SqliteTemplateRepo
 import { ExportPowerPointService } from '../src/services/ExportPowerPointService'
 import { ImportTemplateService } from '../src/services/ImportTemplateService'
 import { LibraryPowerPointConverter } from '../src/services/PowerPointConverter'
-import type { PowerPointCanvasJson } from '../../src/lib/import/PowerpointImportTypes'
+import type { PowerPointCanvasJson } from '../src/lib/import/PowerpointImportTypes'
 
 const POWERPOINT_CONTENT_TYPE =
   'application/vnd.openxmlformats-officedocument.presentationml.presentation'

@@ -140,7 +140,16 @@ async function extractSlide(
     relationshipsPath,
     relationships,
     rawRelationshipsXml,
-    relationshipIds: Array.from(new Set(elements.flatMap((element) => element.relationshipIds ?? []))),
+    relationshipIds: Array.from(
+      new Set(
+        elements.flatMap((element) => {
+          const relationshipIds = element.relationshipIds
+          return Array.isArray(relationshipIds)
+            ? relationshipIds.filter((value): value is string => typeof value === 'string')
+            : []
+        }),
+      ),
+    ),
     slideSize: {
       cx: slideSize.cx,
       cy: slideSize.cy,

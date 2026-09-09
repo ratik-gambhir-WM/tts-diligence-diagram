@@ -1,6 +1,7 @@
 // @vitest-environment node
 
 import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 import { describe, expect, it } from 'vitest'
 
@@ -32,6 +33,7 @@ describe('server configuration', () => {
 
   it('uses the Rust server bind defaults and validates HOST as an IP address', () => {
     expect(loadServerConfig({})).toMatchObject({
+      databasePath: fileURLToPath(new URL('../data/templates.sqlite', import.meta.url)),
       host: '0.0.0.0',
       port: 3001,
       requestTimeoutMs: 30_000,

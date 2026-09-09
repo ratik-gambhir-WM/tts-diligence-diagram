@@ -1,5 +1,6 @@
 import { isIP } from 'node:net'
 import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 
 export type ServerConfig = {
   databasePath: string
@@ -13,10 +14,13 @@ export type ServerConfig = {
 const DEFAULT_MAX_UPLOAD_BYTES = 25 * 1024 * 1024
 const DEFAULT_MAX_EXPORT_JSON_BYTES = 50 * 1024 * 1024
 const DEFAULT_REQUEST_TIMEOUT_MS = 30_000
+const DEFAULT_DATABASE_PATH = fileURLToPath(new URL('../data/templates.sqlite', import.meta.url))
 
 export function loadServerConfig(environment: NodeJS.ProcessEnv = process.env): ServerConfig {
   return {
-    databasePath: path.resolve(environment.SQLITE_DB_PATH ?? 'data/templates.sqlite'),
+    databasePath: environment.SQLITE_DB_PATH
+      ? path.resolve(environment.SQLITE_DB_PATH)
+      : DEFAULT_DATABASE_PATH,
     host: parseHost(environment.HOST),
     maxExportJsonBytes: parsePositiveInteger(
       environment.MAX_EXPORT_JSON_BYTES,

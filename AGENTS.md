@@ -3,10 +3,9 @@
 This file governs the entire repository. Read it before changing code, then read the
 project-local skill that matches the task.
 
-tts-mermaid is a development-stage React application for turning technical source material and
-slide JSON into editable architecture diagrams and PowerPoint output. The same repository also
-contains Node-only TypeScript CLIs for PowerPoint OOXML import and conversion. There is no Express
-server today. Preserve that distinction and preserve any user-owned working-tree changes.
+tts-mermaid is an npm workspace with a React/Vite browser application under `web/` and an Express
+API under `server/`. The server also owns the Node-only TypeScript CLIs for PowerPoint OOXML import
+and conversion. Preserve that runtime boundary and preserve any user-owned working-tree changes.
 
 ## Instruction and source-of-truth order
 
@@ -17,7 +16,7 @@ When guidance disagrees, use this order:
 3. This root `AGENTS.md`.
 4. Current code, `package.json`, `package-lock.json`, TypeScript configs, and tests.
 5. Files under `research/` and `plan/` as design inputs, not implemented product contracts.
-6. Files under `mock-data/` as fixtures and prompt context, not production truth.
+6. Files under `web/mock-data/` as fixtures and prompt context, not production truth.
 
 Code and executable tests are the final authority. Do not infer behavior from the repository name
 or from stale generated JSON and image artifacts.
@@ -25,8 +24,7 @@ or from stale generated JSON and image artifacts.
 ## Start every task this way
 
 1. Run `git status --short` from the repository root. Re-run it before handoff.
-2. Identify every runtime the change touches: browser, shared/pure TypeScript, Node CLI, or a
-   newly requested Express server.
+2. Identify every runtime the change touches: browser, shared/pure TypeScript, Node CLI, or Express.
 3. Load the applicable project skill:
    - React, TSX, routing, hooks, CSS, accessibility, or browser behavior:
      [`.agents/skills/react-vite-development/SKILL.md`](.agents/skills/react-vite-development/SKILL.md)
@@ -46,41 +44,42 @@ or reorganize unrelated work.
 
 | Path | Role | Runtime |
 | --- | --- | --- |
-| `src/main.tsx` | Browser bootstrap and router mounting | Browser |
-| `src/App.tsx` | Route composition and top-level workflow state | Browser |
-| `src/pages/` | Route-level UI and workflow orchestration | Browser |
-| `src/components/` | Reusable presentation primitives | Browser |
-| `src/hooks/` | Browser workflow state such as uploaded attachments | Browser |
-| `src/lib/OpenAI.ts` | Current direct Responses API browser adapter | Browser, development-only trust model |
-| `src/lib/slide-canvas/` | Pure slide model, edits, geometry, and text-run behavior | Shared/pure |
-| `src/lib/slide-svg/` | Interactive SVG rendering, selection, editing, pan, and zoom | Browser |
-| `src/lib/shared/` | PowerPoint contracts, normalization, layering, and utilities | Shared/pure by default |
-| `src/lib/export/` | JSON normalization and browser-compatible PPTX generation/editing | Browser/shared |
-| `src/lib/import/` | OOXML extraction and compact JSON writing | Node only |
-| `src/types/` | OpenAI output contracts and JSON schemas | Shared/browser |
-| `src/prompts/` | Prompt instructions imported as raw build assets | Browser bundle |
-| `scripts/` | TypeScript command-line tools and CLI integration tests | Node only |
-| `mock-data/` | Development fixtures, examples, and retained prompt context | Data only |
-| `assets/`, `arch-images/`, `src/*-assets/` | Source images and bundled presentation assets | Static assets |
+| `web/src/main.tsx` | Browser bootstrap and router mounting | Browser |
+| `web/src/App.tsx` | Route composition and top-level workflow state | Browser |
+| `web/src/pages/` | Route-level UI and workflow orchestration | Browser |
+| `web/src/components/` | Reusable presentation primitives | Browser |
+| `web/src/hooks/` | Browser workflow state such as uploaded attachments | Browser |
+| `web/src/lib/OpenAI.ts` | Current direct Responses API browser adapter | Browser, development-only trust model |
+| `web/src/lib/slide-canvas/` | Pure browser slide model and edits | Browser/pure |
+| `web/src/lib/slide-svg/` | Interactive SVG rendering, selection, editing, pan, and zoom | Browser |
+| `web/src/lib/shared/` | Browser PowerPoint contracts and normalization | Browser/pure |
+| `web/src/lib/export/` | Browser-compatible PPTX generation/editing | Browser |
+| `server/src/` | Express API, services, persistence, and server-owned PowerPoint implementation | Node only |
+| `server/scripts/` | TypeScript command-line tools and CLI integration tests | Node only |
+| `server/data/` | Local SQLite data, ignored by Git | Node only |
+| `web/src/types/` | OpenAI output contracts and JSON schemas | Browser |
+| `web/src/prompts/` | Prompt instructions imported as raw build assets | Browser bundle |
+| `web/mock-data/` | Development fixtures, examples, and retained prompt context | Data only |
+| `web/arch-images/`, `web/src/*-assets/`, `server/assets/` | Runtime-specific presentation assets | Static assets |
 
-The repository has one npm package and one lockfile. There is no workspace orchestrator, Express
-dependency, server entrypoint, ESLint/Prettier config, CI workflow, or deployment manifest. Do not
-invent commands or document infrastructure that does not exist.
+The repository has two npm workspaces and one root lockfile. Each package declares its own runtime
+dependencies and scripts. There is no ESLint/Prettier config, CI workflow, or deployment manifest.
+Do not invent commands or document infrastructure that does not exist.
 
 ## Runtime boundaries
 
 ### Browser versus Node
 
-- Browser code is reachable from `src/main.tsx`. It must not import `node:*`, filesystem paths,
-  process-global configuration, or `src/lib/import/**`.
-- Node CLIs may import the OOXML importer and other pure/shared modules. Keep browser globals out of
-  their execution path unless a function explicitly guards and abstracts them.
-- `src/lib/shared/` should remain deterministic and environment-neutral. Do not add DOM, React,
+- Browser code is reachable from `web/src/main.tsx`. It must not import `node:*`, filesystem paths,
+  process-global configuration, or anything under `server/`.
+- Node CLIs under `server/scripts/` may import the server-owned OOXML importer and other server
+  modules. Keep browser globals out of their execution path unless explicitly abstracted.
+- Both packages' `src/lib/shared/` directories should remain deterministic. Do not add React,
   filesystem, network, or environment access to a shared model/helper for convenience.
-- `src/lib/export/` intentionally supports browser file download and File System Access handles.
+- `web/src/lib/export/` intentionally supports browser file download and File System Access handles.
   Preserve its runtime guards and do not assume those APIs exist in every browser.
-- If Express is introduced, put server-only code behind an explicit server entrypoint and a
-  dedicated TypeScript config. Never make server code reachable from the Vite module graph.
+- Server-only code stays behind `server/src/server.ts` and `server/tsconfig.json`. Never make it
+  reachable from the Vite module graph.
 
 ### Slide data pipeline
 
@@ -116,8 +115,8 @@ template / pasted JSON / OpenAI JSON
 
 - Every `VITE_*` value is embedded in public browser JavaScript. It can never be treated as a
   secret.
-- The current `vite.config.ts` aliases server-looking OpenAI environment names into
-  `VITE_OPENAI_API_KEY`, and `src/lib/OpenAI.ts` uses `dangerouslyAllowBrowser`. This is a
+- The current `web/vite.config.ts` aliases server-looking OpenAI environment names into
+  `VITE_OPENAI_API_KEY`, and `web/src/lib/OpenAI.ts` uses `dangerouslyAllowBrowser`. This is a
   development-only trust model, not a production security pattern. Do not describe it as secure,
   log the key, or expand it to additional secrets.
 - A production API-key flow belongs behind a server boundary. When a requested Express change
@@ -138,7 +137,7 @@ template / pasted JSON / OpenAI JSON
 - Use npm and preserve `package-lock.json`; do not mix package managers.
 - Confirm live versions in the manifest and lockfile before using version-specific APIs. The
   current install is React 19, React Router 7, Vite 7, Tailwind 4, Motion 12, and Vitest 4.
-- Keep top-level workflow ownership in `App.tsx` only while the state genuinely spans routes.
+- Keep top-level workflow ownership in `web/src/App.tsx` only while the state genuinely spans routes.
   Keep local UI state in the smallest page, component, or hook that owns it.
 - Derive render values instead of synchronizing duplicate state with effects. Effects are for
   external synchronization and must clean up subscriptions, timers, object URLs, and requests.
@@ -154,7 +153,7 @@ template / pasted JSON / OpenAI JSON
 
 ## TypeScript rules
 
-- Keep both TypeScript configs strict. Avoid `any`, `@ts-ignore`, unexplained non-null assertions,
+- Keep all TypeScript configs strict. Avoid `any`, `@ts-ignore`, unexplained non-null assertions,
   broad casts, and suppression comments.
 - Prefer `unknown` plus narrowing for untrusted values and discriminated unions for element types,
   async states, and editing states.
@@ -164,21 +163,18 @@ template / pasted JSON / OpenAI JSON
   the schema, the type, validation/normalization, consumers, and tests together.
 - Preserve immutability at React and slide-editing boundaries. Do not mutate props, template JSON,
   normalized slides, or state-owned `Set`/`Map` objects in place.
-- Scripts under `scripts/` are not included by the current project-reference typecheck. Verify
-  changed scripts through focused Vitest coverage and a safe disposable CLI run when warranted.
+- Scripts under `server/scripts/` are included by the server typecheck. Also verify changed scripts
+  through focused Vitest coverage and a safe disposable CLI run when warranted.
 - Add a dependency only when it materially improves the requested outcome and no installed tool
   fits. Direct imports should be declared dependencies; do not rely intentionally on transitive
   packages.
 
 ## Express rules
 
-There is no Express application in the current repository. Do not claim routes, middleware,
-server tests, or deployment behavior exist.
+The Express application lives entirely in the `server/` workspace:
 
-If a task explicitly adds Express:
-
-- keep it in a `server/` boundary with an app factory separate from the process listener;
-- add an explicit server TypeScript config and package scripts rather than routing it through Vite;
+- keep the app factory separate from the process listener;
+- keep server configuration and package scripts out of Vite;
 - validate configuration once at startup and keep secrets out of client-readable values;
 - use narrow route -> application/service -> integration dependencies;
 - validate params, query, headers, and body at runtime, set body limits, and return a consistent
@@ -194,7 +190,7 @@ The Express skill contains the detailed server workflow.
 
 Do not hand-edit or commit local/generated output unless the task explicitly requires it:
 
-- `node_modules/`, `dist/`, `coverage/`, `.vite/`, `*.tsbuildinfo`
+- `node_modules/`, `web/dist/`, `server/server-dist/`, `coverage/`, `.vite/`, `*.tsbuildinfo`
 - `.env`, `.env.*` except documented example files
 - logs, temporary PPTX/ZIP extraction directories, and one-off generated decks/JSON
 
@@ -212,8 +208,8 @@ Read the real scripts before running commands. Start focused, then broaden in pr
 ### React, shared TypeScript, and browser export
 
 ```sh
-npm test -- src/path/to/affected.test.ts
-npm exec tsc -- -b
+npm run test --workspace @tts-mermaid/web -- src/path/to/affected.test.ts
+npm run typecheck
 npm test
 npm run build
 ```
@@ -228,10 +224,10 @@ npm run build
 ### PowerPoint import/export and Node CLIs
 
 ```sh
-npm test -- scripts/parse-pptx.test.ts
-npm test -- src/lib/shared/PowerpointNormalizer.test.ts
+npm run test --workspace @tts-mermaid/server -- scripts/parse-pptx.test.ts
+npm run test --workspace @tts-mermaid/web -- src/lib/shared/PowerpointNormalizer.test.ts
 npm test
-npm exec tsc -- -b
+npm run typecheck
 npm run build
 ```
 
@@ -239,7 +235,7 @@ Run a CLI smoke test only with a disposable input and explicit temporary output.
 writes files, and other scripts may create assets beside their output. Never aim a verification run
 at valuable source decks or user output directories.
 
-### Express, if it is added
+### Express
 
 Add focused route/service tests and real package scripts in the same change. The minimum broad gate
 should include server typechecking, server tests, existing client tests, and the Vite build. Do not
