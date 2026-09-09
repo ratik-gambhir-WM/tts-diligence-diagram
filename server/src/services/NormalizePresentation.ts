@@ -255,7 +255,9 @@ function normalizeTextOrShape(
   const fontFace = stringValue(source.fontFace) ?? DEFAULT_FONT
   const fontSize = numberValue(source.fontSize, 18)
   const textColor = color(first(source, ['color', 'textColor']), '111827')
-  const runs = textRuns(source.runs, text, fontFace, fontSize, textColor)
+  const bold = booleanValue(source.bold, false)
+  const italic = booleanValue(source.italic, false)
+  const runs = textRuns(source.runs, text, fontFace, fontSize, textColor, bold, italic)
   const common = {
     id,
     x: position(first(source, ['x', 'left']), width),
@@ -273,7 +275,7 @@ function normalizeTextOrShape(
     runs,
     opacity,
     rotate,
-    bold: booleanValue(source.bold, false),
+    bold,
     flipH: booleanValue(source.flipH, false),
     flipV: booleanValue(source.flipV, false),
     borderRadius: numberValue(source.borderRadius, 0),
@@ -287,7 +289,7 @@ function normalizeTextOrShape(
       type: 'text',
       fill: color(source.fill, 'FFFFFF'),
       stroke: color(source.stroke, 'FFFFFF'),
-      italic: booleanValue(source.italic, false),
+      italic,
     }
   }
   return {
@@ -305,6 +307,8 @@ function textRuns(
   fallbackFont: string,
   fallbackSize: number,
   fallbackColor: string,
+  fallbackBold: boolean,
+  fallbackItalic: boolean,
 ): PowerPointCanvasTextRun[] {
   const runs = Array.isArray(value)
     ? value.filter(isRecord).map((run) => ({
@@ -324,8 +328,8 @@ function textRuns(
       color: fallbackColor,
       fontFace: fallbackFont,
       fontSize: fallbackSize,
-      bold: false,
-      italic: false,
+      bold: fallbackBold,
+      italic: fallbackItalic,
       underline: false,
       breakLine: false,
     })

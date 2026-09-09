@@ -8,24 +8,16 @@ import type {
   NormalizedImageElement,
   NormalizedLineElement,
   NormalizedPresentation,
-  NormalizedShapeElement,
-  NormalizedTextElement,
   NormalizedTextRun,
 } from '../shared/PowerpointTypes'
 import { cleanHex } from '../shared/PowerpointUtils'
 import {
-  PPTX_AVERAGE_GLYPH_WIDTH_FACTOR,
   PPTX_DEFAULT_BACKGROUND_COLOR,
-  PPTX_DEFAULT_FONT_SIZE_PT,
   PPTX_DEFAULT_LINE_COLOR,
   PPTX_DEFAULT_TEXT_COLOR,
   PPTX_FULL_TRANSPARENCY,
   PPTX_LINE_SPACING_MULTIPLE,
-  PPTX_MIN_DIMENSION_PX,
-  PPTX_MIN_FONT_SIZE_PT,
   PPTX_MIN_VISIBLE_CROP_FRACTION,
-  PPTX_STACKED_LINE_HEIGHT_MULTIPLE,
-  PPTX_TEXT_SHRINK_FACTOR,
 } from './PowerpointConstants'
 import {
   opacityToTransparency,
@@ -120,7 +112,9 @@ export function buildPptxPresentation(presentation: NormalizedPresentation) {
             line: {
               color: cleanHex(element.stroke, PPTX_DEFAULT_LINE_COLOR),
               width: element.strokeWidth,
-              transparency: opacityToTransparency(element.strokeOpacity ?? element.opacity),
+              transparency: opacityToTransparency(
+                combinedOpacity(element.strokeOpacity, element.opacity),
+              ),
               dashType:
                 element.dash === 'solid' ? 'solid' : element.dash === 'dot' ? 'sysDot' : 'dash',
               beginArrowType: segment.hasBeginArrow ? element.beginArrow : 'none',
@@ -138,9 +132,7 @@ export function buildPptxPresentation(presentation: NormalizedPresentation) {
       }
 
       if (element.kind === 'text') {
-        const maxFontSizePt = getMaxTextBoxFontSizePt(element)
-
-        slide.addText(toPptxTextRuns(element.runs, maxFontSizePt), {
+        slide.addText(toPptxTextRuns(element.runs), {
           x: pxToInches(element.x),
           y: pxToInches(element.y),
           w: pxToInches(element.w),
@@ -156,8 +148,12 @@ export function buildPptxPresentation(presentation: NormalizedPresentation) {
           lineSpacingMultiple: PPTX_LINE_SPACING_MULTIPLE,
           paraSpaceAfter: 0,
           paraSpaceBefore: 0,
-          fill: colorToFill(element.fill, element.fillOpacity ?? element.opacity),
-          line: colorToLine(element.stroke, element.strokeWidth, element.strokeOpacity ?? element.opacity),
+          fill: colorToFill(element.fill, combinedOpacity(element.fillOpacity, element.opacity)),
+          line: colorToLine(
+            element.stroke,
+            element.strokeWidth,
+            combinedOpacity(element.strokeOpacity, element.opacity),
+          ),
           rotate: element.rotate,
           flipH: element.flipH,
           flipV: element.flipV,
@@ -169,7 +165,7 @@ export function buildPptxPresentation(presentation: NormalizedPresentation) {
         continue
       }
 
-      if (element.label.trim().length > 0 && element.shape === 'rect') {
+      if (element.label.trim().length > 0) {
         slide.addText(toPptxTextRuns(element.textRuns), {
           x: pxToInches(element.x),
           y: pxToInches(element.y),
@@ -186,10 +182,16 @@ export function buildPptxPresentation(presentation: NormalizedPresentation) {
           flipH: element.flipH,
           flipV: element.flipV,
           fit: 'shrink',
-          isTextBox: true,
-          fill: colorToFill(element.fill, element.fillOpacity ?? element.opacity),
-          line: colorToLine(element.stroke, element.strokeWidth, element.strokeOpacity ?? element.opacity),
-          shape: element.borderRadius > 0 ? 'roundRect' : 'rect',
+          fill: colorToFill(element.fill, combinedOpacity(element.fillOpacity, element.opacity)),
+          line: colorToLine(
+            element.stroke,
+            element.strokeWidth,
+            combinedOpacity(element.strokeOpacity, element.opacity),
+          ),
+          shape:
+            element.shape === 'rect' && element.borderRadius > 0
+              ? 'roundRect'
+              : toPptxShapeName(element.shape),
           rectRadius: element.borderRadius > 0 ? pxToInches(element.borderRadius) : undefined,
         })
         continue
@@ -203,41 +205,18 @@ export function buildPptxPresentation(presentation: NormalizedPresentation) {
         rotate: element.rotate,
         flipH: element.flipH,
         flipV: element.flipV,
-        fill: colorToFill(element.fill, element.fillOpacity ?? element.opacity),
-        line: colorToLine(element.stroke, element.strokeWidth, element.strokeOpacity ?? element.opacity),
+        fill: colorToFill(element.fill, combinedOpacity(element.fillOpacity, element.opacity)),
+        line: colorToLine(
+          element.stroke,
+          element.strokeWidth,
+          combinedOpacity(element.strokeOpacity, element.opacity),
+        ),
         rectRadius:
           element.shape === 'roundRect' && element.borderRadius > 0
             ? pxToInches(element.borderRadius)
             : undefined,
       })
 
-      if (element.label.trim()) {
-        const maxFontSizePt =
-          element.shape === 'rect' ? getMaxStackedFontSizePt(element) : undefined
-
-        slide.addText(toPptxTextRuns(element.textRuns, maxFontSizePt), {
-          x: pxToInches(element.x),
-          y: pxToInches(element.y),
-          w: pxToInches(element.w),
-          h: pxToInches(element.h),
-          margin: [element.padding, element.padding, element.padding, element.padding],
-          fontFace: element.fontFace,
-          fontSize: element.fontSize,
-          color: cleanHex(element.textColor, PPTX_DEFAULT_TEXT_COLOR),
-          bold: element.bold,
-          align: element.align,
-          valign: toPptxVerticalAlign(element.valign),
-          lineSpacingMultiple: PPTX_LINE_SPACING_MULTIPLE,
-          paraSpaceAfter: 0,
-          paraSpaceBefore: 0,
-          rotate: element.rotate,
-          fit: 'shrink',
-          isTextBox: true,
-          fill: { color: PPTX_DEFAULT_BACKGROUND_COLOR, transparency: PPTX_FULL_TRANSPARENCY },
-          line: { color: PPTX_DEFAULT_BACKGROUND_COLOR, transparency: PPTX_FULL_TRANSPARENCY, width: 0 },
-          shape: 'rect',
-        })
-      }
     }
   }
 
@@ -315,7 +294,7 @@ function buildImageOptions(element: NormalizedImageElement) {
   }
 }
 
-function toPptxTextRuns(runs: NormalizedTextRun[], maxFontSizePt?: number) {
+function toPptxTextRuns(runs: NormalizedTextRun[]) {
   return runs.map((run, index) => ({
     text: run.text,
     options: {
@@ -325,108 +304,13 @@ function toPptxTextRuns(runs: NormalizedTextRun[], maxFontSizePt?: number) {
       breakLine: run.breakLine && index < runs.length - 1,
       color: cleanHex(run.color, PPTX_DEFAULT_TEXT_COLOR),
       fontFace: run.fontFace,
-      fontSize: Math.min(run.fontSize, maxFontSizePt ?? run.fontSize),
+      fontSize: run.fontSize,
     },
   }))
 }
 
-function getMaxStackedFontSizePt(element: NormalizedShapeElement) {
-  const lineCount = Math.max(
-    element.textRuns.reduce(
-      (count, run) => count + Math.max(run.text.split('\n').length, PPTX_MIN_DIMENSION_PX),
-      0,
-    ),
-    element.label.split('\n').length,
-    PPTX_MIN_DIMENSION_PX,
-  )
-  const largestRunSize = Math.max(...element.textRuns.map((run) => run.fontSize), element.fontSize)
-  const availableHeight = Math.max(element.h - element.padding * 2, PPTX_MIN_DIMENSION_PX)
-  const heightLimitedSize = availableHeight / (lineCount * PPTX_STACKED_LINE_HEIGHT_MULTIPLE)
-
-  return Math.max(Math.min(largestRunSize, heightLimitedSize), PPTX_MIN_FONT_SIZE_PT)
-}
-
-function getMaxTextBoxFontSizePt(element: NormalizedTextElement) {
-  if (!element.runs.length) {
-    return undefined
-  }
-
-  const largestRunSize = Math.max(...element.runs.map((run) => run.fontSize), element.fontSize)
-  const availableHeight = Math.max(element.h - element.padding * 2, PPTX_MIN_DIMENSION_PX)
-  const availableWidth = Math.max(element.w - element.padding * 2, PPTX_MIN_DIMENSION_PX)
-  const estimatedHeight = estimateTextRunHeight(element.runs, element.text, availableWidth)
-
-  if (estimatedHeight <= availableHeight) {
-    return largestRunSize
-  }
-
-  return Math.max(
-    largestRunSize * (availableHeight / estimatedHeight) * PPTX_TEXT_SHRINK_FACTOR,
-    PPTX_MIN_FONT_SIZE_PT,
-  )
-}
-
-function estimateTextRunHeight(
-  runs: NormalizedTextRun[],
-  fallbackText: string,
-  availableWidth: number,
-) {
-  const lines = getTextRunLines(runs, fallbackText)
-
-  return lines.reduce((height, line) => {
-    const fontSize = Math.max(line.fontSize, PPTX_MIN_DIMENSION_PX)
-    const averageGlyphWidth = fontSize * PPTX_AVERAGE_GLYPH_WIDTH_FACTOR
-    const charactersPerLine = Math.max(
-      Math.floor(availableWidth / averageGlyphWidth),
-      PPTX_MIN_DIMENSION_PX,
-    )
-    const wrappedLineCount = Math.max(
-      Math.ceil(line.text.trim().length / charactersPerLine),
-      PPTX_MIN_DIMENSION_PX,
-    )
-
-    return height + wrappedLineCount * fontSize * PPTX_LINE_SPACING_MULTIPLE
-  }, 0)
-}
-
-function getTextRunLines(runs: NormalizedTextRun[], fallbackText: string) {
-  if (!runs.length) {
-    return fallbackText.split('\n').map((line) => ({
-      fontSize: PPTX_DEFAULT_FONT_SIZE_PT,
-      text: line,
-    }))
-  }
-
-  const lines: { fontSize: number; text: string }[] = []
-  let currentLine = ''
-  let currentFontSize = runs[0]?.fontSize ?? PPTX_DEFAULT_FONT_SIZE_PT
-
-  for (const run of runs) {
-    const parts = run.text.split('\n')
-
-    parts.forEach((part, index) => {
-      currentLine += part
-      currentFontSize = Math.max(currentFontSize, run.fontSize)
-
-      if (index < parts.length - 1) {
-        lines.push({ fontSize: currentFontSize, text: currentLine })
-        currentLine = ''
-        currentFontSize = run.fontSize
-      }
-    })
-
-    if (run.breakLine) {
-      lines.push({ fontSize: currentFontSize, text: currentLine })
-      currentLine = ''
-      currentFontSize = run.fontSize
-    }
-  }
-
-  if (currentLine || !lines.length) {
-    lines.push({ fontSize: currentFontSize, text: currentLine })
-  }
-
-  return lines
+function combinedOpacity(localOpacity: number | undefined, elementOpacity: number) {
+  return (localOpacity ?? DEFAULT_OPACITY) * elementOpacity
 }
 
 function colorToFill(color: string, opacity = DEFAULT_OPACITY) {

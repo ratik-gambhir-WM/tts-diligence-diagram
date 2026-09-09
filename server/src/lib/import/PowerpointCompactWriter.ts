@@ -96,7 +96,7 @@ function compactShape(element: NormalizedShapeElement): PowerPointCanvasShapeEle
     fontFace: hasText ? element.fontFace : undefined,
     bold: hasText && element.bold ? true : undefined,
     textColor: hasText ? element.textColor : undefined,
-    runs: compactRuns(element.textRuns, element.label),
+    runs: compactRuns(element.textRuns),
   })
 }
 
@@ -127,7 +127,7 @@ function compactText(element: NormalizedTextElement): PowerPointCanvasTextElemen
     bold: element.bold || undefined,
     italic: element.italic || undefined,
     textColor: element.color,
-    runs: compactRuns(element.runs, element.text),
+    runs: compactRuns(element.runs),
   })
 }
 
@@ -181,8 +181,8 @@ async function compactImage(
   })
 }
 
-function compactRuns(runs: NormalizedTextRun[], text: string): PowerPointCanvasTextRun[] | undefined {
-  if (!runs.length || (runs.length === 1 && runs[0]?.text === text)) {
+function compactRuns(runs: NormalizedTextRun[]): PowerPointCanvasTextRun[] | undefined {
+  if (!runs.length) {
     return undefined
   }
 

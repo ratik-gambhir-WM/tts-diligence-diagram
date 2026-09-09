@@ -1,8 +1,14 @@
 // @vitest-environment node
 
 import JSZip from 'jszip'
+import PptxGenJS from 'pptxgenjs'
 import { describe, expect, it } from 'vitest'
 
+import type {
+  PowerPointCanvasElement,
+  PowerPointCanvasShapeElement,
+  PowerPointCanvasTextElement,
+} from '../src/lib/import/PowerpointImportTypes'
 import { extractElementTransform, identityTransform } from '../src/lib/import/PowerpointGeometry'
 import type { ExtractedSlideRecord } from '../src/lib/import/PowerpointImportTypes'
 import { collectSupportParts } from '../src/lib/import/PowerpointOoxml'
@@ -12,6 +18,9 @@ import { findDescendant, parseXml } from '../src/lib/import/PowerpointXml'
 import { normalizeExtractedPresentation } from '../src/lib/shared/PowerpointExtractedNormalizer'
 import type { NormalizedElement, NormalizedShapeElement } from '../src/lib/shared/PowerpointTypes'
 import { parseColor } from '../src/lib/shared/PowerpointUtils'
+import { ExportPowerPointService } from '../src/services/ExportPowerPointService'
+import { LibraryPowerPointConverter } from '../src/services/PowerPointConverter'
+import { SqliteTemplateRepository } from '../src/repositories/SqliteTemplateRepository'
 import { normalizePresentation } from '../src/services/NormalizePresentation'
 
 const THEME_XML = `
@@ -71,6 +80,171 @@ const TABLE_XML = `
 `
 
 describe('Rust PowerPoint parity', () => {
+  it('round trips styled text boxes without losing fill, geometry, or run typography', async () => {
+    const source = new PptxGenJS()
+    source.layout = 'LAYOUT_WIDE'
+    const slide = source.addSlide()
+    slide.addText(
+      [
+        {
+          text: 'Architecture',
+          options: {
+            bold: true,
+            color: 'FFFFFF',
+            fontFace: 'Arial',
+            fontSize: 19.5,
+          },
+        },
+        {
+          text: ' overview',
+          options: {
+            color: 'FFFFFF',
+            fontFace: 'Aptos',
+            fontSize: 11,
+            italic: true,
+          },
+        },
+      ],
+      {
+        x: 1,
+        y: 1.25,
+        w: 3.5,
+        h: 0.625,
+        fill: { color: '070154', transparency: 20 },
+        line: { color: '0047FF', transparency: 30, width: 2 },
+        margin: 0,
+      },
+    )
+    slide.addText('Database', {
+      x: 5,
+      y: 1.25,
+      w: 1.5,
+      h: 1,
+      shape: source.ShapeType.flowChartMagneticDisk,
+      fill: { color: 'E8EEF8' },
+      line: { color: '070154', width: 1 },
+      color: '070154',
+      fontFace: 'Arial',
+      fontSize: 12,
+      margin: 0,
+    })
+    const sourceBytes = await source.write({ outputType: 'nodebuffer' })
+    if (!Buffer.isBuffer(sourceBytes)) {
+      throw new Error('Expected PptxGenJS to return a Node.js buffer.')
+    }
+    const sourceArchive = await JSZip.loadAsync(sourceBytes)
+    const sourceSlideXml = await sourceArchive.file('ppt/slides/slide1.xml')?.async('text')
+    if (!sourceSlideXml) {
+      throw new Error('Expected the source deck to contain slide XML.')
+    }
+    sourceArchive.file(
+      'ppt/slides/slide1.xml',
+      sourceSlideXml.replace('<p:cNvSpPr/>', '<p:cNvSpPr txBox="1"/>'),
+    )
+    const textBoxSourceBytes = await sourceArchive.generateAsync({ type: 'nodebuffer' })
+
+    const converter = new LibraryPowerPointConverter()
+    const imported = await converter.convert(textBoxSourceBytes)
+    const importedElement = textElementWithText(
+      imported.templateJson.presentation.slides[0]?.elements,
+      'Architecture overview',
+    )
+    expect(imported.templateJson.presentation.slides[0]).toMatchObject({
+      width: 1280,
+      height: 720,
+    })
+    expect(importedElement).toMatchObject({
+      type: 'text',
+      x: 96,
+      y: 120,
+      w: 336,
+      h: 60,
+      fill: '070154',
+      fillOpacity: 0.8,
+      stroke: '0047FF',
+      strokeOpacity: 0.7,
+      strokeWidth: 2,
+      fontFace: 'Arial',
+      fontSize: 19.5,
+      runs: [
+        expect.objectContaining({
+          text: 'Architecture',
+          bold: true,
+          color: 'FFFFFF',
+          fontFace: 'Arial',
+          fontSize: 19.5,
+        }),
+        expect.objectContaining({
+          text: ' overview',
+          color: 'FFFFFF',
+          fontFace: 'Aptos',
+          fontSize: 11,
+          italic: true,
+        }),
+      ],
+    })
+    expect(shapeElementWithText(
+      imported.templateJson.presentation.slides[0]?.elements,
+      'Database',
+    )).toMatchObject({
+      type: 'shape',
+      shape: 'flowChartMagneticDisk',
+      x: 480,
+      y: 120,
+      w: 144,
+      h: 96,
+      fill: 'E8EEF8',
+      stroke: '070154',
+      strokeWidth: 1,
+      fontFace: 'Arial',
+      fontSize: 12,
+    })
+
+    const templates = new SqliteTemplateRepository(':memory:')
+    try {
+      const exported = await new ExportPowerPointService(templates).export(imported.templateJson)
+      const roundTrip = await converter.convert(Buffer.from(exported.bytes))
+      expect(textElementWithText(
+        roundTrip.templateJson.presentation.slides[0]?.elements,
+        'Architecture overview',
+      )).toMatchObject({
+        x: 96,
+        y: 120,
+        w: 336,
+        h: 60,
+        fill: '070154',
+        fillOpacity: 0.8,
+        stroke: '0047FF',
+        strokeOpacity: 0.7,
+        strokeWidth: 2,
+        fontFace: 'Arial',
+        fontSize: 19.5,
+        runs: [
+          expect.objectContaining({ fontFace: 'Arial', fontSize: 19.5 }),
+          expect.objectContaining({ fontFace: 'Aptos', fontSize: 11 }),
+        ],
+      })
+      expect(shapeElementWithText(
+        roundTrip.templateJson.presentation.slides[0]?.elements,
+        'Database',
+      )).toMatchObject({
+        type: 'shape',
+        shape: 'flowChartMagneticDisk',
+        x: 480,
+        y: 120,
+        w: 144,
+        h: 96,
+        fill: 'E8EEF8',
+        stroke: '070154',
+        strokeWidth: 1,
+        fontFace: 'Arial',
+        fontSize: 12,
+      })
+    } finally {
+      templates.close()
+    }
+  })
+
   it('preserves theme colors, fonts, and merged table cell assignments', () => {
     const table = findDescendant(parseXml(TABLE_XML), 'p:graphicFrame')
     if (!table) {
@@ -186,7 +360,10 @@ describe('Rust PowerPoint parity', () => {
               w: '2in',
               h: 80,
               text: 'Parity',
+              bold: true,
+              fontFace: 'Arial',
               fontSize: ' ',
+              italic: true,
             },
             { type: 'unsupported' },
           ],
@@ -211,6 +388,15 @@ describe('Rust PowerPoint parity', () => {
               y: 96,
               w: 192,
               fontSize: 18,
+              fontFace: 'Arial',
+              bold: true,
+              italic: true,
+              runs: [expect.objectContaining({
+                bold: true,
+                fontFace: 'Arial',
+                fontSize: 18,
+                italic: true,
+              })],
             }),
           ],
         },
@@ -232,6 +418,34 @@ function shapeWithText(
   )
   if (!element) {
     throw new Error(`Missing table cell ${text}.`)
+  }
+  return element
+}
+
+function textElementWithText(
+  elements: PowerPointCanvasElement[] | undefined,
+  text: string,
+): PowerPointCanvasTextElement {
+  const element = elements?.find(
+    (candidate): candidate is PowerPointCanvasTextElement =>
+      candidate.type === 'text' && candidate.text === text,
+  )
+  if (!element) {
+    throw new Error(`Missing text element ${text}.`)
+  }
+  return element
+}
+
+function shapeElementWithText(
+  elements: PowerPointCanvasElement[] | undefined,
+  text: string,
+): PowerPointCanvasShapeElement {
+  const element = elements?.find(
+    (candidate): candidate is PowerPointCanvasShapeElement =>
+      candidate.type === 'shape' && candidate.text === text,
+  )
+  if (!element) {
+    throw new Error(`Missing shape element ${text}.`)
   }
   return element
 }

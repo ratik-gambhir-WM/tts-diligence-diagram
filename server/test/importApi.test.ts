@@ -61,6 +61,8 @@ describe('import API', () => {
               expect.objectContaining({
                 type: 'text',
                 text: 'Stored by the import API',
+                fill: 'transparent',
+                stroke: 'transparent',
               }),
               expect.objectContaining({
                 type: 'image',
