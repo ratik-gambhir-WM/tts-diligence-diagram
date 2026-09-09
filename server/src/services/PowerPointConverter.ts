@@ -2,8 +2,8 @@ import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 
-import { importPowerPoint } from '../../../src/lib/import/PowerpointImporter'
-import type { PowerPointCanvasJson } from '../../../src/lib/import/PowerpointImportTypes'
+import { importPowerPoint } from '../lib/import/PowerpointImporter'
+import type { PowerPointCanvasJson } from '../lib/import/PowerpointImportTypes'
 import { ApiError } from '../errors'
 
 const ZIP_CENTRAL_DIRECTORY_ENTRY_SIGNATURE = 0x02014b50
@@ -136,7 +136,12 @@ function validatePowerPointPackage(source: Buffer) {
       offset + ZIP_CENTRAL_DIRECTORY_FIXED_BYTES,
       offset + ZIP_CENTRAL_DIRECTORY_FIXED_BYTES + nameLength,
     )
-    if (entryName.startsWith('/') || entryName.split('/').includes('..')) {
+    if (
+      entryName.startsWith('/')
+      || entryName.includes('\0')
+      || entryName.includes('\\')
+      || entryName.split('/').includes('..')
+    ) {
       throw invalidPowerPointError()
     }
     requiredParts.delete(entryName)

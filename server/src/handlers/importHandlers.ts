@@ -1,9 +1,9 @@
 import type { RequestHandler } from 'express'
 
 import { ApiError } from '../errors'
-import type { ImportTemplateService } from '../services/ImportTemplateService'
+import type { ImportService } from '../services/ImportTemplateService'
 
-export function createImportHandlers(service: ImportTemplateService) {
+export function createImportHandlers(service: ImportService) {
   const create: RequestHandler = async (request, response) => {
     if (!request.is('application/vnd.openxmlformats-officedocument.presentationml.presentation')) {
       throw new ApiError(
@@ -17,10 +17,13 @@ export function createImportHandlers(service: ImportTemplateService) {
     }
 
     const result = await service.import(request.body)
+    if (response.writableEnded) {
+      return
+    }
     response
       .status(201)
       .set({
-        Location: `/import/${result.templateId}`,
+        Location: `/templates/${result.templateId}`,
         'X-PowerPoint-Warning-Count': String(result.warnings.length),
         'X-Template-Id': result.templateId,
       })
@@ -52,5 +55,16 @@ export function createImportHandlers(service: ImportTemplateService) {
       .send(asset.bytes)
   }
 
-  return { create, find, findAsset }
+  const list: RequestHandler = (_request, response) => {
+    response.json(service.list())
+  }
+
+  const remove: RequestHandler<{ templateId: string }> = (request, response) => {
+    if (!service.delete(request.params.templateId)) {
+      throw new ApiError(404, 'template_not_found', 'The requested template does not exist.')
+    }
+    response.sendStatus(204)
+  }
+
+  return { create, find, findAsset, list, remove }
 }

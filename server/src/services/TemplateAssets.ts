@@ -1,15 +1,21 @@
 import type {
   PowerPointCanvasImageElement,
   PowerPointCanvasJson,
-} from '../../../src/lib/import/PowerpointImportTypes'
-import type { NormalizedPresentation } from '../../../src/lib/shared/PowerpointTypes'
+} from '../lib/import/PowerpointImportTypes'
+import type { NormalizedPresentation } from '../lib/shared/PowerpointTypes'
 import { ApiError } from '../errors'
 import type { TemplateAsset, TemplateRepository } from '../repositories/TemplateRepository'
 
-const DATA_IMAGE_PATTERN =
-  /^data:(image\/(?:png|jpeg|jpg|gif|svg\+xml|emf));base64,([a-z0-9+/]*={0,2})$/iu
 const TEMPLATE_ASSET_PATH_PATTERN =
-  /^\/import\/([a-z0-9_-]{1,128})\/assets\/([a-z0-9_-]{1,128})$/iu
+  /^\/import\/([A-Za-z0-9_-]{1,128})\/assets\/([A-Za-z0-9_-]{1,128})$/
+const SUPPORTED_IMAGE_CONTENT_TYPES = new Set([
+  'image/png',
+  'image/jpeg',
+  'image/jpg',
+  'image/gif',
+  'image/svg+xml',
+  'image/emf',
+])
 
 export function externalizeTemplateAssets(
   templateId: string,
@@ -135,8 +141,10 @@ function createTemplateAsset(
   element: PowerPointCanvasImageElement,
   assetId: string,
 ): TemplateAsset {
-  const match = DATA_IMAGE_PATTERN.exec(element.src)
-  if (!match) {
+  let decoded: ReturnType<typeof decodeDataImage>
+  try {
+    decoded = decodeDataImage(element.src)
+  } catch {
     throw new ApiError(
       422,
       'unsupported_imported_image_source',
@@ -144,9 +152,7 @@ function createTemplateAsset(
     )
   }
 
-  const contentType = match[1]?.toLowerCase()
-  const base64 = match[2]
-  if (!contentType || !base64) {
+  if (decoded.bytes.length === 0) {
     throw new ApiError(
       422,
       'invalid_imported_image',
@@ -154,16 +160,37 @@ function createTemplateAsset(
     )
   }
 
-  const bytes = Buffer.from(base64, 'base64')
-  if (bytes.length === 0) {
-    throw new ApiError(
-      422,
-      'invalid_imported_image',
-      'An imported image did not contain valid image data.',
-    )
+  return {
+    assetId,
+    bytes: decoded.bytes,
+    contentType: decoded.contentType,
+    templateId,
+  }
+}
+
+export function decodeDataImage(source: string) {
+  if (!source.startsWith('data:')) {
+    throw new Error('The image is not a supported base64 data URI.')
+  }
+  const separatorIndex = source.indexOf(';base64,', 5)
+  if (separatorIndex < 0) {
+    throw new Error('The image is not a supported base64 data URI.')
+  }
+  const contentType = source.slice(5, separatorIndex).toLowerCase()
+  const encoded = source.slice(separatorIndex + ';base64,'.length)
+  if (
+    !SUPPORTED_IMAGE_CONTENT_TYPES.has(contentType)
+    || encoded.length % 4 !== 0
+    || !/^[A-Za-z0-9+/]*={0,2}$/.test(encoded)
+  ) {
+    throw new Error('The image is not a supported base64 data URI.')
   }
 
-  return { assetId, bytes, contentType, templateId }
+  const bytes = Buffer.from(encoded, 'base64')
+  if (bytes.toString('base64') !== encoded) {
+    throw new Error('The image data is not valid canonical base64.')
+  }
+  return { bytes, contentType }
 }
 
 function buildTemplateAssetPath(templateId: string, assetId: string) {

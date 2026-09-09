@@ -93,22 +93,23 @@ export function applyColorModifiers(baseHex: string, children: XmlNode[]) {
   }
 
   for (const child of children) {
-    if (child.tag === 'a:shade') {
-      const factor = Number(child.attributes?.val ?? OOXML_PERCENT_SCALE) / OOXML_PERCENT_SCALE
-      rgb = rgb.map((channel) => Math.round(channel * factor)) as [number, number, number]
+    const amount = Number(child.attributes?.val)
+    if (!Number.isFinite(amount)) {
+      continue
     }
-
+    const factor = clamp01(amount / OOXML_PERCENT_SCALE)
     if (child.tag === 'a:tint') {
-      const factor = Number(child.attributes?.val ?? '0') / OOXML_PERCENT_SCALE
-      rgb = rgb.map((channel) => Math.round(channel + (255 - channel) * factor)) as [
-        number,
-        number,
-        number,
-      ]
+      rgb = rgb.map((channel) => channel + (255 - channel) * factor) as [number, number, number]
+    } else if (child.tag === 'a:shade' || child.tag === 'a:lumMod') {
+      rgb = rgb.map((channel) => channel * factor) as [number, number, number]
+    } else if (child.tag === 'a:lumOff') {
+      rgb = rgb.map((channel) => channel + 255 * factor) as [number, number, number]
     }
   }
 
-  return rgbToHex(rgb)
+  return rgbToHex(
+    rgb.map((channel) => Math.round(clampNumber(channel, 0, 255))) as [number, number, number],
+  )
 }
 
 export function normalizeShapeName(shape: string | undefined) {

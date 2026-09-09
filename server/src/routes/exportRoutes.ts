@@ -1,4 +1,4 @@
-import { json, Router } from 'express'
+import { raw, Router } from 'express'
 
 import { createExportHandlers } from '../handlers/exportHandlers'
 import type { ExportPowerPointUseCase } from '../services/ExportPowerPointService'
@@ -9,9 +9,12 @@ export function createExportRouter(service: ExportPowerPointUseCase, maxJsonByte
 
   router.post(
     '/',
-    json({ inflate: false, limit: maxJsonBytes, strict: true, type: 'application/json' }),
+    raw({ inflate: false, limit: maxJsonBytes, type: 'application/json' }),
     handlers.create,
   )
+  router.all('/', (_request, response) => {
+    response.status(405).end()
+  })
 
   return router
 }

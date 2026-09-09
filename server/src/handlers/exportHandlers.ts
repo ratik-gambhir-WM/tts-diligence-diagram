@@ -1,3 +1,5 @@
+import { TextDecoder } from 'node:util'
+
 import type { RequestHandler } from 'express'
 
 import { ApiError } from '../errors'
@@ -16,7 +18,10 @@ export function createExportHandlers(service: ExportPowerPointUseCase) {
       )
     }
 
-    const result = await service.export(request.body)
+    const result = await service.export(parseJsonBody(request.body))
+    if (response.writableEnded) {
+      return
+    }
     const bytes = Buffer.from(result.bytes)
     response
       .status(200)
@@ -31,4 +36,21 @@ export function createExportHandlers(service: ExportPowerPointUseCase) {
   }
 
   return { create }
+}
+
+function parseJsonBody(body: unknown) {
+  if (!Buffer.isBuffer(body) || body.length === 0) {
+    throw invalidJsonError()
+  }
+
+  try {
+    const json = new TextDecoder('utf-8', { fatal: true }).decode(body)
+    return JSON.parse(json) as unknown
+  } catch {
+    throw invalidJsonError()
+  }
+}
+
+function invalidJsonError() {
+  return new ApiError(400, 'invalid_json', 'The request body must contain valid JSON.')
 }

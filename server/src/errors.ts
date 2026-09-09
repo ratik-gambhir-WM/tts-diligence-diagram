@@ -16,7 +16,12 @@ type ParserError = Error & {
   type?: unknown
 }
 
-export const errorHandler: ErrorRequestHandler = (error: unknown, _request, response, _next) => {
+export const errorHandler: ErrorRequestHandler = (error: unknown, _request, response, next) => {
+  if (response.headersSent) {
+    next(error)
+    return
+  }
+
   const apiError = toApiError(error)
   response.status(apiError.status).json({
     error: {

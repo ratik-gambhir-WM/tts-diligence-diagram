@@ -2,20 +2,18 @@ import {
   buildSuggestedFileName,
   buildThemedPptxBytes,
   normalizePresentationSpec,
-} from '../../../src/lib/export/PowerpointGenerator'
+} from '../lib/export/PowerpointGenerator'
 import type {
-  JsonValue,
   NormalizedPresentation,
-} from '../../../src/lib/shared/PowerpointTypes'
+} from '../lib/shared/PowerpointTypes'
 import { ApiError } from '../errors'
 import type { TemplateRepository } from '../repositories/TemplateRepository'
-import { hydrateTemplateAssetSources } from './TemplateAssets'
+import { decodeDataImage, hydrateTemplateAssetSources } from './TemplateAssets'
+import { normalizePresentation } from './NormalizePresentation'
 
 const MAX_JSON_DEPTH = 100
 const MAX_JSON_NODES = 100_000
 const MAX_EMBEDDED_IMAGE_BYTES = 40 * 1024 * 1024
-const BASE64_BYTES_PER_QUARTET = 3
-const BASE64_CHARACTERS_PER_QUARTET = 4
 
 export type ExportedPowerPoint = {
   bytes: Uint8Array
@@ -27,12 +25,13 @@ export interface ExportPowerPointUseCase {
   export(input: unknown): Promise<ExportedPowerPoint>
 }
 
-export class ExportPowerPointService implements ExportPowerPointUseCase {
-  constructor(private readonly templates?: TemplateRepository) {}
+export class ExportService implements ExportPowerPointUseCase {
+  constructor(private readonly templates: TemplateRepository) {}
 
   async export(input: unknown): Promise<ExportedPowerPoint> {
     assertBoundedJsonValue(input)
-    const { presentation, issues } = normalizePresentationSpec(input)
+    const normalized = normalizePresentation(input)
+    const { presentation, issues } = normalizePresentationSpec(normalized.templateJson)
     const errors = issues.filter((issue) => issue.level === 'error')
 
     if (!presentation || errors.length > 0) {
@@ -43,23 +42,19 @@ export class ExportPowerPointService implements ExportPowerPointUseCase {
       )
     }
 
-    const hydratedPresentation = this.templates
-      ? hydrateTemplateAssetSources(presentation, this.templates)
-      : presentation
+    const hydratedPresentation = hydrateTemplateAssetSources(presentation, this.templates)
     validateImageSources(hydratedPresentation)
     const bytes = await buildThemedPptxBytes(hydratedPresentation)
 
     return {
       bytes,
       fileName: buildSuggestedFileName(hydratedPresentation),
-      warnings: issues
-        .filter((issue) => issue.level === 'warning')
-        .map((issue) => `${issue.path}: ${issue.message}`),
+      warnings: normalized.warnings,
     }
   }
 }
 
-function assertBoundedJsonValue(input: unknown): asserts input is JsonValue {
+function assertBoundedJsonValue(input: unknown): void {
   const pending: Array<{ depth: number; value: unknown }> = [{ depth: 0, value: input }]
   let nodeCount = 0
 
@@ -110,6 +105,8 @@ function assertBoundedJsonValue(input: unknown): asserts input is JsonValue {
   }
 }
 
+export { ExportService as ExportPowerPointService }
+
 function validateImageSources(presentation: NormalizedPresentation) {
   let embeddedBytes = 0
 
@@ -119,10 +116,10 @@ function validateImageSources(presentation: NormalizedPresentation) {
         continue
       }
 
-      const match = /^data:image\/(?:png|jpeg|jpg|gif|svg\+xml|emf);base64,([a-z0-9+/]*={0,2})$/iu.exec(
-        element.src,
-      )
-      if (!match) {
+      let imageBytes: number
+      try {
+        imageBytes = decodeDataImage(element.src).bytes.length
+      } catch {
         throw new ApiError(
           422,
           'unsupported_image_source',
@@ -130,10 +127,7 @@ function validateImageSources(presentation: NormalizedPresentation) {
         )
       }
 
-      const base64 = match[1] ?? ''
-      embeddedBytes += Math.floor(
-        (base64.length * BASE64_BYTES_PER_QUARTET) / BASE64_CHARACTERS_PER_QUARTET,
-      )
+      embeddedBytes += imageBytes
       if (embeddedBytes > MAX_EMBEDDED_IMAGE_BYTES) {
         throw new ApiError(
           413,

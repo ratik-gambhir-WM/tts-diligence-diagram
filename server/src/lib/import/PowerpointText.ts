@@ -277,7 +277,9 @@ function extractFillColorValue(fillNode: XmlNode | undefined) {
 }
 
 function extractThemeTypography(supportParts: ExtractedSlideRecord['supportParts']): ThemeTypography {
-  const rawXml = supportParts?.['ppt/theme/theme1.xml']?.rawXml
+  const rawXml = Object.values(supportParts ?? {}).find(
+    (part) => part.relationshipType.includes('/theme') && part.rawXml,
+  )?.rawXml ?? supportParts?.['ppt/theme/theme1.xml']?.rawXml
   const fallback = {
     bodyFont: DEFAULT_FONT_FACE,
     headingFont: DEFAULT_FONT_FACE,

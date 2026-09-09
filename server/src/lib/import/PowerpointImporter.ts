@@ -255,7 +255,7 @@ async function extractSlide(
       zIndex: coerceNumber(element.zIndex, 0) + baseElements.length,
     })),
   ]
-  const allRelationships = [...inherited.relationships, ...relationships]
+  const allRelationships = [...relationships, ...inherited.relationships]
 
   return {
     sourcePptx,
@@ -319,7 +319,7 @@ async function extractInheritedSlideParts(
   return {
     masterElements: layout.showMasterShapes ? master.elements : [],
     layoutElements: layout.elements,
-    relationships: [...master.relationships, ...layout.relationships],
+    relationships: [...layout.relationships, ...master.relationships],
     backgroundColor: layout.backgroundColor || master.backgroundColor,
     placeholderSources: {
       layout: layout.placeholderNodes,

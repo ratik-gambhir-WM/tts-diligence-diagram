@@ -51,8 +51,12 @@ describe('export API', () => {
     const zip = await JSZip.loadAsync(response.body)
     const presentationXml = await zip.file('ppt/presentation.xml')?.async('text')
     const slideXml = await zip.file('ppt/slides/slide1.xml')?.async('text')
+    const slideMasterXml = await zip.file('ppt/slideMasters/slideMaster1.xml')?.async('text')
     expect(presentationXml).toContain('<p:sldId')
     expect(slideXml).toContain('Exported by the API')
+    expect(slideXml).toContain('prst="flowChartMagneticDisk"')
+    expect(slideXml).not.toContain('prst="flowchartmagneticdisk"')
+    expect(slideMasterXml).toContain('<p:sldLayoutId id="2147483649" r:id="rId1"/>')
   })
 
   it('rejects non-JSON request bodies', async () => {
@@ -64,6 +68,18 @@ describe('export API', () => {
       .expect(415)
 
     expect(response.body.error.code).toBe('unsupported_media_type')
+  })
+
+  it('rejects compressed bodies before checking their media type', async () => {
+    const app = createTestApp(1024)
+    const response = await request(app)
+      .post('/export')
+      .set('Content-Type', 'text/plain')
+      .set('Content-Encoding', 'gzip')
+      .send('{}')
+      .expect(415)
+
+    expect(response.body.error.code).toBe('unsupported_content_encoding')
   })
 
   it('rejects malformed JSON with a stable error', async () => {
@@ -80,12 +96,34 @@ describe('export API', () => {
     })
   })
 
+  it('rejects an empty JSON body before presentation normalization', async () => {
+    const app = createTestApp(1024)
+    const response = await request(app)
+      .post('/export')
+      .set('Content-Type', 'application/json')
+      .send()
+      .expect(400)
+
+    expect(response.body.error.code).toBe('invalid_json')
+  })
+
   it('rejects presentation JSON that cannot be normalized', async () => {
     const app = createTestApp(1024)
     const response = await request(app)
       .post('/export')
       .set('Content-Type', 'application/json')
       .send({ unrelated: true })
+      .expect(422)
+
+    expect(response.body.error.code).toBe('invalid_presentation_json')
+  })
+
+  it('parses valid primitive JSON before rejecting its presentation shape', async () => {
+    const app = createTestApp(1024)
+    const response = await request(app)
+      .post('/export')
+      .set('Content-Type', 'application/json')
+      .send('true')
       .expect(422)
 
     expect(response.body.error.code).toBe('invalid_presentation_json')
@@ -115,6 +153,46 @@ describe('export API', () => {
 
     expect(response.body.error.code).toBe('payload_too_large')
   })
+
+  it('returns an empty 408 response when endpoint work exceeds the request timeout', async () => {
+    const app = createApp({
+      exportService: {
+        export: async () => {
+          await new Promise((resolve) => setTimeout(resolve, 50))
+          return { bytes: new Uint8Array(), fileName: 'late.pptx', warnings: [] }
+        },
+      },
+      importService: new ImportTemplateService(new LibraryPowerPointConverter(), templates),
+      maxExportJsonBytes: 1024 * 1024,
+      maxUploadBytes: 1024,
+      requestTimeoutMs: 10,
+    })
+
+    const response = await request(app)
+      .post('/export')
+      .set('Content-Type', 'application/json')
+      .send(createCompactPresentation())
+      .expect(408)
+
+    expect(response.headers['x-request-id']).toEqual(expect.any(String))
+    expect(response.text).toBe('')
+  })
+
+  it('returns the stable route-not-found envelope with a request ID', async () => {
+    const response = await request(createTestApp(1024)).get('/missing').expect(404)
+
+    expect(response.body.error).toMatchObject({
+      code: 'route_not_found',
+      requestId: expect.any(String),
+    })
+  })
+
+  it('returns an empty 405 for a known path with the wrong HTTP method', async () => {
+    const response = await request(createTestApp(1024)).get('/export').expect(405)
+
+    expect(response.headers['x-request-id']).toEqual(expect.any(String))
+    expect(response.text).toBe('')
+  })
 })
 
 function createTestApp(maxExportJsonBytes: number) {
@@ -138,6 +216,18 @@ function createCompactPresentation(imageSource?: string) {
       text: 'Exported by the API',
       fontSize: 30,
       textColor: '070154',
+    },
+    {
+      id: 'database',
+      type: 'shape',
+      shape: 'flowChartMagneticDisk',
+      x: 80,
+      y: 180,
+      w: 120,
+      h: 80,
+      fill: 'E8EEF8',
+      stroke: '070154',
+      strokeWidth: 1,
     },
   ]
   if (imageSource) {

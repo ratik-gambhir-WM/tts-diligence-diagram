@@ -52,12 +52,7 @@ export function extractTableElements(
   const gridColumns = children(child(table, 'a:tblGrid'), 'a:gridCol')
   const columnCount = Math.max(
     gridColumns.length,
-    ...rows.map((row) =>
-      children(row, 'a:tc').reduce(
-        (sum, cell) => sum + positiveInt(cell.attributes?.gridSpan, MIN_ELEMENT_SIZE_PX),
-        0,
-      ),
-    ),
+    ...rows.map((row) => children(row, 'a:tc').length),
     MIN_ELEMENT_SIZE_PX,
   )
   const columnWidths = resolveTablePartSizes(
@@ -78,8 +73,17 @@ export function extractTableElements(
 
   rows.forEach((row, rowIndex) => {
     let columnIndex = 0
+    let horizontalMergeRemaining = 0
 
     for (const cell of children(row, 'a:tc')) {
+      if (cell.attributes?.hMerge === '1') {
+        if (horizontalMergeRemaining > 0) {
+          horizontalMergeRemaining -= 1
+        } else {
+          columnIndex = Math.min(columnIndex + 1, columnCount)
+        }
+        continue
+      }
       const gridSpan = Math.min(
         positiveInt(cell.attributes?.gridSpan, MIN_ELEMENT_SIZE_PX),
         columnCount - columnIndex,
@@ -89,7 +93,7 @@ export function extractTableElements(
         rows.length - rowIndex,
       )
 
-      if (cell.attributes?.hMerge === '1' || cell.attributes?.vMerge === '1') {
+      if (cell.attributes?.vMerge === '1') {
         columnIndex += gridSpan
         continue
       }
@@ -134,6 +138,7 @@ export function extractTableElements(
       })
 
       columnIndex += gridSpan
+      horizontalMergeRemaining = Math.max(gridSpan - 1, 0)
     }
   })
 

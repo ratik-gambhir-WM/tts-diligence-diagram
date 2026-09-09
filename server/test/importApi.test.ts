@@ -44,7 +44,7 @@ describe('import API', () => {
       .expect(201)
 
     expect(imported.headers).toMatchObject({
-      location: '/import/template-123',
+      location: '/templates/template-123',
       'x-powerpoint-warning-count': '0',
       'x-request-id': expect.any(String),
       'x-template-id': 'template-123',
@@ -74,7 +74,17 @@ describe('import API', () => {
     expect(templates.findById('template-123')?.templateJson.presentation.slides[0]?.elements[1])
       .toMatchObject({ src: '/import/template-123/assets/asset-456' })
 
-    const retrieved = await request(app).get('/import/template-123').expect(200)
+    const listed = await request(app).get('/templates').expect(200)
+    expect(listed.body).toEqual({
+      templates: [{
+        templateId: 'template-123',
+        title: expect.any(String),
+        slideCount: 1,
+        elementCount: 2,
+      }],
+    })
+
+    const retrieved = await request(app).get('/templates/template-123').expect(200)
     expect(Object.keys(retrieved.body)).toEqual(['presentation'])
     expect(retrieved.body).toMatchObject({
       presentation: {
@@ -92,6 +102,9 @@ describe('import API', () => {
       },
     })
     expect(JSON.stringify(retrieved.body)).toContain('base64')
+
+    const legacyAlias = await request(app).get('/import/template-123').expect(200)
+    expect(legacyAlias.body).toEqual(retrieved.body)
 
     const image = await request(app)
       .get('/import/template-123/assets/asset-456')
@@ -237,6 +250,93 @@ describe('import API', () => {
       .get('/import/legacy-template/assets/migrated-asset')
       .expect('Content-Type', 'image/png')
       .expect(200)
+  })
+
+  it('repairs legacy non-positive canvas dimensions and persists the migration', async () => {
+    const templateJson = createLegacyTemplate()
+    const slide = templateJson.presentation.slides[0]
+    const image = slide?.elements[0]
+    if (!slide || !image || image.type !== 'image') {
+      throw new Error('Expected a slide with an image in the legacy fixture.')
+    }
+    slide.width = 0
+    slide.height = -1
+    image.w = 0
+    image.h = -2
+    templates.insert({ templateId: 'zero-sized-template', templateJson }, [])
+    const app = createTestApp(
+      new ImportTemplateService(
+        new LibraryPowerPointConverter(),
+        templates,
+        () => 'unused-template-id',
+        () => 'repaired-asset',
+      ),
+      1024,
+    )
+
+    const response = await request(app).get('/templates/zero-sized-template').expect(200)
+    expect(response.body.presentation.slides[0]).toMatchObject({ width: 1, height: 1 })
+    expect(response.body.presentation.slides[0].elements[0]).toMatchObject({ w: 1, h: 1 })
+    expect(templates.findById('zero-sized-template')?.templateJson.presentation.slides[0])
+      .toMatchObject({ width: 1, height: 1 })
+  })
+
+  it('lists newest templates first and deletes templates with their assets', async () => {
+    const first = createLegacyTemplate()
+    first.presentation.title = 'First template'
+    const firstSlide = first.presentation.slides[0]
+    if (!firstSlide) {
+      throw new Error('Expected a slide fixture.')
+    }
+    firstSlide.elements = []
+    const second = createLegacyTemplate()
+    second.presentation.title = 'Second template'
+    const image = second.presentation.slides[0]?.elements[0]
+    if (!image || image.type !== 'image') {
+      throw new Error('Expected an image fixture.')
+    }
+    image.src = '/import/template-second/assets/asset-second'
+    templates.insert({ templateId: 'template-first', templateJson: first }, [])
+    templates.insert(
+      { templateId: 'template-second', templateJson: second },
+      [{
+        assetId: 'asset-second',
+        templateId: 'template-second',
+        contentType: 'image/png',
+        bytes: Buffer.from([1, 2, 3]),
+      }],
+    )
+    const app = createTestApp(
+      new ImportTemplateService(new LibraryPowerPointConverter(), templates),
+      1024,
+    )
+
+    const listed = await request(app).get('/templates').expect(200)
+    expect(listed.body).toEqual({
+      templates: [
+        {
+          templateId: 'template-second',
+          title: 'Second template',
+          slideCount: 1,
+          elementCount: 1,
+        },
+        {
+          templateId: 'template-first',
+          title: 'First template',
+          slideCount: 1,
+          elementCount: 0,
+        },
+      ],
+    })
+
+    const deleted = await request(app).delete('/templates/template-second').expect(204)
+    expect(deleted.headers['x-request-id']).toEqual(expect.any(String))
+    expect(deleted.text).toBe('')
+    expect(templates.findById('template-second')).toBeUndefined()
+    expect(templates.findAsset('template-second', 'asset-second')).toBeUndefined()
+
+    const repeated = await request(app).delete('/templates/template-second').expect(404)
+    expect(repeated.body.error.code).toBe('template_not_found')
   })
 })
 

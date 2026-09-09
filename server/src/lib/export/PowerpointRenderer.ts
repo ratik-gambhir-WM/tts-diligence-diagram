@@ -35,7 +35,7 @@ import {
 } from './PowerpointUtils'
 import { getConnectorAwareElementOrder } from '../shared/PowerpointLayering'
 
-const WEST_MONROE_LOGO_IMAGE_PATH = new URL('../../slide-assets/element-5.png', import.meta.url).pathname
+const WEST_MONROE_LOGO_IMAGE_PATH = new URL('../../../assets/element-5.png', import.meta.url).pathname
 
 export function buildPptxPresentation(presentation: NormalizedPresentation) {
   const pptx = new PptxGenJS()

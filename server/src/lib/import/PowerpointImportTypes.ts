@@ -137,7 +137,7 @@ type PowerPointCanvasElementBase = {
 }
 
 export type PowerPointCanvasShapeElement = PowerPointCanvasElementBase & {
-  align?: 'center' | 'right'
+  align?: 'center' | 'left' | 'right'
   bold?: boolean
   borderRadius?: number
   fill: string
@@ -156,7 +156,7 @@ export type PowerPointCanvasShapeElement = PowerPointCanvasElementBase & {
   text?: string
   textColor?: string
   type: 'shape'
-  valign?: 'bottom' | 'top'
+  valign?: 'bottom' | 'middle' | 'top'
   w: number
   x: number
   y: number
@@ -169,7 +169,7 @@ export type PowerPointCanvasTextElement = Omit<PowerPointCanvasShapeElement, 'sh
 
 export type PowerPointCanvasLineElement = PowerPointCanvasElementBase & {
   beginArrow?: 'arrow' | 'diamond' | 'oval' | 'stealth' | 'triangle'
-  dash?: 'dash' | 'dot'
+  dash?: 'dash' | 'dot' | 'solid'
   endArrow?: 'arrow' | 'diamond' | 'oval' | 'stealth' | 'triangle'
   stroke: string
   strokeOpacity?: number

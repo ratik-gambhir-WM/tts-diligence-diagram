@@ -3,23 +3,24 @@ import { createServer } from 'node:http'
 import { createApp } from './app'
 import { loadServerConfig } from './config'
 import { SqliteTemplateRepository } from './repositories/SqliteTemplateRepository'
-import { ExportPowerPointService } from './services/ExportPowerPointService'
-import { ImportTemplateService } from './services/ImportTemplateService'
+import { ExportService } from './services/ExportPowerPointService'
+import { ImportService } from './services/ImportTemplateService'
 import { LibraryPowerPointConverter } from './services/PowerPointConverter'
 
 const config = loadServerConfig()
 const templates = new SqliteTemplateRepository(config.databasePath)
-const exportService = new ExportPowerPointService(templates)
-const importService = new ImportTemplateService(new LibraryPowerPointConverter(), templates)
+const exportService = new ExportService(templates)
+const importService = new ImportService(new LibraryPowerPointConverter(), templates)
 const server = createServer(createApp({
   exportService,
   importService,
   maxExportJsonBytes: config.maxExportJsonBytes,
   maxUploadBytes: config.maxUploadBytes,
+  requestTimeoutMs: config.requestTimeoutMs,
 }))
 
-server.listen(config.port, () => {
-  console.log(`PowerPoint API listening on port ${config.port}.`)
+server.listen(config.port, config.host, () => {
+  console.log(`PowerPoint API listening at ${config.host}:${config.port}.`)
 })
 
 let shuttingDown = false

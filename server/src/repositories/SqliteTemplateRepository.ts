@@ -2,7 +2,7 @@ import { mkdirSync } from 'node:fs'
 import path from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
 
-import type { PowerPointCanvasJson } from '../../../src/lib/import/PowerpointImportTypes'
+import type { PowerPointCanvasJson } from '../lib/import/PowerpointImportTypes'
 import type {
   StoredTemplate,
   StoredTemplateWithAssets,
@@ -39,6 +39,7 @@ export class SqliteTemplateRepository implements TemplateRepository {
 
     this.#database = new DatabaseSync(databasePath)
     this.#database.exec('PRAGMA foreign_keys = ON')
+    this.#database.exec('PRAGMA journal_mode = WAL')
     this.#database.exec(`
       CREATE TABLE IF NOT EXISTS templates (
         template_id TEXT PRIMARY KEY,
@@ -135,6 +136,24 @@ export class SqliteTemplateRepository implements TemplateRepository {
       templateId: row.template_id,
       templateJson: JSON.parse(row.template_json) as PowerPointCanvasJson,
     }
+  }
+
+  list() {
+    const rows = this.#database
+      .prepare('SELECT template_id, template_json FROM templates ORDER BY rowid DESC')
+      .all() as TemplateRow[]
+
+    return rows.map((row) => ({
+      templateId: row.template_id,
+      templateJson: JSON.parse(row.template_json) as PowerPointCanvasJson,
+    }))
+  }
+
+  delete(templateId: string) {
+    const result = this.#database
+      .prepare('DELETE FROM templates WHERE template_id = ?')
+      .run(templateId)
+    return result.changes > 0
   }
 
   findByIdWithAssets(templateId: string): StoredTemplateWithAssets | undefined {

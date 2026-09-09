@@ -35,7 +35,7 @@ export function extractElementTransform(
   const h = Math.abs(matrixScaleY * rawH)
   const x = transformedCenter.x - w / 2
   const y = transformedCenter.y - h / 2
-  const parentRotation = (Math.atan2(matrix.b, matrix.a) * 180) / Math.PI
+  const parentRotation = (Math.atan2(matrix.b, matrix.a) * DEGREES_PER_HALF_CIRCLE) / Math.PI
   const ownRotation = xfrm?.attributes?.rot ? Number(xfrm.attributes.rot) / EMU_PER_DEGREE : 0
   const rotation = normalizeDegrees(parentRotation + ownRotation)
   const matrixIsReflected = matrix.a * matrix.d - matrix.b * matrix.c < 0
@@ -132,7 +132,7 @@ function rotateAround(centerX: number, centerY: number, degrees: number): Transf
     return identityTransform()
   }
 
-  const radians = (degrees * Math.PI) / 180
+  const radians = (degrees * Math.PI) / DEGREES_PER_HALF_CIRCLE
   const cosine = Math.cos(radians)
   const sine = Math.sin(radians)
   return {
@@ -162,7 +162,7 @@ function scaleAround(
 }
 
 function normalizeDegrees(value: number) {
-  const normalized = ((value % 360) + 360) % 360
+  const normalized = ((value % DEGREES_PER_CIRCLE) + DEGREES_PER_CIRCLE) % DEGREES_PER_CIRCLE
   return Math.abs(normalized) < ZERO_ANGLE_TOLERANCE
     ? 0
     : round(normalized, GEOMETRY_DECIMAL_PLACES)

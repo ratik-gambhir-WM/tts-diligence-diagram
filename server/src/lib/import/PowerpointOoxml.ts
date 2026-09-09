@@ -14,20 +14,27 @@ import { descendants, findDescendant, parseXml } from './PowerpointXml'
 
 export async function collectSupportParts(zip: JSZip, relationships: ExtractedRelationship[]) {
   const supportParts: Record<string, ExtractedSupportPartRecord> = {}
-  const themeXml = await maybeReadZipText(zip, 'ppt/theme/theme1.xml')
-
-  if (themeXml) {
-    supportParts['ppt/theme/theme1.xml'] = {
-      path: 'ppt/theme/theme1.xml',
-      size: Buffer.byteLength(themeXml),
-      relationshipType: 'theme',
-      contentTypeHint: 'application/xml',
-      rawXml: themeXml,
-    }
-  }
 
   for (const relationship of relationships) {
-    if (!relationship.resolvedTarget || !relationship.Type?.includes('/image')) {
+    if (!relationship.resolvedTarget) {
+      continue
+    }
+
+    if (relationship.Type?.includes('/theme')) {
+      const rawXml = await maybeReadZipText(zip, relationship.resolvedTarget)
+      if (rawXml) {
+        supportParts[relationship.resolvedTarget] = {
+          path: relationship.resolvedTarget,
+          size: Buffer.byteLength(rawXml),
+          relationshipType: relationship.Type,
+          contentTypeHint: 'application/xml',
+          rawXml,
+        }
+      }
+      continue
+    }
+
+    if (!relationship.Type?.includes('/image')) {
       continue
     }
 
@@ -42,6 +49,23 @@ export async function collectSupportParts(zip: JSZip, relationships: ExtractedRe
       relationshipType: relationship.Type,
       contentTypeHint: imageContentType(relationship.resolvedTarget),
       base64: bytes.toString('base64'),
+    }
+  }
+
+  if (!Object.values(supportParts).some((part) => part.relationshipType.includes('/theme'))) {
+    const fallbackThemePath = Object.keys(zip.files)
+      .sort()
+      .find((partPath) => partPath.startsWith('ppt/theme/') && partPath.endsWith('.xml'))
+    const rawXml = fallbackThemePath ? await maybeReadZipText(zip, fallbackThemePath) : undefined
+    if (fallbackThemePath && rawXml) {
+      supportParts[fallbackThemePath] = {
+        path: fallbackThemePath,
+        size: Buffer.byteLength(rawXml),
+        relationshipType:
+          'http://schemas.openxmlformats.org/officeDocument/2006/relationships/theme',
+        contentTypeHint: 'application/xml',
+        rawXml,
+      }
     }
   }
 

@@ -586,7 +586,9 @@ function paragraphText(textBody: ExtractedTextBody | undefined) {
 }
 
 function extractThemeColors(supportParts?: Record<string, ExtractedSupportPart>) {
-  const rawXml = supportParts?.['ppt/theme/theme1.xml']?.rawXml
+  const rawXml = Object.values(supportParts ?? {}).find(
+    (part) => part.relationshipType?.includes('/theme') && part.rawXml,
+  )?.rawXml ?? supportParts?.['ppt/theme/theme1.xml']?.rawXml
   if (!rawXml) {
     return DEFAULT_THEME
   }
