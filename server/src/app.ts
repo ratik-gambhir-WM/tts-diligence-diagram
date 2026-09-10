@@ -4,7 +4,7 @@ import express from 'express'
 
 import { ApiError, errorHandler, notFoundHandler } from './errors'
 import { createExportRouter } from './routes/exportRoutes'
-import { createImportRouter } from './routes/importRoutes'
+import { createBatchImportRouter, createImportRouter } from './routes/importRoutes'
 import { createTemplateRouter } from './routes/templateRoutes'
 import type { ExportPowerPointUseCase } from './services/ExportPowerPointService'
 import type { ImportService } from './services/ImportTemplateService'
@@ -52,6 +52,10 @@ export function createApp(dependencies: AppDependencies) {
     dependencies.maxUploadBytes,
   ))
   app.use('/import', createImportRouter(dependencies.importService, dependencies.maxUploadBytes))
+  app.use(
+    '/batchImport',
+    createBatchImportRouter(dependencies.importService, dependencies.maxUploadBytes),
+  )
   app.use('/templates', createTemplateRouter(dependencies.importService))
   app.use(notFoundHandler)
   app.use(errorHandler)

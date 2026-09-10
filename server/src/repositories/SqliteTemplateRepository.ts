@@ -10,6 +10,7 @@ import type {
   StoredTemplateSummary,
   StoredTemplateWithAssets,
   TemplateAsset,
+  TemplateInsert,
   TemplateKind,
   TemplateRepository,
 } from './TemplateRepository'
@@ -135,11 +136,37 @@ export class SqliteTemplateRepository implements TemplateRepository {
     metadata: StoredTemplateMetadata = defaultMetadata(template.templateId),
     preview?: StoredTemplatePreview,
   ) {
-    this.#writeTemplateAndAssets('insert', template, assets, metadata, preview)
+    this.insertMany([{ assets, metadata, preview, template }])
+  }
+
+  insertMany(records: readonly TemplateInsert[]) {
+    this.#database.exec('BEGIN IMMEDIATE')
+    try {
+      for (const record of records) {
+        this.#writeTemplateAndAssets(
+          'insert',
+          record.template,
+          record.assets,
+          record.metadata ?? defaultMetadata(record.template.templateId),
+          record.preview,
+        )
+      }
+      this.#database.exec('COMMIT')
+    } catch (error) {
+      this.#database.exec('ROLLBACK')
+      throw error
+    }
   }
 
   update(template: StoredTemplate, assets: readonly TemplateAsset[]) {
-    this.#writeTemplateAndAssets('update', template, assets)
+    this.#database.exec('BEGIN IMMEDIATE')
+    try {
+      this.#writeTemplateAndAssets('update', template, assets)
+      this.#database.exec('COMMIT')
+    } catch (error) {
+      this.#database.exec('ROLLBACK')
+      throw error
+    }
   }
 
   #writeTemplateAndAssets(
@@ -149,22 +176,20 @@ export class SqliteTemplateRepository implements TemplateRepository {
     metadata?: StoredTemplateMetadata,
     preview?: StoredTemplatePreview,
   ) {
-    this.#database.exec('BEGIN IMMEDIATE')
-    try {
-      const serializedTemplate = JSON.stringify(template.templateJson)
-      if (operation === 'insert') {
-        this.#database
-          .prepare('INSERT INTO templates (template_id, template_json) VALUES (?, json(?))')
-          .run(template.templateId, serializedTemplate)
-      } else {
-        this.#database
-          .prepare('UPDATE templates SET template_json = json(?) WHERE template_id = ?')
-          .run(serializedTemplate, template.templateId)
-      }
+    const serializedTemplate = JSON.stringify(template.templateJson)
+    if (operation === 'insert') {
+      this.#database
+        .prepare('INSERT INTO templates (template_id, template_json) VALUES (?, json(?))')
+        .run(template.templateId, serializedTemplate)
+    } else {
+      this.#database
+        .prepare('UPDATE templates SET template_json = json(?) WHERE template_id = ?')
+        .run(serializedTemplate, template.templateId)
+    }
 
-      if (metadata) {
-        assertTemplateOwnership(template.templateId, metadata.templateId)
-        this.#database.prepare(`
+    if (metadata) {
+      assertTemplateOwnership(template.templateId, metadata.templateId)
+      this.#database.prepare(`
           INSERT INTO template_metadata (
             template_id, kind, description, source, checksum, created_at
           ) VALUES (?, ?, ?, ?, ?, ?)
@@ -174,30 +199,30 @@ export class SqliteTemplateRepository implements TemplateRepository {
             source = excluded.source,
             checksum = excluded.checksum,
             created_at = excluded.created_at
-        `).run(
-          metadata.templateId,
-          metadata.kind,
-          metadata.description,
-          metadata.source,
-          metadata.checksum,
-          metadata.createdAt,
-        )
-      }
+      `).run(
+        metadata.templateId,
+        metadata.kind,
+        metadata.description,
+        metadata.source,
+        metadata.checksum,
+        metadata.createdAt,
+      )
+    }
 
-      const insertAsset = this.#database.prepare(`
+    const insertAsset = this.#database.prepare(`
         INSERT INTO template_assets (asset_id, template_id, content_type, asset_data)
         VALUES (?, ?, ?, ?)
       `)
-      for (const asset of assets) {
-        if (asset.templateId !== template.templateId) {
-          throw new Error('A template asset cannot be stored under a different template.')
-        }
-        insertAsset.run(asset.assetId, asset.templateId, asset.contentType, asset.bytes)
+    for (const asset of assets) {
+      if (asset.templateId !== template.templateId) {
+        throw new Error('A template asset cannot be stored under a different template.')
       }
+      insertAsset.run(asset.assetId, asset.templateId, asset.contentType, asset.bytes)
+    }
 
-      if (preview) {
-        assertTemplateOwnership(template.templateId, preview.templateId)
-        this.#database.prepare(`
+    if (preview) {
+      assertTemplateOwnership(template.templateId, preview.templateId)
+      this.#database.prepare(`
           INSERT INTO template_previews (
             template_id, content_type, preview_data, width, height
           ) VALUES (?, ?, ?, ?, ?)
@@ -206,18 +231,13 @@ export class SqliteTemplateRepository implements TemplateRepository {
             preview_data = excluded.preview_data,
             width = excluded.width,
             height = excluded.height
-        `).run(
-          preview.templateId,
-          preview.contentType,
-          preview.bytes,
-          preview.width,
-          preview.height,
-        )
-      }
-      this.#database.exec('COMMIT')
-    } catch (error) {
-      this.#database.exec('ROLLBACK')
-      throw error
+      `).run(
+        preview.templateId,
+        preview.contentType,
+        preview.bytes,
+        preview.width,
+        preview.height,
+      )
     }
   }
 

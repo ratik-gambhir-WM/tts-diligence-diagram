@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import {
+  deleteTemplate,
   getTemplate,
   importTemplate,
   listTemplates,
@@ -62,6 +63,22 @@ describe('template API client', () => {
     await expect(importTemplate(file, 'commentary')).resolves.toMatchObject({
       previewStatus: 'ready',
       templateId: 'imported-template',
+    })
+  })
+
+  it('deletes an encoded template ID and requires the 204 response contract', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(null, { status: 204 }))
+      .mockResolvedValueOnce(new Response(null, { status: 200 }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    await expect(deleteTemplate('template/one')).resolves.toBeUndefined()
+    expect(fetchMock).toHaveBeenNthCalledWith(1, '/api/templates/template%2Fone', {
+      method: 'DELETE',
+      signal: undefined,
+    })
+    await expect(deleteTemplate('template-two')).rejects.toMatchObject({
+      code: 'invalid_api_response',
     })
   })
 })

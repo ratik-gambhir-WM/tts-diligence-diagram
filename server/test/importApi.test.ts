@@ -27,6 +27,128 @@ afterEach(() => {
 })
 
 describe('import API', () => {
+  it('imports every PowerPoint slide as a separate SQLite template', async () => {
+    const templateIds = ['batch-template-1', 'batch-template-2', 'batch-template-3']
+    const renderedSlideTexts: string[] = []
+    const previewBytes = Buffer.from(ONE_PIXEL_PNG.split(',')[1] ?? '', 'base64')
+    const importService = new ImportTemplateService(
+      new LibraryPowerPointConverter(),
+      templates,
+      () => templateIds.shift() ?? 'unexpected-template-id',
+      undefined,
+      {
+        generate: async ({ templateJson }) => {
+          const firstElement = templateJson.presentation.slides[0]?.elements[0]
+          if (firstElement?.type === 'text' && firstElement.text !== undefined) {
+            renderedSlideTexts.push(firstElement.text)
+          }
+          return {
+            bytes: previewBytes,
+            contentType: 'image/png',
+            height: 1,
+            width: 1,
+          }
+        },
+      },
+    )
+    const app = createTestApp(importService, 1024 * 1024)
+
+    const imported = await request(app)
+      .post('/batchImport?kind=commentary')
+      .set('Content-Type', POWERPOINT_CONTENT_TYPE)
+      .send(await createPowerPoint(['First batch slide', 'Second batch slide', 'Third batch slide']))
+      .expect(201)
+
+    expect(imported.headers).toMatchObject({
+      'x-imported-template-count': '3',
+      'x-powerpoint-warning-count': '0',
+      'x-request-id': expect.any(String),
+    })
+    expect(imported.body.warnings).toEqual([])
+    expect(imported.body.templates).toHaveLength(3)
+    expect(imported.body.templates.map((item: { templateId: string }) => item.templateId)).toEqual([
+      'batch-template-1',
+      'batch-template-2',
+      'batch-template-3',
+    ])
+    expect(imported.body.templates.map((item: { templateJson: PowerPointCanvasJson }) => (
+      item.templateJson.presentation.slides.length
+    ))).toEqual([1, 1, 1])
+    expect(imported.body.templates.map((item: { templateJson: PowerPointCanvasJson }) => (
+      item.templateJson.presentation.slides[0]?.elements[0]
+    ))).toEqual([
+      expect.objectContaining({ text: 'First batch slide', type: 'text' }),
+      expect.objectContaining({ text: 'Second batch slide', type: 'text' }),
+      expect.objectContaining({ text: 'Third batch slide', type: 'text' }),
+    ])
+    expect(renderedSlideTexts).toEqual([
+      'First batch slide',
+      'Second batch slide',
+      'Third batch slide',
+    ])
+
+    for (const templateId of ['batch-template-1', 'batch-template-2', 'batch-template-3']) {
+      expect(templates.findById(templateId)?.templateJson.presentation.slides).toHaveLength(1)
+      expect(templates.findPreview(templateId)?.bytes).toEqual(previewBytes)
+    }
+    const listed = await request(app).get('/templates?kind=commentary').expect(200)
+    expect(listed.body.templates).toHaveLength(3)
+    expect(listed.body.templates).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        templateId: 'batch-template-1',
+        title: 'First batch slide',
+        slideCount: 1,
+      }),
+      expect.objectContaining({
+        templateId: 'batch-template-2',
+        title: 'Second batch slide',
+        slideCount: 1,
+      }),
+      expect.objectContaining({
+        templateId: 'batch-template-3',
+        title: 'Third batch slide',
+        slideCount: 1,
+      }),
+    ]))
+  })
+
+  it('rolls back the complete batch when one SQLite insert fails', async () => {
+    const importService = new ImportTemplateService(
+      {
+        convertFile: async () => ({ templateJson: createBatchTemplate(), warnings: [] }),
+      },
+      templates,
+      () => 'duplicate-template-id',
+    )
+    const app = createTestApp(importService, 1024)
+
+    const response = await request(app)
+      .post('/batchImport')
+      .set('Content-Type', POWERPOINT_CONTENT_TYPE)
+      .send(Buffer.from('staged PowerPoint bytes'))
+      .expect(500)
+
+    expect(response.body.error.code).toBe('internal_error')
+    expect(templates.findById('duplicate-template-id')).toBeUndefined()
+    expect(templates.list()).toEqual([])
+  })
+
+  it('keeps the original import endpoint restricted to a single slide', async () => {
+    const app = createTestApp(
+      new ImportTemplateService(new LibraryPowerPointConverter(), templates),
+      1024 * 1024,
+    )
+
+    const response = await request(app)
+      .post('/import')
+      .set('Content-Type', POWERPOINT_CONTENT_TYPE)
+      .send(await createPowerPoint(['First slide', 'Second slide']))
+      .expect(422)
+
+    expect(response.body.error.code).toBe('template_must_have_one_slide')
+    expect(templates.list()).toEqual([])
+  })
+
   it('stores compact image references and retrieves canvas JSON with hydrated image data', async () => {
     const importService = new ImportTemplateService(
       new LibraryPowerPointConverter(),
@@ -148,17 +270,19 @@ describe('import API', () => {
     const importService = new ImportTemplateService(new LibraryPowerPointConverter(), templates)
     const app = createTestApp(importService, 1024)
 
-    const response = await request(app)
-      .post('/import')
-      .set('Content-Type', 'application/xml')
-      .send('<presentation />')
-      .expect(415)
+    for (const endpoint of ['/import', '/batchImport']) {
+      const response = await request(app)
+        .post(endpoint)
+        .set('Content-Type', 'application/xml')
+        .send('<presentation />')
+        .expect(415)
 
-    expect(response.body.error).toMatchObject({
-      code: 'unsupported_media_type',
-      message: expect.any(String),
-      requestId: expect.any(String),
-    })
+      expect(response.body.error).toMatchObject({
+        code: 'unsupported_media_type',
+        message: expect.any(String),
+        requestId: expect.any(String),
+      })
+    }
   })
 
   it('stores and serves a preview while filtering the catalog by kind', async () => {
@@ -257,13 +381,15 @@ describe('import API', () => {
     const importService = new ImportTemplateService(new LibraryPowerPointConverter(), templates)
     const app = createTestApp(importService, 4)
 
-    const response = await request(app)
-      .post('/import')
-      .set('Content-Type', POWERPOINT_CONTENT_TYPE)
-      .send(Buffer.from('oversized'))
-      .expect(413)
+    for (const endpoint of ['/import', '/batchImport']) {
+      const response = await request(app)
+        .post(endpoint)
+        .set('Content-Type', POWERPOINT_CONTENT_TYPE)
+        .send(Buffer.from('oversized'))
+        .expect(413)
 
-    expect(response.body.error.code).toBe('payload_too_large')
+      expect(response.body.error.code).toBe('payload_too_large')
+    }
   })
 
   it('cancels preview work and does not persist after a request timeout', async () => {
@@ -473,28 +599,50 @@ function createTestApp(
   })
 }
 
-async function createPowerPoint() {
+async function createPowerPoint(slideTexts: readonly string[] = ['Stored by the import API']) {
   const presentation = new PptxGenJS()
   presentation.layout = 'LAYOUT_WIDE'
-  const slide = presentation.addSlide()
-  slide.addText('Stored by the import API', {
-    x: 0.5,
-    y: 0.5,
-    w: 4,
-    h: 0.5,
-  })
-  slide.addImage({
-    data: ONE_PIXEL_PNG,
-    x: 0.5,
-    y: 1.5,
-    w: 1,
-    h: 1,
-  })
+  for (const [index, slideText] of slideTexts.entries()) {
+    const slide = presentation.addSlide()
+    slide.addText(slideText, {
+      x: 0.5,
+      y: 0.5,
+      w: 4,
+      h: 0.5,
+    })
+    if (index === 0 && slideTexts.length === 1) {
+      slide.addImage({
+        data: ONE_PIXEL_PNG,
+        x: 0.5,
+        y: 1.5,
+        w: 1,
+        h: 1,
+      })
+    }
+  }
   const output = await presentation.write({ outputType: 'nodebuffer' })
   if (!Buffer.isBuffer(output)) {
     throw new Error('Expected PptxGenJS to return a Node.js buffer.')
   }
   return output
+}
+
+function createBatchTemplate(): PowerPointCanvasJson {
+  const first = createLegacyTemplate().presentation.slides[0]
+  if (!first) {
+    throw new Error('Expected a slide fixture.')
+  }
+  return {
+    presentation: {
+      title: 'Batch template',
+      preserveElementOrder: true,
+      showBranding: false,
+      slides: [
+        { ...first, id: 'slide-1', name: 'First slide', elements: [] },
+        { ...first, id: 'slide-2', name: 'Second slide', elements: [] },
+      ],
+    },
+  }
 }
 
 function createLegacyTemplate(): PowerPointCanvasJson {

@@ -56,6 +56,17 @@ export async function getTemplate(templateId: string, signal?: AbortSignal) {
   return parseCanvasDocument(await response.json())
 }
 
+export async function deleteTemplate(templateId: string, signal?: AbortSignal) {
+  const response = await fetch(apiUrl(`/templates/${encodeURIComponent(templateId)}`), {
+    method: 'DELETE',
+    signal,
+  })
+  await assertOk(response)
+  if (response.status !== 204) {
+    throw new TemplateApiError('invalid_api_response', 'The template service returned an invalid delete response.')
+  }
+}
+
 export async function importTemplate(
   file: File,
   kind: PickerTemplateKind,

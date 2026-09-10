@@ -2,6 +2,7 @@ import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 
 import {
+  deleteTemplate,
   importTemplate,
   listTemplates,
   type PickerTemplateKind,
@@ -56,6 +57,7 @@ export function TemplatePicker({
   const [failedPreviews, setFailedPreviews] = useState<Set<string>>(() => new Set())
   const [isImporting, setIsImporting] = useState(false)
   const [isSelecting, setIsSelecting] = useState(false)
+  const [deletingTemplateId, setDeletingTemplateId] = useState<string | null>(null)
   const [importMessage, setImportMessage] = useState('')
   const [localError, setLocalError] = useState('')
   const uploadInputId = useId()
@@ -107,7 +109,7 @@ export function TemplatePicker({
     () => templates.filter((template) => template.templateId !== activeTemplate?.templateId).slice(0, 3),
     [activeTemplate?.templateId, templates],
   )
-  const pending = isImporting || isSelecting || isActionPending
+  const pending = isImporting || isSelecting || deletingTemplateId !== null || isActionPending
 
   function moveSelection(direction: -1 | 1) {
     if (templates.length === 0) return
@@ -157,6 +159,46 @@ export function TemplatePicker({
     } finally {
       if (operationAbortRef.current === controller) operationAbortRef.current = null
       if (mountedRef.current && !controller.signal.aborted) setIsSelecting(false)
+    }
+  }
+
+  async function handleDelete() {
+    if (!activeTemplate || pending) return
+    const confirmed = window.confirm(
+      `Delete “${activeTemplate.title}”? This cannot be undone.`,
+    )
+    if (!confirmed) return
+
+    operationAbortRef.current?.abort()
+    const controller = new AbortController()
+    operationAbortRef.current = controller
+    const templateToDelete = activeTemplate
+    const nextTemplateId = templates[activeIndex + 1]?.templateId
+      ?? templates[activeIndex - 1]?.templateId
+    setDeletingTemplateId(templateToDelete.templateId)
+    setImportMessage('')
+    setLocalError('')
+
+    try {
+      await deleteTemplate(templateToDelete.templateId, controller.signal)
+      if (!mountedRef.current || controller.signal.aborted) return
+      setFailedPreviews((current) => {
+        const next = new Set(current)
+        next.delete(templateToDelete.templateId)
+        return next
+      })
+      setImportMessage(`${templateToDelete.title} deleted.`)
+      await loadCatalog(nextTemplateId, controller.signal)
+    } catch (deleteError) {
+      if (!mountedRef.current || controller.signal.aborted) return
+      setLocalError(
+        deleteError instanceof Error
+          ? deleteError.message
+          : 'The template could not be deleted.',
+      )
+    } finally {
+      if (operationAbortRef.current === controller) operationAbortRef.current = null
+      if (mountedRef.current && !controller.signal.aborted) setDeletingTemplateId(null)
     }
   }
 
@@ -254,7 +296,20 @@ export function TemplatePicker({
                 <div className="h-1 w-12 bg-[#f3c316]" />
                 <span className="text-[0.82rem] font-bold uppercase tracking-[0.12em] text-[#f3c316]">{previewLabel}</span>
               </div>
-              <h1 className="mt-5 text-[clamp(2.5rem,6vw,4.2rem)] leading-[0.94] tracking-[0.01em] text-white">{activeTemplate.title}</h1>
+              <div className="mt-5 flex items-start justify-between gap-5">
+                <h1 className="text-[clamp(2.5rem,6vw,4.2rem)] leading-[0.94] tracking-[0.01em] text-white">{activeTemplate.title}</h1>
+                <button
+                  type="button"
+                  onClick={() => void handleDelete()}
+                  disabled={pending}
+                  aria-label={`Delete ${activeTemplate.title}`}
+                  className="shrink-0 cursor-pointer rounded-md border border-[#70424f] bg-[#24131c] p-3 text-[#ff9bab] transition hover:border-[#ff9bab] hover:bg-[#341923] focus-visible:outline-2 focus-visible:outline-offset-3 focus-visible:outline-[#ff9bab] disabled:cursor-wait disabled:opacity-50"
+                >
+                  <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M4 7h16M9 7V4h6v3m3 0-1 13H7L6 7m4 4v5m4-5v5" />
+                  </svg>
+                </button>
+              </div>
               <p className="mt-5 max-w-[38rem] text-[1rem] leading-[1.65] text-[#a8afc4]">{activeTemplate.description}</p>
               <p className="mt-3 text-xs font-bold tracking-[0.1em] text-[#7f89a4] uppercase">
                 {activeTemplate.slideCount} slide · {activeTemplate.elementCount} elements
@@ -318,6 +373,9 @@ export function TemplatePicker({
           <Button type="button" onClick={() => void handleSelect()} disabled={!activeTemplate || pending} variant="secondary" className="w-fit px-12 py-4 text-[1rem]">
             {isSelecting || isActionPending ? 'Loading template…' : selectLabel}
           </Button>
+          {deletingTemplateId && (
+            <p className="text-[0.92rem] text-[#c8c6d5]" role="status">Deleting template…</p>
+          )}
           {(localError || error) && <p className="text-[0.92rem] text-[#ffb5b5]" role="alert">{localError || error}</p>}
           {importMessage && !localError && <p className="text-[0.92rem] text-[#c7f7d8]" role="status">{importMessage}</p>}
         </div>

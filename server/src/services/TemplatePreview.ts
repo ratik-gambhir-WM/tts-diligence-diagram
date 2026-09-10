@@ -13,6 +13,8 @@ export type GeneratedTemplatePreview = {
 }
 
 export interface TemplatePreviewGenerator {
+  /** Whether the generator can render any supplied one-slide JSON independently. */
+  readonly supportsIndependentSlides?: boolean
   generate(
     request: TemplatePreviewRequest,
     signal?: AbortSignal,
@@ -60,6 +62,8 @@ export class DisabledTemplatePreviewGenerator implements TemplatePreviewGenerato
 }
 
 export class QuickLookTemplatePreviewGenerator implements TemplatePreviewGenerator {
+  readonly supportsIndependentSlides = false
+
   constructor(
     private readonly options: QuickLookPreviewOptions,
     private readonly processRunner: QuickLookProcessRunner = runQuickLook,
@@ -99,6 +103,7 @@ export class QuickLookTemplatePreviewGenerator implements TemplatePreviewGenerat
 }
 
 export class HeadlessTemplatePreviewGenerator implements TemplatePreviewGenerator {
+  readonly supportsIndependentSlides = true
   private queue: Promise<void> = Promise.resolve()
 
   constructor(

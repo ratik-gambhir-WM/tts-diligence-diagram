@@ -1,4 +1,4 @@
-import type { RequestHandler } from 'express'
+import type { Request, RequestHandler, Response } from 'express'
 
 import { ApiError } from '../errors'
 import type { ImportService } from '../services/ImportTemplateService'
@@ -6,44 +6,45 @@ import type { TemplateKind } from '../repositories/TemplateRepository'
 
 export function createImportHandlers(service: ImportService) {
   const create: RequestHandler = async (request, response) => {
-    if (!request.is('application/vnd.openxmlformats-officedocument.presentationml.presentation')) {
-      throw new ApiError(
-        415,
-        'unsupported_media_type',
-        'Content-Type must be application/vnd.openxmlformats-officedocument.presentationml.presentation.',
-      )
-    }
-    if (!Buffer.isBuffer(request.body) || request.body.length === 0) {
-      throw new ApiError(400, 'missing_powerpoint', 'A PowerPoint file is required in the request body.')
-    }
+    validatePowerPointRequest(request)
 
     const kind = parseTemplateKind(request.query.kind, true)
-    const abortController = new AbortController()
-    const abort = () => abortController.abort()
-    request.once('aborted', abort)
-    response.once('timeout', abort)
-    const abortOnResponseClose = () => {
-      if (!response.writableEnded) abort()
-    }
-    response.once('close', abortOnResponseClose)
-    const result = await service.import(request.body, kind, abortController.signal).finally(() => {
-      request.off('aborted', abort)
-      response.off('timeout', abort)
-      response.off('close', abortOnResponseClose)
-    })
+    const result = await runCancellableImport(
+      request,
+      response,
+      (signal) => service.import(request.body, kind, signal),
+    )
     if (response.writableEnded) {
       return
     }
     response.status(201).set({
-        Location: `/templates/${result.templateId}`,
-        'X-PowerPoint-Warning-Count': String(result.warnings.length),
-        'X-Template-Id': result.templateId,
-        'X-Template-Preview-Status': result.previewAvailable ? 'ready' : 'unavailable',
-      })
+      Location: `/templates/${result.templateId}`,
+      'X-PowerPoint-Warning-Count': String(result.warnings.length),
+      'X-Template-Id': result.templateId,
+      'X-Template-Preview-Status': result.previewAvailable ? 'ready' : 'unavailable',
+    })
     if (result.previewAvailable) {
       response.set('Link', `</templates/${result.templateId}/preview>; rel="preview"`)
     }
     response.json(result.templateJson)
+  }
+
+  const batchCreate: RequestHandler = async (request, response) => {
+    validatePowerPointRequest(request)
+
+    const kind = parseTemplateKind(request.query.kind, true)
+    const result = await runCancellableImport(
+      request,
+      response,
+      (signal) => service.batchImport(request.body, kind, signal),
+    )
+    if (response.writableEnded) {
+      return
+    }
+    response.status(201).set({
+      'X-Imported-Template-Count': String(result.templates.length),
+      'X-PowerPoint-Warning-Count': String(result.warnings.length),
+    }).json(result)
   }
 
   const find: RequestHandler<{ templateId: string }> = (request, response) => {
@@ -98,7 +99,43 @@ export function createImportHandlers(service: ImportService) {
     response.sendStatus(204)
   }
 
-  return { create, find, findAsset, findPreview, list, remove }
+  return { batchCreate, create, find, findAsset, findPreview, list, remove }
+}
+
+function validatePowerPointRequest(request: Request) {
+  if (!request.is('application/vnd.openxmlformats-officedocument.presentationml.presentation')) {
+    throw new ApiError(
+      415,
+      'unsupported_media_type',
+      'Content-Type must be application/vnd.openxmlformats-officedocument.presentationml.presentation.',
+    )
+  }
+  if (!Buffer.isBuffer(request.body) || request.body.length === 0) {
+    throw new ApiError(400, 'missing_powerpoint', 'A PowerPoint file is required in the request body.')
+  }
+}
+
+async function runCancellableImport<Result>(
+  request: Request,
+  response: Response,
+  operation: (signal: AbortSignal) => Promise<Result>,
+) {
+  const abortController = new AbortController()
+  const abort = () => abortController.abort()
+  const abortOnResponseClose = () => {
+    if (!response.writableEnded) abort()
+  }
+  request.once('aborted', abort)
+  response.once('timeout', abort)
+  response.once('close', abortOnResponseClose)
+
+  try {
+    return await operation(abortController.signal)
+  } finally {
+    request.off('aborted', abort)
+    response.off('timeout', abort)
+    response.off('close', abortOnResponseClose)
+  }
 }
 
 function parseTemplateKind(value: unknown, useDefault: boolean): TemplateKind | undefined {

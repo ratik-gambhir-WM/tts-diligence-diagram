@@ -41,6 +41,13 @@ export type StoredTemplateWithAssets = StoredTemplate & {
   assets: TemplateAsset[]
 }
 
+export type TemplateInsert = {
+  assets: readonly TemplateAsset[]
+  metadata?: StoredTemplateMetadata
+  preview?: StoredTemplatePreview
+  template: StoredTemplate
+}
+
 export interface TemplateRepository {
   delete(templateId: string): boolean
   findAsset(templateId: string, assetId: string): TemplateAsset | undefined
@@ -53,6 +60,7 @@ export interface TemplateRepository {
     metadata?: StoredTemplateMetadata,
     preview?: StoredTemplatePreview,
   ): void
+  insertMany(records: readonly TemplateInsert[]): void
   list(kind?: TemplateKind): StoredTemplateSummary[]
   upsertBuiltin(
     template: StoredTemplate,

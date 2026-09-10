@@ -58,6 +58,25 @@ is the same JSON contract accepted by `POST /export`. Image `src` values are com
 `X-PowerPoint-Warning-Count` reports non-fatal import warnings. Imported templates must contain
 exactly one slide. The validated `kind` query is `diagram` or `commentary` and defaults to `diagram`.
 
+Import a multi-slide deck as one independently stored template JSON per slide with
+`POST /batchImport?kind=diagram|commentary`. The request body and content type are the same as
+`POST /import`:
+
+```sh
+curl --request POST 'http://localhost:3001/batchImport?kind=diagram' \
+  --header 'Content-Type: application/vnd.openxmlformats-officedocument.presentationml.presentation' \
+  --data-binary @deck.pptx
+```
+
+The `201` response contains `templates`, with one `templateId`, `templateJson`, and
+`previewAvailable` entry for every source slide, plus an aggregate `warnings` array. Every
+`templateJson` contains exactly one slide and is persisted with its own metadata, image assets,
+and preview. Its presentation title is the source slide's derived name. `X-Imported-Template-Count`
+reports the number stored. The complete batch is committed atomically, so a database failure does
+not leave a partially imported deck. The default headless preview provider renders every slide;
+the Quick Look compatibility provider can preview only the first slide and reports later previews
+as unavailable rather than storing an incorrect image.
+
 `GET /templates/:templateId` returns that same canvas JSON body. `GET /import/:templateId` is a
 backward-compatible alias. Both routes join the stored template to all of its assets and hydrate
 each image `src` from its BLOB. Image bytes also remain directly available from

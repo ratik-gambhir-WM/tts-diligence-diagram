@@ -29,3 +29,19 @@ export function createImportRouter(service: ImportService, maxUploadBytes: numbe
 
   return router
 }
+
+export function createBatchImportRouter(service: ImportService, maxUploadBytes: number) {
+  const router = Router()
+  const handlers = createImportHandlers(service)
+
+  router.post(
+    '/',
+    raw({ inflate: false, limit: maxUploadBytes, type: POWERPOINT_CONTENT_TYPE }),
+    handlers.batchCreate,
+  )
+  router.all('/', (_request, response) => {
+    response.status(405).end()
+  })
+
+  return router
+}

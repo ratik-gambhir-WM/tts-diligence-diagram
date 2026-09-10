@@ -8,7 +8,11 @@ import type {
   PowerPointCanvasElement,
   PowerPointCanvasJson,
 } from '../lib/import/PowerpointImportTypes'
-import type { TemplateKind, TemplateRepository } from '../repositories/TemplateRepository'
+import type {
+  TemplateInsert,
+  TemplateKind,
+  TemplateRepository,
+} from '../repositories/TemplateRepository'
 import type { PowerPointConverter } from './PowerPointConverter'
 import {
   DisabledTemplatePreviewGenerator,
@@ -31,6 +35,15 @@ export type TemplateListItem = {
 
 export type TemplateListResponse = {
   templates: TemplateListItem[]
+}
+
+export type BatchImportResponse = {
+  templates: Array<{
+    previewAvailable: boolean
+    templateId: string
+    templateJson: PowerPointCanvasJson
+  }>
+  warnings: string[]
 }
 
 export class ImportService {
@@ -104,6 +117,96 @@ export class ImportService {
         ),
         warnings,
       }
+    } finally {
+      await rm(workingDirectory, { force: true, recursive: true })
+    }
+  }
+
+  async batchImport(
+    source: Buffer,
+    kind: TemplateKind = 'diagram',
+    signal?: AbortSignal,
+  ): Promise<BatchImportResponse> {
+    const workingDirectory = await mkdtemp(path.join(tmpdir(), 'tts-mermaid-batch-import-'))
+    const inputPath = path.join(workingDirectory, 'upload.pptx')
+    const outputPath = path.join(workingDirectory, 'upload.canvas.json')
+
+    try {
+      await writeFile(inputPath, source)
+      const conversion = await this.converter.convertFile(inputPath, outputPath)
+      if (conversion.templateJson.presentation.slides.length === 0) {
+        throw new ApiError(
+          422,
+          'powerpoint_has_no_slides',
+          'The PowerPoint file must contain at least one slide.',
+        )
+      }
+
+      const warnings = [...conversion.warnings]
+      const records: TemplateInsert[] = []
+      const templates: BatchImportResponse['templates'] = []
+      const createdAt = new Date().toISOString()
+
+      for (const [index, slide] of conversion.templateJson.presentation.slides.entries()) {
+        if (signal?.aborted) {
+          throw new ApiError(499, 'request_cancelled', 'The template import was cancelled.')
+        }
+
+        const templateJson: PowerPointCanvasJson = {
+          presentation: {
+            ...conversion.templateJson.presentation,
+            title: slide.name,
+            slides: [slide],
+          },
+        }
+        const { templateJson: repairedTemplateJson } = repairCanvasDimensions(templateJson)
+        const previewDirectory = path.join(workingDirectory, `preview-${index + 1}`)
+        await mkdir(previewDirectory)
+        const preview = index > 0 && this.previewGenerator.supportsIndependentSlides === false
+          ? undefined
+          : await this.previewGenerator.generate({
+              inputPath,
+              outputDirectory: previewDirectory,
+              templateJson: repairedTemplateJson,
+            }, signal)
+        if (signal?.aborted) {
+          throw new ApiError(499, 'request_cancelled', 'The template import was cancelled.')
+        }
+        if (!preview) {
+          warnings.push(`Slide ${index + 1}: A preview image could not be generated for this template.`)
+        }
+
+        const templateId = this.createTemplateId()
+        const externalized = externalizeTemplateAssets(
+          templateId,
+          repairedTemplateJson,
+          this.createAssetId,
+        )
+        records.push({
+          assets: externalized.assets,
+          metadata: {
+            checksum: null,
+            createdAt,
+            description: 'Imported PowerPoint template',
+            kind,
+            source: 'import',
+            templateId,
+          },
+          preview: preview ? { ...preview, templateId } : undefined,
+          template: { templateId, templateJson: externalized.templateJson },
+        })
+        templates.push({
+          previewAvailable: preview !== undefined,
+          templateId,
+          templateJson: hydrateCanvasTemplateAssetSources(
+            externalized.templateJson,
+            externalized.assets,
+          ),
+        })
+      }
+
+      this.templates.insertMany(records)
+      return { templates, warnings }
     } finally {
       await rm(workingDirectory, { force: true, recursive: true })
     }
