@@ -1,76 +1,17 @@
 import JSZip from 'jszip'
-import type { PowerPointFileHandle, PowerPointWriteOptions } from './PowerpointTypes'
 import { isDefined } from '../shared/PowerpointUtils'
-import { applyDefaultThemeXml } from './PowerpointTheme'
 import {
   escapeXml,
   unescapeXmlAttribute,
 } from './PowerpointUtils'
 
-export function downloadPptxBytes(themed: Uint8Array, fileName: string) {
-  const browser = globalThis as typeof globalThis & {
-    document?: Document
-    URL?: typeof URL
-    Blob?: typeof Blob
-  }
-
-  if (!browser.document || !browser.URL || !browser.Blob) {
-    throw new Error('PowerPoint download is only available in a browser export context.')
-  }
-
-  const blob = new browser.Blob([Uint8Array.from(themed).buffer], {
-    type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-  })
-  const link = browser.document.createElement('a')
-  link.href = browser.URL.createObjectURL(blob)
-  link.download = fileName
-  link.style.display = 'none'
-  browser.document.body.appendChild(link)
-  link.click()
-  link.remove()
-  browser.URL.revokeObjectURL(link.href)
-}
-
-export async function writePptxBytesToFileHandle(bytes: Uint8Array, fileHandle: PowerPointFileHandle) {
-  const writable = await fileHandle.createWritable()
-  try {
-    await writable.write(bytes)
-  } finally {
-    await writable.close()
-  }
-}
-
-type PowerPointBinary = ArrayBuffer | Blob | Uint8Array | string
-
-export async function applyDefaultThemeToPptx(
-  raw: PowerPointBinary,
-  options: Pick<PowerPointWriteOptions, 'compression'>,
-) {
-  const bytes = await toUint8Array(raw)
-  const zip = await JSZip.loadAsync(bytes)
-  const themePath = 'ppt/theme/theme1.xml'
-  const existingTheme = await zip.file(themePath)?.async('text')
-
-  if (existingTheme) {
-    zip.file(themePath, applyDefaultThemeXml(existingTheme))
-  }
-
-  return zip.generateAsync({
-    type: 'uint8array',
-    compression: options.compression === false ? 'STORE' : 'DEFLATE',
-  })
-}
-
 export async function insertPptxBytesIntoExistingDeck(
   slideDeckBytes: Uint8Array,
-  targetFile: File,
-  options: Pick<PowerPointWriteOptions, 'compression' | 'insertAfterSlide'>,
+  targetDeckBytes: Uint8Array,
+  targetFileName: string,
+  insertAfterSlide: number,
 ) {
-  if (!isPptxFile(targetFile)) {
-    throw new Error('Choose a .pptx PowerPoint file before adding the slide.')
-  }
-
-  const targetZip = await JSZip.loadAsync(await targetFile.arrayBuffer())
+  const targetZip = await JSZip.loadAsync(targetDeckBytes)
   const sourceZip = await JSZip.loadAsync(slideDeckBytes)
   const presentationPath = 'ppt/presentation.xml'
   const presentationRelsPath = 'ppt/_rels/presentation.xml.rels'
@@ -89,8 +30,8 @@ export async function insertPptxBytesIntoExistingDeck(
   }
 
   const targetSlideIds = parseSlideIdEntries(presentationXml)
-  const insertAfterSlide = clampInteger(
-    options.insertAfterSlide ?? targetSlideIds.length,
+  const boundedInsertAfterSlide = clampInteger(
+    insertAfterSlide,
     0,
     targetSlideIds.length,
   )
@@ -146,22 +87,31 @@ export async function insertPptxBytesIntoExistingDeck(
     throw new Error('No generated slide could be copied into the selected PowerPoint file.')
   }
 
-  const insertedPresentationXml = insertSlideIdEntries(presentationXml, insertedSlideIdEntries, insertAfterSlide)
+  const insertedPresentationXml = insertSlideIdEntries(
+    presentationXml,
+    insertedSlideIdEntries,
+    boundedInsertAfterSlide,
+  )
   targetZip.file(
     presentationPath,
-    insertSectionSlideIds(insertedPresentationXml, insertedSlideIds, targetSlideIds, insertAfterSlide),
+    insertSectionSlideIds(
+      insertedPresentationXml,
+      insertedSlideIds,
+      targetSlideIds,
+      boundedInsertAfterSlide,
+    ),
   )
   targetZip.file(presentationRelsPath, buildRelationshipsXml(presentationRels))
   targetZip.file(contentTypesPath, contentTypes)
 
   const bytes = await targetZip.generateAsync({
     type: 'uint8array',
-    compression: options.compression === false ? 'STORE' : 'DEFLATE',
+    compression: 'DEFLATE',
   })
 
   return {
     bytes,
-    fileName: buildInsertedPowerPointFileName(targetFile.name),
+    fileName: buildInsertedPowerPointFileName(targetFileName),
   }
 }
 
@@ -170,14 +120,6 @@ interface PptxRelationship {
   Type: string
   Target: string
   TargetMode?: string
-}
-
-function isPptxFile(file: File) {
-  return (
-    file.name.toLowerCase().endsWith('.pptx') &&
-    (!file.type ||
-      file.type === 'application/vnd.openxmlformats-officedocument.presentationml.presentation')
-  )
 }
 
 function listSlideNumbers(zip: JSZip) {
@@ -437,7 +379,10 @@ function ensureMediaContentTypes(xml: string) {
 }
 
 function buildInsertedPowerPointFileName(fileName: string) {
-  const trimmed = fileName.trim()
+  const trimmed = fileName
+    .replace(/[^A-Za-z0-9._ ()-]/gu, '-')
+    .replace(/-+/gu, '-')
+    .trim()
   const stem = trimmed.toLowerCase().endsWith('.pptx') ? trimmed.slice(0, -5) : trimmed
   return `${stem || 'presentation'}-with-slide.pptx`
 }
@@ -448,24 +393,4 @@ function clampInteger(value: number, min: number, max: number) {
   }
 
   return Math.max(min, Math.min(max, Math.trunc(value)))
-}
-
-async function toUint8Array(raw: PowerPointBinary) {
-  if (raw instanceof Uint8Array) {
-    return raw
-  }
-
-  if (typeof ArrayBuffer !== 'undefined' && raw instanceof ArrayBuffer) {
-    return new Uint8Array(raw)
-  }
-
-  if (typeof Blob !== 'undefined' && raw instanceof Blob) {
-    return new Uint8Array(await raw.arrayBuffer())
-  }
-
-  if (typeof raw === 'string') {
-    return new TextEncoder().encode(raw)
-  }
-
-  throw new Error('PowerPoint export returned an unsupported binary output type.')
 }

@@ -1,9 +1,9 @@
-import { DEFAULT_FONT_FACE } from '../shared/PowerpointConstants'
+import { DEFAULT_FONT_FACE } from '../canvas-model/CanvasConstants'
 import type {
-  NormalizedShapeElement,
-  NormalizedTextElement,
-  NormalizedTextRun,
-} from '../shared/PowerpointTypes'
+  EditableCanvasShapeElement,
+  EditableCanvasTextElement,
+  EditableCanvasTextRun,
+} from '../canvas-model/CanvasTypes'
 import type { SlideElementRef } from '../slide-canvas/model'
 import { createCanvasTextMeasurer, layoutSvgText } from './textLayout'
 
@@ -11,7 +11,7 @@ const POINTS_TO_SLIDE_UNITS = 96 / 72
 const measureText = createCanvasTextMeasurer()
 
 export function getSvgTextContent(
-  element: NormalizedShapeElement | NormalizedTextElement,
+  element: EditableCanvasShapeElement | EditableCanvasTextElement,
   fixedFontScale?: number,
 ) {
   const text = element.kind === 'shape' ? element.label : element.text
@@ -116,7 +116,7 @@ export function getSvgTextScaleTemplateKey(elementRefs: SlideElementRef[]) {
     .join('||')
 }
 
-function getTextStyleProfile(runs: NormalizedTextRun[]) {
+function getTextStyleProfile(runs: EditableCanvasTextRun[]) {
   return Array.from(
     new Set(
       runs.map((run) =>
@@ -134,9 +134,9 @@ function getTextStyleProfile(runs: NormalizedTextRun[]) {
 }
 
 function createFallbackRun(
-  element: NormalizedShapeElement | NormalizedTextElement,
+  element: EditableCanvasShapeElement | EditableCanvasTextElement,
   text: string,
-): NormalizedTextRun {
+): EditableCanvasTextRun {
   return {
     bold: element.bold,
     color: element.kind === 'shape' ? element.textColor : element.color,

@@ -7,7 +7,7 @@ import type {
   WheelEvent as ReactWheelEvent,
 } from 'react'
 
-import type { NormalizedSlide } from '../shared/PowerpointTypes'
+import type { EditableCanvasSlide } from '../canvas-model/CanvasTypes'
 
 export function SvgSlideViewport({
   children,
@@ -38,7 +38,7 @@ export function SvgSlideViewport({
   onPointerMove: (event: ReactPointerEvent<SVGSVGElement>) => void
   onPointerUp: (event: ReactPointerEvent<SVGSVGElement>) => void
   onWheel: (event: ReactWheelEvent<SVGSVGElement>) => void
-  slide: NormalizedSlide
+  slide: EditableCanvasSlide
   svgRef: RefObject<SVGSVGElement | null>
   viewportSize?: { height: number; width: number }
 }) {

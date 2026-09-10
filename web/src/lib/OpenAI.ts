@@ -12,7 +12,7 @@ import slideTextOnlyInstructions from '../prompts/SlideTextOnlyPrompt.md?raw'
 import { SLIDE_PROMPT_OUTPUT_FORMAT } from '../types/SlidePromptOutput'
 import type { SlidePromptOutput } from '../types/SlidePromptOutput'
 import { getExtension } from '../utils/files'
-import type { JsonValue } from './shared/PowerpointTypes'
+import type { JsonValue } from './canvas-model/CanvasTypes'
 
 type CreateOpenAIResponseParams = {
   attachments?: File[]

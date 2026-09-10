@@ -1,17 +1,17 @@
 import type {
   HorizontalAlign,
-  NormalizedTextRun,
+  EditableCanvasTextRun,
   VerticalAlign,
-} from '../shared/PowerpointTypes'
+} from '../canvas-model/CanvasTypes'
 
 export type TextMeasure = (
   text: string,
-  run: NormalizedTextRun,
+  run: EditableCanvasTextRun,
   fontSize: number,
 ) => number
 
 export type SvgTextSegment = {
-  run: NormalizedTextRun
+  run: EditableCanvasTextRun
   text: string
   width: number
   x: number
@@ -32,20 +32,20 @@ export type SvgTextLayout = {
 
 export type LayoutSvgTextOptions = {
   align: HorizontalAlign
-  fallbackRun: NormalizedTextRun
+  fallbackRun: EditableCanvasTextRun
   fallbackText: string
   fixedFontScale?: number
   height: number
   measure: TextMeasure
   padding: number
-  runs: NormalizedTextRun[]
+  runs: EditableCanvasTextRun[]
   valign: VerticalAlign
   width: number
 }
 
 type TextAtom =
   | { kind: 'break' }
-  | { kind: 'text'; run: NormalizedTextRun; text: string }
+  | { kind: 'text'; run: EditableCanvasTextRun; text: string }
 
 type UnpositionedLine = Omit<SvgTextLine, 'baseline'>
 
@@ -185,7 +185,7 @@ function wrapText(
   availableWidth: number,
   fontScale: number,
   measure: TextMeasure,
-  fallbackRun: NormalizedTextRun,
+  fallbackRun: EditableCanvasTextRun,
 ) {
   const lines: UnpositionedLine[] = []
   let segments: SvgTextSegment[] = []
@@ -203,7 +203,7 @@ function wrapText(
     lineFontSize = fallbackRun.fontSize * fontScale
   }
 
-  const append = (text: string, run: NormalizedTextRun) => {
+  const append = (text: string, run: EditableCanvasTextRun) => {
     if (!text) {
       return
     }

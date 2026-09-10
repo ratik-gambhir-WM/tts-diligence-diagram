@@ -3,20 +3,20 @@ import {
   DEFAULT_HEIGHT_PX,
   DEFAULT_THEME,
   DEFAULT_WIDTH_PX,
-} from './PowerpointConstants'
+} from './CanvasConstants'
 import type {
   ExtractedRelationship,
   ExtractedShapeElement,
   ExtractedSlideSpec,
   ExtractedSupportPart,
   ExtractedTextBody,
-  NormalizedElement,
-  NormalizedImageElement,
-  NormalizedPresentation,
-  NormalizedTextRun,
+  EditableCanvasElement,
+  EditableCanvasImageElement,
+  EditableCanvasPresentation,
+  EditableCanvasTextRun,
   ValidationIssue,
   XmlNode,
-} from './PowerpointTypes'
+} from './CanvasTypes'
 import {
   bodyPadding,
   clampNumber,
@@ -24,9 +24,11 @@ import {
   emuLineWidthToPoints,
   findChild,
   hasChild,
+  isLinePreset,
   normalizeAlign,
   normalizeBodyAnchor,
   normalizeShapeName,
+  normalizeLineType,
   parseArrowType,
   parseBeginArrowType,
   parseColor,
@@ -34,12 +36,12 @@ import {
   parseDashStyle,
   parseFontColor,
   parseLineColor,
-} from './PowerpointUtils'
+} from './CanvasUtils'
 
 export function normalizeExtractedPresentation(
   input: ExtractedSlideSpec,
   issues: ValidationIssue[],
-): NormalizedPresentation {
+): EditableCanvasPresentation {
   const width = coerceNumber(input.slideSize?.widthPx, DEFAULT_WIDTH_PX)
   const height = coerceNumber(input.slideSize?.heightPx, DEFAULT_HEIGHT_PX)
   const theme = extractThemeColors(input.supportParts)
@@ -102,7 +104,7 @@ function normalizeExtractedElement(
   relationships: ExtractedRelationship[],
   supportParts: Record<string, ExtractedSupportPart>,
   issues: ValidationIssue[],
-): NormalizedElement[] {
+): EditableCanvasElement[] {
   if (element.nonVisual?.hidden) {
     return []
   }
@@ -117,10 +119,14 @@ function normalizeExtractedElement(
   const rotate = coerceNumber(transform.rotation, 0)
   const presetShape = normalizeShapeName(element.presetGeometry?.preset)
 
-  if (element.kind === 'connector' || presetShape === 'line' || presetShape === 'lineInv') {
+  if (element.kind === 'connector' || isLinePreset(presetShape)) {
     const lineNode = findChild(element.shapeProperties, 'a:ln')
     const reverseX = !!transform.flipH || presetShape === 'lineInv'
     const reverseY = !!transform.flipV || presetShape === 'lineInv'
+    const x1 = clampNumber(reverseX ? x + w : x, 0, slideWidth)
+    const y1 = clampNumber(reverseY ? y + h : y, 0, slideHeight)
+    const x2 = clampNumber(reverseX ? x : x + w, 0, slideWidth)
+    const y2 = clampNumber(reverseY ? y : y + h, 0, slideHeight)
     return [
       {
         kind: 'line',
@@ -129,11 +135,14 @@ function normalizeExtractedElement(
         opacity: 1,
         rotate,
         valign: 'middle',
-        lineType: 'straight',
-        x1: clampNumber(reverseX ? x + w : x, 0, slideWidth),
-        y1: clampNumber(reverseY ? y + h : y, 0, slideHeight),
-        x2: clampNumber(reverseX ? x : x + w, 0, slideWidth),
-        y2: clampNumber(reverseY ? y : y + h, 0, slideHeight),
+        lineType: normalizeLineType(presetShape, x1, y1, x2, y2),
+        elbowDirection: presetShape.toLowerCase().startsWith('bentconnector')
+          ? 'horizontal-first'
+          : undefined,
+        x1,
+        y1,
+        x2,
+        y2,
         stroke: parseLineColor(lineNode, theme, '334155'),
         strokeOpacity: parseColorOpacity(findChild(lineNode, 'a:solidFill')),
         strokeWidth: emuLineWidthToPoints(lineNode?.attributes?.w),
@@ -389,7 +398,7 @@ function extractGraphicFrameImage(
     return undefined
   }
 
-  const imageElement: NormalizedImageElement = {
+  const imageElement: EditableCanvasImageElement = {
     kind: 'image',
     id,
     sourcePath,
@@ -417,7 +426,7 @@ function extractImageOpacity(node: XmlNode | undefined) {
   return clampNumber(Number(alpha?.attributes?.amt ?? 100000) / 100000, 0, 1)
 }
 
-function extractImageCrop(node: XmlNode | undefined): NormalizedImageElement['crop'] {
+function extractImageCrop(node: XmlNode | undefined): EditableCanvasImageElement['crop'] {
   const srcRect = findChild(findFirstDescendant(node, 'p:blipFill'), 'a:srcRect')
   if (!srcRect) {
     return undefined
@@ -508,7 +517,7 @@ function normalizeExtractedTextRuns(
   theme: Record<string, string>,
   styleNode: XmlNode | undefined,
 ) {
-  const runs: NormalizedTextRun[] = []
+  const runs: EditableCanvasTextRun[] = []
   const defaultColor = parseFontColor(styleNode, theme, '111827')
 
   for (const paragraph of textBody?.paragraphs ?? []) {

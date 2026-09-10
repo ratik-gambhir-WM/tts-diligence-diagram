@@ -57,6 +57,20 @@ beforeAll(async () => {
     h: 1.5,
     sizing: { type: 'crop', x: 0.25, y: 0.1, w: 1.5, h: 1.1 },
   })
+  second.addShape(pptx.ShapeType.line, {
+    x: 6.5,
+    y: 1.75,
+    w: 1.5,
+    h: 0,
+    line: { color: '070154', endArrowType: 'triangle', width: 1.5 },
+  })
+  second.addShape('bentConnector2' as PptxGenJS.ShapeType, {
+    x: 6.5,
+    y: 2.25,
+    w: 1.5,
+    h: 0.75,
+    line: { color: '0047FF', endArrowType: 'triangle', width: 1.5 },
+  })
 
   const third = pptx.addSlide()
   const headerCell = (text: string) => ({
@@ -161,6 +175,8 @@ describe('PowerPoint XML to TemplateCanvas JSON script', () => {
         text: 'Imported title',
         fontFace: 'Aptos Display',
         fontSize: 28,
+        textColor: '070154',
+        bold: true,
       }),
       expect.objectContaining({
         type: 'shape',
@@ -177,6 +193,17 @@ describe('PowerPoint XML to TemplateCanvas JSON script', () => {
           top: 0.07,
           bottom: 0.2,
         },
+      }),
+      expect.objectContaining({
+        type: 'line',
+        lineType: 'straight',
+        endArrow: 'triangle',
+      }),
+      expect.objectContaining({
+        type: 'line',
+        lineType: 'elbow',
+        elbowDirection: 'horizontal-first',
+        endArrow: 'triangle',
       }),
     ])
 
@@ -217,8 +244,57 @@ describe('PowerPoint XML to TemplateCanvas JSON script', () => {
             bottom: 0.2,
           },
         }),
+        expect.objectContaining({
+          type: 'line',
+          lineType: 'elbow',
+          elbowDirection: 'horizontal-first',
+          endArrow: 'triangle',
+        }),
       ]),
     )
+  })
+
+  it('keeps top-level typography distinct from shapes inside groups', async () => {
+    const groupedSourcePath = path.join(testDir, 'grouped-source.pptx')
+    const outputPath = path.join(testDir, 'grouped-paths.canvas.json')
+    const zip = await JSZip.loadAsync(await readFile(sourcePath))
+    const titleSlidePath = 'ppt/slides/slide2.xml'
+    const titleSlide = await zip.file(titleSlidePath)?.async('text')
+    if (!titleSlide) {
+      throw new Error('Missing generated title slide')
+    }
+    zip.file(
+      titleSlidePath,
+      titleSlide.replace('</p:spTree>', `${GROUP_WITH_CONFLICTING_LOCAL_PATH_XML}</p:spTree>`),
+    )
+    await writeFile(groupedSourcePath, await zip.generateAsync({ type: 'nodebuffer' }))
+
+    const result = await importPowerPoint({
+      inputPath: groupedSourcePath,
+      outputPath,
+      slide: 2,
+    })
+    const elements = result.jsonSpec.presentation.slides[0]?.elements ?? []
+    const importedTitle = elements.find(
+      (element): element is PowerPointCanvasTextElement =>
+        element.type === 'text' && element.text === 'Imported title',
+    )
+    const groupedAnnotation = elements.find(
+      (element): element is PowerPointCanvasTextElement =>
+        element.type === 'text' && element.text === 'Grouped annotation',
+    )
+
+    expect(importedTitle).toMatchObject({
+      fontFace: 'Aptos Display',
+      fontSize: 28,
+      textColor: '070154',
+      bold: true,
+    })
+    expect(groupedAnnotation).toMatchObject({
+      fontFace: 'Arial',
+      fontSize: 12,
+      textColor: 'FFFFFF',
+    })
   })
 
   it('distributes PowerPoint auto-sized table rows by their rendered text height', async () => {
@@ -272,3 +348,49 @@ describe('PowerPoint XML to TemplateCanvas JSON script', () => {
     expect((recovery?.y ?? 0) + (recovery?.h ?? 0)).toBeCloseTo(556.8, 1)
   })
 })
+
+const GROUP_WITH_CONFLICTING_LOCAL_PATH_XML = `
+  <p:grpSp>
+    <p:nvGrpSpPr>
+      <p:cNvPr id="900" name="Typography collision group"/>
+      <p:cNvGrpSpPr/>
+      <p:nvPr/>
+    </p:nvGrpSpPr>
+    <p:grpSpPr>
+      <a:xfrm>
+        <a:off x="0" y="0"/>
+        <a:ext cx="914400" cy="457200"/>
+        <a:chOff x="0" y="0"/>
+        <a:chExt cx="914400" cy="457200"/>
+      </a:xfrm>
+    </p:grpSpPr>
+    <p:sp>
+      <p:nvSpPr>
+        <p:cNvPr id="901" name="Grouped annotation"/>
+        <p:cNvSpPr txBox="1"/>
+        <p:nvPr/>
+      </p:nvSpPr>
+      <p:spPr>
+        <a:xfrm>
+          <a:off x="0" y="0"/>
+          <a:ext cx="914400" cy="457200"/>
+        </a:xfrm>
+        <a:noFill/>
+        <a:ln><a:noFill/></a:ln>
+      </p:spPr>
+      <p:txBody>
+        <a:bodyPr/>
+        <a:lstStyle/>
+        <a:p>
+          <a:r>
+            <a:rPr lang="en-US" sz="1200">
+              <a:solidFill><a:srgbClr val="FFFFFF"/></a:solidFill>
+              <a:latin typeface="Arial"/>
+            </a:rPr>
+            <a:t>Grouped annotation</a:t>
+          </a:r>
+        </a:p>
+      </p:txBody>
+    </p:sp>
+  </p:grpSp>
+`

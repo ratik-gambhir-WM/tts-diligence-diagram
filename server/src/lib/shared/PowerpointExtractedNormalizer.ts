@@ -35,9 +35,11 @@ import {
   emuLineWidthToPoints,
   findChild,
   hasChild,
+  isLinePreset,
   normalizeAlign,
   normalizeBodyAnchor,
   normalizeShapeName,
+  normalizeLineType,
   parseArrowType,
   parseBeginArrowType,
   parseColor,
@@ -128,10 +130,14 @@ function normalizeExtractedElement(
   const rotate = coerceNumber(transform.rotation, 0)
   const presetShape = normalizeShapeName(element.presetGeometry?.preset)
 
-  if (element.kind === 'connector' || presetShape === 'line' || presetShape === 'lineInv') {
+  if (element.kind === 'connector' || isLinePreset(presetShape)) {
     const lineNode = findChild(element.shapeProperties, 'a:ln')
     const reverseX = !!transform.flipH || presetShape === 'lineInv'
     const reverseY = !!transform.flipV || presetShape === 'lineInv'
+    const x1 = clampNumber(reverseX ? x + w : x, 0, slideWidth)
+    const y1 = clampNumber(reverseY ? y + h : y, 0, slideHeight)
+    const x2 = clampNumber(reverseX ? x : x + w, 0, slideWidth)
+    const y2 = clampNumber(reverseY ? y : y + h, 0, slideHeight)
     return [
       {
         kind: 'line',
@@ -140,11 +146,14 @@ function normalizeExtractedElement(
         opacity: DEFAULT_OPACITY,
         rotate,
         valign: 'middle',
-        lineType: 'straight',
-        x1: clampNumber(reverseX ? x + w : x, 0, slideWidth),
-        y1: clampNumber(reverseY ? y + h : y, 0, slideHeight),
-        x2: clampNumber(reverseX ? x : x + w, 0, slideWidth),
-        y2: clampNumber(reverseY ? y : y + h, 0, slideHeight),
+        lineType: normalizeLineType(presetShape, x1, y1, x2, y2),
+        elbowDirection: presetShape.toLowerCase().startsWith('bentconnector')
+          ? 'horizontal-first'
+          : undefined,
+        x1,
+        y1,
+        x2,
+        y2,
         stroke: parseLineColor(lineNode, theme, DEFAULT_STROKE_COLOR),
         strokeOpacity: parseColorOpacity(findChild(lineNode, 'a:solidFill')),
         strokeWidth: emuLineWidthToPoints(lineNode?.attributes?.w),

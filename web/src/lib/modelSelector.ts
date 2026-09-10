@@ -1,9 +1,5 @@
 import modelSelectorInstructions from '../prompts/ModelSelectorPrompt.md?raw'
-import {
-  DIAGRAM_TEMPLATES,
-  type DiagramTemplate,
-  getDiagramTemplateById,
-} from './diagramTemplates'
+import type { PickerTemplateSummary } from './api/templateApi'
 import { createOpenAIResponse } from './OpenAI'
 import {
   MODEL_SELECTOR_OUTPUT_FORMAT,
@@ -11,6 +7,7 @@ import {
 } from '../types/ModelSelectorOutput'
 
 type SelectArchitectureDiagramParams = {
+  candidates: PickerTemplateSummary[]
   uploadedFiles: File[]
 }
 
@@ -26,8 +23,8 @@ const CANDIDATE_IMAGE_WIDTH = 960
 const CANDIDATE_IMAGE_HEADER_HEIGHT = 140
 const CANDIDATE_IMAGE_PADDING = 28
 
-function getCandidateAttachmentLabel(template: DiagramTemplate) {
-  return `architecture-candidate__${template.id}.png`
+function getCandidateAttachmentLabel(template: PickerTemplateSummary) {
+  return `architecture-candidate__${template.templateId}.png`
 }
 
 function loadImageFromBlob(blob: Blob) {
@@ -79,11 +76,12 @@ function drawTextLine({
   ctx.fillText(text, x, baseline)
 }
 
-async function buildLabeledCandidateImage(template: DiagramTemplate) {
-  const response = await fetch(template.image)
+async function buildLabeledCandidateImage(template: PickerTemplateSummary) {
+  if (!template.previewUrl) return undefined
+  const response = await fetch(template.previewUrl)
 
   if (!response.ok) {
-    throw new Error(`Failed to load architecture diagram candidate image: ${template.name}`)
+    throw new Error(`Failed to load architecture diagram candidate image: ${template.title}`)
   }
 
   const sourceBlob = await response.blob()
@@ -111,7 +109,7 @@ async function buildLabeledCandidateImage(template: DiagramTemplate) {
     color: '#ffffff',
     ctx,
     font: '700 26px Arial, sans-serif',
-    text: `ID: ${template.id}`,
+    text: `ID: ${template.templateId}`,
     x: CANDIDATE_IMAGE_PADDING,
   })
   drawTextLine({
@@ -119,7 +117,7 @@ async function buildLabeledCandidateImage(template: DiagramTemplate) {
     color: '#ffffff',
     ctx,
     font: '700 24px Arial, sans-serif',
-    text: template.name,
+    text: template.title,
     x: CANDIDATE_IMAGE_PADDING,
   })
   drawTextLine({
@@ -139,21 +137,22 @@ async function buildLabeledCandidateImage(template: DiagramTemplate) {
   return new File([labeledBlob], filename, { type: 'image/png' })
 }
 
-async function buildCandidateImageAttachments() {
-  return Promise.all(DIAGRAM_TEMPLATES.map(buildLabeledCandidateImage))
+async function buildCandidateImageAttachments(candidates: PickerTemplateSummary[]) {
+  const attachments = await Promise.all(candidates.map(buildLabeledCandidateImage))
+  return attachments.filter((attachment): attachment is File => attachment !== undefined)
 }
 
-function buildCandidateListForPrompt(): DiagramCandidateForPrompt[] {
-  return DIAGRAM_TEMPLATES.map((template) => ({
-    id: template.id,
-    name: template.name,
+function buildCandidateListForPrompt(candidates: PickerTemplateSummary[]): DiagramCandidateForPrompt[] {
+  return candidates.map((template) => ({
+    id: template.templateId,
+    name: template.title,
     description: template.description,
-    relatedAlt: template.relatedAlt,
+    relatedAlt: `${template.title} template preview`,
     imageAttachmentLabel: getCandidateAttachmentLabel(template),
   }))
 }
 
-function buildSelectorPrompt(uploadedFiles: File[]) {
+function buildSelectorPrompt(uploadedFiles: File[], candidates: PickerTemplateSummary[]) {
   return [
     'Select the best architecture diagram candidate for the uploaded diligence source material.',
     'The uploaded diligence source files are:',
@@ -168,13 +167,13 @@ function buildSelectorPrompt(uploadedFiles: File[]) {
     ),
     'The architecture diagram candidate previews are attached as labeled images. Each candidate preview image has the candidate ID and name printed in a black header.',
     'Candidate catalog:',
-    JSON.stringify(buildCandidateListForPrompt(), null, 2),
+    JSON.stringify(buildCandidateListForPrompt(candidates), null, 2),
     'Choose exactly one candidate ID from the candidate catalog.',
   ].join('\n\n')
 }
 
-function validateSelectedDiagram(output: ModelSelectorOutput) {
-  const selectedTemplate = getDiagramTemplateById(output.selectedDiagramId)
+function validateSelectedDiagram(output: ModelSelectorOutput, candidates: PickerTemplateSummary[]) {
+  const selectedTemplate = candidates.find((template) => template.templateId === output.selectedDiagramId)
 
   if (!selectedTemplate) {
     throw new Error(`Model selector returned an unknown diagram id: ${output.selectedDiagramId}`)
@@ -182,17 +181,21 @@ function validateSelectedDiagram(output: ModelSelectorOutput) {
 
   return {
     ...output,
-    selectedDiagramName: selectedTemplate.name,
+    selectedDiagramName: selectedTemplate.title,
   }
 }
 
 export async function selectArchitectureDiagramModel({
+  candidates,
   uploadedFiles,
 }: SelectArchitectureDiagramParams): Promise<ModelSelectorOutput> {
-  const candidateImageAttachments = await buildCandidateImageAttachments()
+  if (candidates.length === 0) {
+    throw new Error('No diagram templates are available for selection.')
+  }
+  const candidateImageAttachments = await buildCandidateImageAttachments(candidates)
   const response = await createOpenAIResponse({
     attachments: [...uploadedFiles, ...candidateImageAttachments],
-    prompt: buildSelectorPrompt(uploadedFiles),
+    prompt: buildSelectorPrompt(uploadedFiles, candidates),
     systemInstructions: modelSelectorInstructions,
     text: {
       format: {
@@ -208,11 +211,12 @@ export async function selectArchitectureDiagramModel({
 
   const parsedOutput = JSON.parse(response.output_text) as ModelSelectorOutput
 
-  return validateSelectedDiagram(parsedOutput)
+  return validateSelectedDiagram(parsedOutput, candidates)
 }
 
-export function getSelectedArchitectureTemplate(selection: ModelSelectorOutput | null) {
-  return getDiagramTemplateById(selection?.selectedDiagramId)
+export function getSelectedArchitectureTemplate(
+  selection: ModelSelectorOutput | null,
+  candidates: PickerTemplateSummary[],
+) {
+  return candidates.find((template) => template.templateId === selection?.selectedDiagramId)
 }
-
-export { DIAGRAM_TEMPLATES as ARCHITECTURE_DIAGRAM_CANDIDATES }

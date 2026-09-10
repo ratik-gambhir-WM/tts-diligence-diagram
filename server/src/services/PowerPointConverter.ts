@@ -1,4 +1,4 @@
-import { mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 
@@ -30,10 +30,17 @@ export type PowerPointConversion = {
 }
 
 export interface PowerPointConverter {
-  convert(source: Buffer): Promise<PowerPointConversion>
+  convertFile(inputPath: string, outputPath: string): Promise<PowerPointConversion>
 }
 
 export class LibraryPowerPointConverter implements PowerPointConverter {
+  async convertFile(inputPath: string, outputPath: string): Promise<PowerPointConversion> {
+    const source = await readFile(inputPath)
+    validatePowerPointPackage(source)
+    const result = await runImporter(inputPath, outputPath)
+    return { templateJson: result.jsonSpec, warnings: result.warnings }
+  }
+
   async convert(source: Buffer): Promise<PowerPointConversion> {
     validatePowerPointPackage(source)
     const workingDirectory = await mkdtemp(path.join(tmpdir(), 'tts-mermaid-import-'))
@@ -42,11 +49,7 @@ export class LibraryPowerPointConverter implements PowerPointConverter {
 
     try {
       await writeFile(inputPath, source)
-      const result = await runImporter(inputPath, outputPath)
-      return {
-        templateJson: result.jsonSpec,
-        warnings: result.warnings,
-      }
+      return await this.convertFile(inputPath, outputPath)
     } finally {
       await rm(workingDirectory, { force: true, recursive: true })
     }
@@ -70,17 +73,17 @@ async function runImporter(inputPath: string, outputPath: string) {
   }
 }
 
-function validatePowerPointPackage(source: Buffer) {
+export function validatePowerPointPackage(source: Buffer) {
   const endOfDirectory = findEndOfCentralDirectory(source)
   if (endOfDirectory === undefined) {
     throw invalidPowerPointError()
   }
 
-    const diskNumber = source.readUInt16LE(endOfDirectory + ZIP_DISK_NUMBER_OFFSET)
-    const centralDirectoryDisk = source.readUInt16LE(endOfDirectory + ZIP_CENTRAL_DIRECTORY_DISK_OFFSET)
-    const entryCount = source.readUInt16LE(endOfDirectory + ZIP_ENTRY_COUNT_OFFSET)
-    const directorySize = source.readUInt32LE(endOfDirectory + ZIP_DIRECTORY_SIZE_OFFSET)
-    const directoryOffset = source.readUInt32LE(endOfDirectory + ZIP_DIRECTORY_OFFSET)
+  const diskNumber = source.readUInt16LE(endOfDirectory + ZIP_DISK_NUMBER_OFFSET)
+  const centralDirectoryDisk = source.readUInt16LE(endOfDirectory + ZIP_CENTRAL_DIRECTORY_DISK_OFFSET)
+  const entryCount = source.readUInt16LE(endOfDirectory + ZIP_ENTRY_COUNT_OFFSET)
+  const directorySize = source.readUInt32LE(endOfDirectory + ZIP_DIRECTORY_SIZE_OFFSET)
+  const directoryOffset = source.readUInt32LE(endOfDirectory + ZIP_DIRECTORY_OFFSET)
   if (
     diskNumber !== 0
     || centralDirectoryDisk !== 0

@@ -1,16 +1,16 @@
-import { resolveBundledSlideAssetImageSources } from '../export/PowerpointAssetResolver'
-import { getConnectorAwareElementOrder } from '../shared/PowerpointLayering'
-import { normalizePresentationSpec } from '../shared/PowerpointNormalizer'
+import { resolveBundledSlideAssetImageSources } from '../canvas-model/assetResolver'
+import { getConnectorAwareElementOrder } from '../canvas-model/CanvasLayering'
+import { normalizePresentationSpec } from '../canvas-model/CanvasNormalizer'
 import type {
   JsonValue,
-  NormalizedElement,
-  NormalizedPresentation,
-  NormalizedSlide,
+  EditableCanvasElement,
+  EditableCanvasPresentation,
+  EditableCanvasSlide,
   ValidationIssue,
-} from '../shared/PowerpointTypes'
+} from '../canvas-model/CanvasTypes'
 
 export type SlideElementRef = {
-  element: NormalizedElement
+  element: EditableCanvasElement
   key: string
   slideIndex: number
   sourcePath: string
@@ -19,8 +19,8 @@ export type SlideElementRef = {
 export interface SlideCanvasModel {
   elementRefs: SlideElementRef[]
   issues: ValidationIssue[]
-  presentation?: NormalizedPresentation
-  slide?: NormalizedSlide
+  presentation?: EditableCanvasPresentation
+  slide?: EditableCanvasSlide
 }
 
 export interface BuildSlideCanvasModelOptions {

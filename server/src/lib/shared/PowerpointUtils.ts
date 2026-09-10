@@ -207,12 +207,75 @@ export function normalizeArrow(value: string | undefined): NormalizedLineElement
   return 'none'
 }
 
-export function normalizeLineType(value: string | undefined): NormalizedLineElement['lineType'] {
-  if (value === 'elbow' || value === 'angle' || value === 'angled' || value === 'angleBracket') {
+export function normalizeLineType(
+  value: string | undefined,
+  x1?: number,
+  y1?: number,
+  x2?: number,
+  y2?: number,
+): NormalizedLineElement['lineType'] {
+  const normalized = value?.toLowerCase()
+  if (
+    normalized === 'elbow'
+    || normalized === 'angle'
+    || normalized === 'angled'
+    || normalized === 'anglebracket'
+    || normalized?.startsWith('bentconnector')
+  ) {
+    return 'elbow'
+  }
+
+  if (
+    normalized === 'straight'
+    || normalized === 'line'
+    || normalized === 'lineinv'
+    || normalized?.startsWith('straightconnector')
+  ) {
+    return 'straight'
+  }
+
+  if (
+    x1 !== undefined
+    && y1 !== undefined
+    && x2 !== undefined
+    && y2 !== undefined
+    && Math.abs(x2 - x1) > 0.5
+    && Math.abs(y2 - y1) > 0.5
+  ) {
     return 'elbow'
   }
 
   return 'straight'
+}
+
+export function normalizeElbowDirection(
+  value: string | undefined,
+  x1: number,
+  y1: number,
+  x2: number,
+  y2: number,
+): NonNullable<NormalizedLineElement['elbowDirection']> {
+  const normalized = value?.toLowerCase().replaceAll(/[_\s-]/gu, '')
+  if (normalized === 'horizontal' || normalized === 'horizontalfirst' || normalized === 'xfirst') {
+    return 'horizontal-first'
+  }
+  if (normalized === 'vertical' || normalized === 'verticalfirst' || normalized === 'yfirst') {
+    return 'vertical-first'
+  }
+
+  // Legacy compact JSON did not retain which of the two possible bends was intended.
+  // Keep its established short-leg-first routing until the file is saved again.
+  return Math.abs(x2 - x1) >= Math.abs(y2 - y1)
+    ? 'vertical-first'
+    : 'horizontal-first'
+}
+
+export function isLinePreset(value: string | undefined) {
+  const normalized = value?.toLowerCase()
+  return normalized === 'line'
+    || normalized === 'lineinv'
+    || normalized?.startsWith('straightconnector') === true
+    || normalized?.startsWith('bentconnector') === true
 }
 
 export function parseDashStyle(lineNode: XmlNode | undefined): DashStyle {

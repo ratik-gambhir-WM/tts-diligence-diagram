@@ -2,7 +2,7 @@ import { fireEvent, render } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 
 import securitySpec from '../export/json-commentary-templates/slide-02-phase-1.compact copy.json'
-import type { JsonObject, JsonValue } from '../shared/PowerpointTypes'
+import type { JsonObject, JsonValue } from '../canvas-model/CanvasTypes'
 import { normalizeCommentaryTemplateSpec } from '../commentaryTemplates'
 import { DIAGRAM_TEMPLATES } from '../diagramTemplates'
 import { applyElementEditToInput, buildSlideCanvasModel } from '../slide-canvas'
@@ -36,6 +36,7 @@ const input = {
             id: 'line-1',
             kind: 'line',
             lineType: 'elbow',
+            elbowDirection: 'horizontal-first',
             x1: 40,
             y1: 40,
             x2: 240,
@@ -159,7 +160,9 @@ describe('SvgSlideCanvas', () => {
     expect(container.querySelectorAll('[data-element-key]')).toHaveLength(2)
     expect(container.querySelector('clipPath[id$="root-clip"]')).not.toBeNull()
     expect(container.querySelector('polygon')).not.toBeNull()
-    expect(container.querySelector('path[marker-end]')).not.toBeNull()
+    expect(container.querySelector('path[marker-end]')?.getAttribute('d')).toBe(
+      'M 40 40 L 240 40 L 240 180',
+    )
     const footer = container.querySelector('[data-brand-footer]')
     const logo = container.querySelector('[data-brand-logo]')
 

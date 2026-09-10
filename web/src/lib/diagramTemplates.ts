@@ -10,7 +10,7 @@ import microserviceArchSpec from './export/json-slide-templates/microservice-arc
 import multiAppArchSpec from './export/json-slide-templates/multi-app-arch.json'
 import multiTenantArchSpec from './export/json-slide-templates/two-system-arch.json'
 import productArchSpec from './export/json-slide-templates/multi-product-arch.json'
-import type { JsonValue } from './shared/PowerpointTypes'
+import type { JsonValue } from './canvas-model/CanvasTypes'
 
 export type DiagramTemplate = {
   description: string

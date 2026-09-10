@@ -8,19 +8,19 @@ import {
 } from 'react'
 
 import type {
-  NormalizedShapeElement,
-  NormalizedTextElement,
-  NormalizedTextRun,
-} from '../shared/PowerpointTypes'
+  EditableCanvasShapeElement,
+  EditableCanvasTextElement,
+  EditableCanvasTextRun,
+} from '../canvas-model/CanvasTypes'
 import type { SvgTextLayout } from './textLayout'
 import { getSvgTextContent } from './svgTextLayout'
 import { toSvgColor } from './svgUtils'
 
-type EditableTextElement = NormalizedShapeElement | NormalizedTextElement
+type EditableTextElement = EditableCanvasShapeElement | EditableCanvasTextElement
 
 type EditableRun = {
   height: number
-  run: NormalizedTextRun
+  run: EditableCanvasTextRun
   top: number
 }
 
@@ -227,8 +227,8 @@ export function SvgTextEditorOverlay({
 }
 
 function getEditableRuns(
-  runs: NormalizedTextRun[],
-  fallbackRun: NormalizedTextRun,
+  runs: EditableCanvasTextRun[],
+  fallbackRun: EditableCanvasTextRun,
   layout: SvgTextLayout,
 ): EditableRun[] {
   const runGroups = groupParagraphRuns(runs.length > 0 ? runs : [fallbackRun])
@@ -242,7 +242,7 @@ function getEditableRuns(
         ? run
         : dominantRun,
     )
-    const run: NormalizedTextRun = {
+    const run: EditableCanvasTextRun = {
       ...styleRun,
       breakLine: sourceRuns.at(-1)?.breakLine,
       text: sourceRuns.map((sourceRun) => sourceRun.text).join(''),
@@ -268,9 +268,9 @@ function getEditableRuns(
   })
 }
 
-function groupParagraphRuns(runs: NormalizedTextRun[]) {
-  const groups: NormalizedTextRun[][] = []
-  let currentGroup: NormalizedTextRun[] = []
+function groupParagraphRuns(runs: EditableCanvasTextRun[]) {
+  const groups: EditableCanvasTextRun[][] = []
+  let currentGroup: EditableCanvasTextRun[] = []
 
   runs.forEach((run) => {
     currentGroup.push(run)

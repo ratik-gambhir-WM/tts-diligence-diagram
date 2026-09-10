@@ -1,9 +1,11 @@
-import type { JsonObject, JsonValue } from '../shared/PowerpointTypes'
+import type { JsonObject, JsonValue } from '../canvas-model/CanvasTypes'
 
 const FRAME_IDS = new Set(['element-903000', 'west-monroe-footer', 'west-monroe-logo'])
 
-export function addBrandedSlideFrame<TInput extends JsonValue>(input: TInput): TInput {
-  const cloned = typeof structuredClone === 'function' ? structuredClone(input) : JSON.parse(JSON.stringify(input))
+export function removeLegacyBrandedFrame<TInput extends JsonValue>(input: TInput): TInput {
+  const cloned = typeof structuredClone === 'function'
+    ? structuredClone(input)
+    : JSON.parse(JSON.stringify(input)) as TInput
   for (const slide of slides(cloned)) {
     const elements = Array.isArray(slide.elements) ? slide.elements.filter(record) : []
     slide.elements = elements.filter((element) => !isBrandedFrameElement(element))
@@ -11,19 +13,16 @@ export function addBrandedSlideFrame<TInput extends JsonValue>(input: TInput): T
   return cloned
 }
 
-export const normalizeBrandedSlideFrameImageIds = addBrandedSlideFrame
+export const normalizeBrandedSlideFrameImageIds = removeLegacyBrandedFrame
 
-function isFrameImage(element: JsonObject) {
+function isBrandedFrameElement(element: JsonObject) {
+  const id = String(element.id ?? '')
+  if (FRAME_IDS.has(id) || id.startsWith('west-monroe-dot-')) return true
   if (!['image', 'picture'].includes(String(element.type ?? element.kind ?? ''))) return false
   return ['src', 'path', 'data'].some((key) => {
     const value = String(element[key] ?? '')
     return value.includes('element-903000.jpg') || value.includes('element-5.png')
   })
-}
-
-function isBrandedFrameElement(element: JsonObject) {
-  const id = String(element.id ?? '')
-  return FRAME_IDS.has(id) || id.startsWith('west-monroe-dot-') || isFrameImage(element)
 }
 
 function slides(input: JsonValue): JsonObject[] {

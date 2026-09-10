@@ -46,7 +46,11 @@ export function createApp(dependencies: AppDependencies) {
     })
     next()
   })
-  app.use('/export', createExportRouter(dependencies.exportService, dependencies.maxExportJsonBytes))
+  app.use('/export', createExportRouter(
+    dependencies.exportService,
+    dependencies.maxExportJsonBytes,
+    dependencies.maxUploadBytes,
+  ))
   app.use('/import', createImportRouter(dependencies.importService, dependencies.maxUploadBytes))
   app.use('/templates', createTemplateRouter(dependencies.importService))
   app.use(notFoundHandler)

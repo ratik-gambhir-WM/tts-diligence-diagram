@@ -10,7 +10,7 @@ import type {
   ThemeTypography,
 } from './PowerpointImportTypes'
 import { cleanHex } from '../shared/PowerpointUtils'
-import { firstDefined, positiveInt } from './PowerpointImportUtils'
+import { positiveInt } from './PowerpointImportUtils'
 import { child, children, findDescendant } from './PowerpointXml'
 import {
   DEFAULT_FONT_FACE,
@@ -28,15 +28,20 @@ export function extractText(textNode: XmlNode | undefined, fallbackTextNodes: Ar
     return undefined
   }
 
-  const fallbackParagraphs = fallbackTextNodes.map((node) => children(node, 'a:p'))
   const paragraphs = children(textNode, 'a:p').map((paragraph, paragraphIndex) => {
-    const fallbackParagraph = firstDefined(
-      fallbackParagraphs.map((entries) => entries[paragraphIndex] ?? entries[0]),
-    )
     const paragraphProperties = child(paragraph, 'a:pPr')
-    const fallbackParagraphProperties = child(fallbackParagraph, 'a:pPr')
+    const paragraphLevel = Math.min(Math.max(Number(paragraphProperties?.attributes?.lvl) || 0, 0), 8)
+    const fallbackParagraphProperties = fallbackTextNodes.flatMap((node) =>
+      paragraphPropertySources(node, paragraphIndex, paragraphLevel),
+    )
+    const primaryParagraphProperties = paragraphPropertySources(
+      textNode,
+      paragraphIndex,
+      paragraphLevel,
+    )
     const defaultRunProperties = {
-      ...extractRunProperties(child(fallbackParagraphProperties, 'a:defRPr')),
+      ...mergeRunProperties(fallbackParagraphProperties),
+      ...mergeRunProperties(primaryParagraphProperties),
       ...extractRunProperties(child(paragraphProperties, 'a:defRPr')),
     }
     const runs = (paragraph.children ?? [])
@@ -60,11 +65,12 @@ export function extractText(textNode: XmlNode | undefined, fallbackTextNodes: Ar
     return {
       runs,
       properties: {
-        ...(fallbackParagraphProperties?.attributes ?? {}),
+        ...mergeAttributes(fallbackParagraphProperties),
+        ...mergeAttributes(primaryParagraphProperties),
         ...(paragraphProperties?.attributes ?? {}),
       },
       endParagraphRunProperties: {
-        ...(child(fallbackParagraph, 'a:endParaRPr')?.attributes ?? {}),
+        ...mergeEndParagraphRunProperties(fallbackTextNodes, paragraphIndex),
         ...(child(paragraph, 'a:endParaRPr')?.attributes ?? {}),
       },
     }
@@ -77,10 +83,61 @@ export function extractText(textNode: XmlNode | undefined, fallbackTextNodes: Ar
     plainText,
     paragraphs,
     bodyProperties: {
-      ...firstDefined(fallbackTextNodes.map((node) => child(node, 'a:bodyPr')?.attributes)),
+      ...fallbackTextNodes.reduce<Record<string, string>>(
+        (properties, node) => ({ ...properties, ...(child(node, 'a:bodyPr')?.attributes ?? {}) }),
+        {},
+      ),
       ...(child(textNode, 'a:bodyPr')?.attributes ?? {}),
     },
   }
+}
+
+function paragraphPropertySources(
+  textNode: XmlNode | undefined,
+  paragraphIndex: number,
+  paragraphLevel: number,
+) {
+  if (!textNode) {
+    return []
+  }
+
+  const levelTag = `a:lvl${paragraphLevel + 1}pPr`
+  const listStyle = child(textNode, 'a:lstStyle')
+  const levelProperties = child(listStyle, levelTag) ?? child(textNode, levelTag)
+  const paragraphs = children(textNode, 'a:p')
+  const directProperties = child(paragraphs[paragraphIndex] ?? paragraphs[0], 'a:pPr')
+  return [levelProperties, directProperties].filter((node): node is XmlNode => !!node)
+}
+
+function mergeRunProperties(paragraphProperties: XmlNode[]) {
+  return paragraphProperties.reduce<Record<string, string>>(
+    (properties, node) => ({
+      ...properties,
+      ...extractRunProperties(child(node, 'a:defRPr')),
+    }),
+    {},
+  )
+}
+
+function mergeAttributes(nodes: XmlNode[]) {
+  return nodes.reduce<Record<string, string>>(
+    (attributes, node) => ({ ...attributes, ...(node.attributes ?? {}) }),
+    {},
+  )
+}
+
+function mergeEndParagraphRunProperties(
+  textNodes: Array<XmlNode | undefined>,
+  paragraphIndex: number,
+) {
+  return textNodes.reduce<Record<string, string>>((properties, textNode) => {
+    const paragraphs = children(textNode, 'a:p')
+    const paragraph = paragraphs[paragraphIndex] ?? paragraphs[0]
+    return {
+      ...properties,
+      ...(child(paragraph, 'a:endParaRPr')?.attributes ?? {}),
+    }
+  }, {})
 }
 
 function extractBulletPrefix(paragraphProperties: XmlNode | undefined, paragraphIndex: number) {

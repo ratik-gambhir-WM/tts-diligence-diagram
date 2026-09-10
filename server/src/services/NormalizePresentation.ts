@@ -7,6 +7,7 @@ import type {
   PowerPointCanvasTextElement,
   PowerPointCanvasTextRun,
 } from '../lib/import/PowerpointImportTypes'
+import { normalizeElbowDirection, normalizeLineType } from '../lib/shared/PowerpointUtils'
 import { ApiError } from '../errors'
 
 const DEFAULT_WIDTH = 1280
@@ -185,10 +186,15 @@ function normalizeLine(
   const dash = dashStyle(stringValue(source.dash))
   const beginArrow = arrowType(stringValue(source.beginArrow) ?? stringValue(source.startArrow))
   const endArrow = arrowType(stringValue(source.endArrow) ?? stringValue(source.arrow))
+  const lineType = normalizeLineType(stringValue(source.lineType), x1, y1, x2, y2)
 
   return {
     id,
     type: 'line',
+    lineType,
+    elbowDirection: lineType === 'elbow'
+      ? normalizeElbowDirection(stringValue(source.elbowDirection), x1, y1, x2, y2)
+      : undefined,
     x1,
     y1,
     x2,

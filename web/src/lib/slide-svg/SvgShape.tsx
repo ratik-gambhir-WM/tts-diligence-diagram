@@ -1,6 +1,6 @@
 import { memo } from 'react'
 
-import type { NormalizedShapeElement } from '../shared/PowerpointTypes'
+import type { EditableCanvasShapeElement } from '../canvas-model/CanvasTypes'
 import { renderShapePrimitive } from './shapes'
 import { SvgTextBlock } from './SvgText'
 
@@ -10,7 +10,7 @@ export const SvgShape = memo(function SvgShape({
   hideText = false,
   textClipId,
 }: {
-  element: NormalizedShapeElement
+  element: EditableCanvasShapeElement
   fontScale?: number
   hideText?: boolean
   textClipId: string

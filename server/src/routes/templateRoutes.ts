@@ -11,6 +11,10 @@ export function createTemplateRouter(service: ImportService) {
   router.all('/', (_request, response) => {
     response.status(405).end()
   })
+  router.get('/:templateId/preview', handlers.findPreview)
+  router.all('/:templateId/preview', (_request, response) => {
+    response.status(405).end()
+  })
   router.get('/:templateId', handlers.find)
   router.delete('/:templateId', handlers.remove)
   router.all('/:templateId', (_request, response) => {

@@ -1,13 +1,17 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
-import { BrowserRouter } from 'react-router-dom'
+import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import App from './App'
+import { TemplatePreviewRenderPage } from './pages/TemplatePreviewRenderPage'
 import './index.css'
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <BrowserRouter>
-      <App />
+      <Routes>
+        <Route path="/_internal/template-preview" element={<TemplatePreviewRenderPage />} />
+        <Route path="*" element={<App />} />
+      </Routes>
     </BrowserRouter>
   </React.StrictMode>,
 )

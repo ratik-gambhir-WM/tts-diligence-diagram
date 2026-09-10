@@ -1,6 +1,7 @@
 import { memo } from 'react'
 
-import type { NormalizedLineElement } from '../shared/PowerpointTypes'
+import type { EditableCanvasLineElement } from '../canvas-model/CanvasTypes'
+import { getLinePathPoints } from '../slide-canvas/geometry'
 import { toSvgColor } from './svgUtils'
 
 export const SvgLine = memo(function SvgLine({
@@ -8,7 +9,7 @@ export const SvgLine = memo(function SvgLine({
   markerId,
   maskId,
 }: {
-  element: NormalizedLineElement
+  element: EditableCanvasLineElement
   markerId: string
   maskId: string
 }) {
@@ -82,13 +83,14 @@ export const SvgLine = memo(function SvgLine({
   )
 })
 
-export function getLinePath(element: NormalizedLineElement) {
-  return element.lineType === 'elbow'
-    ? `M ${element.x1} ${element.y1} L ${element.x2} ${element.y1} L ${element.x2} ${element.y2}`
-    : `M ${element.x1} ${element.y1} L ${element.x2} ${element.y2}`
+export function getLinePath(element: EditableCanvasLineElement) {
+  const [start, ...remainingPoints] = getLinePathPoints(element)
+  return `M ${start.x} ${start.y}${remainingPoints
+    .map((point) => ` L ${point.x} ${point.y}`)
+    .join('')}`
 }
 
-export function getLineTransform(element: NormalizedLineElement) {
+export function getLineTransform(element: EditableCanvasLineElement) {
   if (!element.rotate) {
     return undefined
   }
@@ -98,7 +100,7 @@ export function getLineTransform(element: NormalizedLineElement) {
   return `rotate(${element.rotate} ${midX} ${midY})`
 }
 
-function renderArrowMarker(arrow: NonNullable<NormalizedLineElement['beginArrow']>, stroke: string) {
+function renderArrowMarker(arrow: NonNullable<EditableCanvasLineElement['beginArrow']>, stroke: string) {
   const color = toSvgColor(stroke)
   if (arrow === 'diamond') {
     return <path d="M 0 5 L 5 0 L 10 5 L 5 10 Z" fill={color} />
@@ -115,7 +117,7 @@ function renderArrowMarker(arrow: NonNullable<NormalizedLineElement['beginArrow'
   return <path d="M 0 0 L 10 5 L 0 10 Z" fill={color} />
 }
 
-function getStrokeDasharray(element: NormalizedLineElement) {
+function getStrokeDasharray(element: EditableCanvasLineElement) {
   if (element.dash === 'dash') {
     return `${element.strokeWidth * 5} ${element.strokeWidth * 3}`
   }

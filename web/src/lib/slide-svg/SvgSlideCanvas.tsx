@@ -8,7 +8,7 @@ import {
   type CSSProperties,
   type PointerEvent as ReactPointerEvent,
 } from 'react'
-import type { JsonValue } from '../shared/PowerpointTypes'
+import type { JsonValue } from '../canvas-model/CanvasTypes'
 
 import {
   applyElementEdit,

@@ -1,10 +1,10 @@
 import type {
   LineOcclusionRect,
-  NormalizedElement,
-  NormalizedLineElement,
-  NormalizedSlide,
+  EditableCanvasElement,
+  EditableCanvasLineElement,
+  EditableCanvasSlide,
   SlideForElementLayering,
-} from './PowerpointTypes'
+} from './CanvasTypes'
 
 export function getConnectorAwareElementOrder(slide: SlideForElementLayering) {
   return slide.elements
@@ -17,7 +17,7 @@ export function getConnectorAwareElementOrder(slide: SlideForElementLayering) {
     .map(({ element }) => element)
 }
 
-function getConnectorAwareLayer(element: NormalizedElement, slide: SlideForElementLayering) {
+function getConnectorAwareLayer(element: EditableCanvasElement, slide: SlideForElementLayering) {
   if (isBrandedBackgroundDecoration(element)) {
     return 0
   }
@@ -33,14 +33,14 @@ function getConnectorAwareLayer(element: NormalizedElement, slide: SlideForEleme
   return 30
 }
 
-function isBrandedBackgroundDecoration(element: NormalizedElement) {
+function isBrandedBackgroundDecoration(element: EditableCanvasElement) {
   return (
     element.id === 'west-monroe-footer' ||
     element.id.startsWith('west-monroe-dot-')
   )
 }
 
-function isSlideContainerElement(element: NormalizedElement, slide: SlideForElementLayering) {
+function isSlideContainerElement(element: EditableCanvasElement, slide: SlideForElementLayering) {
   if (element.kind !== 'shape' || element.shape !== 'rect') {
     return false
   }
@@ -54,12 +54,12 @@ function isSlideContainerElement(element: NormalizedElement, slide: SlideForElem
 }
 
 export function addConnectorOcclusionRects(
-  elements: NormalizedElement[],
-  slide: Pick<NormalizedSlide, 'height' | 'width'>,
-): NormalizedElement[] {
+  elements: EditableCanvasElement[],
+  slide: Pick<EditableCanvasSlide, 'height' | 'width'>,
+): EditableCanvasElement[] {
   const slideForLayering = { ...slide, elements }
   const occlusionRects = elements
-    .filter((element): element is Exclude<NormalizedElement, NormalizedLineElement> =>
+    .filter((element): element is Exclude<EditableCanvasElement, EditableCanvasLineElement> =>
       element.kind !== 'line' && !isSlideContainerElement(element, slideForLayering),
     )
     .map(getElementBounds)
@@ -76,7 +76,7 @@ export function addConnectorOcclusionRects(
   })
 }
 
-function getElementBounds(element: Exclude<NormalizedElement, NormalizedLineElement>): LineOcclusionRect {
+function getElementBounds(element: Exclude<EditableCanvasElement, EditableCanvasLineElement>): LineOcclusionRect {
   return {
     h: element.h,
     w: element.w,

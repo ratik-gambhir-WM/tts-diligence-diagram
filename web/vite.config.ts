@@ -11,6 +11,15 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [tailwindcss(), react()],
+    server: {
+      proxy: {
+        '/api': {
+          target: env.VITE_API_PROXY_TARGET || 'http://127.0.0.1:3001',
+          changeOrigin: false,
+          rewrite: (path) => path.replace(/^\/api/u, ''),
+        },
+      },
+    },
     define: {
       'import.meta.env.VITE_OPENAI_API_KEY': JSON.stringify(resolvedApiKey),
       'import.meta.env.VITE_OPENAI_SECRET_KEY': JSON.stringify(resolvedApiKey),

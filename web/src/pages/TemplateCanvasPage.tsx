@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ChangeEvent } from 'react'
 
-import type { DiagramTemplate } from '../lib/diagramTemplates'
-import { addBrandedSlideFrame } from '../lib/export/PowerpointBranding'
-import { generatePowerPointFromJson, type PowerPointFileHandle } from '../lib/export/exporter'
-import type { JsonObject, JsonValue } from '../lib/shared/PowerpointTypes'
+import type { CanvasTemplate } from '../lib/canvas-model/templates'
+import { removeLegacyBrandedFrame } from '../lib/canvas-model/branding'
+import { downloadPowerPoint, type WritablePowerPointFileHandle, writePowerPoint } from '../lib/api/download'
+import { exportPresentation, insertPresentation } from '../lib/api/templateApi'
+import type { JsonObject, JsonValue } from '../lib/canvas-model/CanvasTypes'
 import { buildSlideCanvasModel } from '../lib/slide-canvas/model'
 import { SvgSlideCanvas } from '../lib/slide-svg/SvgSlideCanvas'
 
@@ -27,7 +28,7 @@ type TemplateCanvasPageProps = {
   onTemplateJsonChange: (jsonSpec: JsonValue) => void
   showJsonByDefault: boolean
   statusMessage: string
-  template: DiagramTemplate
+  template: CanvasTemplate
 }
 
 export function TemplateCanvasPage({
@@ -43,7 +44,7 @@ export function TemplateCanvasPage({
   const [exportError, setExportError] = useState('')
   const [exportStatus, setExportStatus] = useState('')
   const [selectedPowerPointFile, setSelectedPowerPointFile] = useState<File | null>(null)
-  const [selectedPowerPointHandle, setSelectedPowerPointHandle] = useState<PowerPointFileHandle | null>(null)
+  const [selectedPowerPointHandle, setSelectedPowerPointHandle] = useState<WritablePowerPointFileHandle | null>(null)
   const [insertAfterSlide, setInsertAfterSlide] = useState('1')
   const [createNewEditedCopy, setCreateNewEditedCopy] = useState(true)
   const [isAddNodeMenuOpen, setIsAddNodeMenuOpen] = useState(false)
@@ -121,12 +122,13 @@ export function TemplateCanvasPage({
     setIsExporting(true)
 
     try {
-      await generatePowerPointFromJson(addBrandedSlideFrame(template.jsonSpec), {
-        targetFile: selectedPowerPointFile,
-        targetFileHandle: selectedPowerPointHandle ?? undefined,
-        insertAfterSlide: parsedInsertAfterSlide,
-        writeMode: createNewEditedCopy ? 'copy' : 'overwrite',
-      })
+      const download = await insertPresentation(
+        removeLegacyBrandedFrame(template.jsonSpec),
+        selectedPowerPointFile,
+        parsedInsertAfterSlide,
+      )
+      if (createNewEditedCopy) downloadPowerPoint(download)
+      else if (selectedPowerPointHandle) await writePowerPoint(download, selectedPowerPointHandle)
       setExportStatus(
         createNewEditedCopy
           ? 'Created a new PowerPoint copy with the slide added.'
@@ -149,7 +151,7 @@ export function TemplateCanvasPage({
     setIsExporting(true)
 
     try {
-      await generatePowerPointFromJson(addBrandedSlideFrame(template.jsonSpec))
+      downloadPowerPoint(await exportPresentation(removeLegacyBrandedFrame(template.jsonSpec)))
       setExportStatus('Created a new PowerPoint deck.')
     } catch (error) {
       setExportError(
@@ -449,7 +451,7 @@ interface PowerPointPickerWindow extends Window {
       accept: Record<string, string[]>
       description: string
     }>
-  }) => Promise<PowerPointFileHandle[]>
+  }) => Promise<WritablePowerPointFileHandle[]>
 }
 
 async function chooseWritablePowerPointFile() {
@@ -600,6 +602,7 @@ function createCanvasNodeElement(options: AddCanvasNodeOptions, elementIndex: nu
       id,
       type: 'line',
       lineType: isElbowLine ? 'elbow' : 'straight',
+      elbowDirection: isElbowLine ? 'vertical-first' : undefined,
       x1: x,
       y1: y + 38,
       x2: x + 150,

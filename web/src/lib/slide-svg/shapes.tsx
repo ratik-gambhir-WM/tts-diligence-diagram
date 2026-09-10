@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 
-import type { NormalizedShapeElement } from '../shared/PowerpointTypes'
+import type { EditableCanvasShapeElement } from '../canvas-model/CanvasTypes'
 import { toSvgColor } from './svgUtils'
 
 export const SUPPORTED_SHAPE_NAMES = new Set([
@@ -53,7 +53,7 @@ export const SUPPORTED_SHAPE_NAMES = new Set([
   'upDownArrow',
 ])
 
-export function renderShapePrimitive(element: NormalizedShapeElement): ReactNode {
+export function renderShapePrimitive(element: EditableCanvasShapeElement): ReactNode {
   const common = {
     fill: toSvgColor(element.fill),
     fillOpacity: element.fillOpacity ?? 1,
@@ -256,7 +256,7 @@ export function renderShapePrimitive(element: NormalizedShapeElement): ReactNode
 
 function points(
   normalizedPoints: Array<[number, number]>,
-  element: NormalizedShapeElement,
+  element: EditableCanvasShapeElement,
   inset: number,
 ) {
   const width = Math.max(element.w - inset * 2, 0)
@@ -266,7 +266,7 @@ function points(
     .join(' ')
 }
 
-function regularPolygonPoints(sides: number, element: NormalizedShapeElement, inset: number) {
+function regularPolygonPoints(sides: number, element: EditableCanvasShapeElement, inset: number) {
   return Array.from({ length: sides }, (_, index) => {
     const angle = -Math.PI / 2 + (Math.PI * 2 * index) / sides
     return [0.5 + Math.cos(angle) * 0.5, 0.5 + Math.sin(angle) * 0.5] as [number, number]
@@ -277,7 +277,7 @@ function regularPolygonPoints(sides: number, element: NormalizedShapeElement, in
   }).join(' ')
 }
 
-function starPoints(pointsCount: number, element: NormalizedShapeElement, inset: number) {
+function starPoints(pointsCount: number, element: EditableCanvasShapeElement, inset: number) {
   return Array.from({ length: pointsCount * 2 }, (_, index) => {
     const angle = -Math.PI / 2 + (Math.PI * index) / pointsCount
     const radius = index % 2 === 0 ? 0.5 : 0.22
@@ -291,7 +291,7 @@ function starPoints(pointsCount: number, element: NormalizedShapeElement, inset:
 
 function arrowPoints(
   direction: 'down' | 'left' | 'right' | 'up',
-  element: NormalizedShapeElement,
+  element: EditableCanvasShapeElement,
   inset: number,
 ) {
   const right: Array<[number, number]> = [

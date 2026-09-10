@@ -1,16 +1,16 @@
-import { DEFAULT_FONT_FACE } from '../shared/PowerpointConstants'
+import { DEFAULT_FONT_FACE } from '../canvas-model/CanvasConstants'
 import type {
-  NormalizedShapeElement,
-  NormalizedTextElement,
-  NormalizedTextRun,
+  EditableCanvasShapeElement,
+  EditableCanvasTextElement,
+  EditableCanvasTextRun,
   JsonObject,
   JsonValue,
-} from '../shared/PowerpointTypes'
+} from '../canvas-model/CanvasTypes'
 
 export function buildNormalizedTextRuns(
-  element: NormalizedShapeElement | NormalizedTextElement,
+  element: EditableCanvasShapeElement | EditableCanvasTextElement,
   text: string,
-): NormalizedTextRun[] {
+): EditableCanvasTextRun[] {
   const existingRuns = element.kind === 'shape' ? element.textRuns : element.runs
   const fallbackRun = existingRuns[0]
   const lines = text.split('\n')

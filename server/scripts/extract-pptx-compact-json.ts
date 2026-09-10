@@ -638,6 +638,8 @@ function compactLine(element: NormalizedLineElement): JsonRecord {
   return prune({
     id: element.id,
     type: 'line',
+    lineType: element.lineType,
+    elbowDirection: element.lineType === 'elbow' ? element.elbowDirection : undefined,
     x1: round(element.x1),
     y1: round(element.y1),
     x2: round(element.x2),

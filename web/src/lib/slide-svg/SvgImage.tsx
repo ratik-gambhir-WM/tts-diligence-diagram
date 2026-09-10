@@ -1,13 +1,13 @@
 import { memo } from 'react'
 
-import type { NormalizedImageElement } from '../shared/PowerpointTypes'
+import type { EditableCanvasImageElement } from '../canvas-model/CanvasTypes'
 
 export const SvgImage = memo(function SvgImage({
   clipId,
   element,
 }: {
   clipId: string
-  element: NormalizedImageElement
+  element: EditableCanvasImageElement
 }) {
   const placement = getImagePlacement(element)
 
@@ -38,7 +38,7 @@ export const SvgImage = memo(function SvgImage({
   )
 })
 
-function getPreserveAspectRatio(fit: NormalizedImageElement['fit']) {
+function getPreserveAspectRatio(fit: EditableCanvasImageElement['fit']) {
   if (fit === 'stretch') {
     return 'none'
   }
@@ -48,7 +48,7 @@ function getPreserveAspectRatio(fit: NormalizedImageElement['fit']) {
   return 'xMidYMid meet'
 }
 
-function getImagePlacement(element: NormalizedImageElement) {
+function getImagePlacement(element: EditableCanvasImageElement) {
   if (!element.crop) {
     return {
       height: element.h,

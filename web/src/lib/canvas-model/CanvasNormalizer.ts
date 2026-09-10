@@ -1,21 +1,21 @@
-import { DEFAULT_HEIGHT_PX, DEFAULT_WIDTH_PX } from './PowerpointConstants'
+import { DEFAULT_HEIGHT_PX, DEFAULT_WIDTH_PX } from './CanvasConstants'
 import type {
   ExtractedSlideSpec,
   JsonValue,
   NormalizationOptions,
-  NormalizedPresentation,
-  NormalizedSlide,
+  EditableCanvasPresentation,
+  EditableCanvasSlide,
   ValidationIssue,
-} from './PowerpointTypes'
-import { normalizeExtractedPresentation } from './PowerpointExtractedNormalizer'
-import { normalizeNativePresentation, normalizeNativeSlide } from './PowerpointNativeNormalizer'
-import { isRecord } from './PowerpointUtils'
+} from './CanvasTypes'
+import { normalizeExtractedPresentation } from './CanvasExtractedNormalizer'
+import { normalizeNativePresentation, normalizeNativeSlide } from './CanvasNativeNormalizer'
+import { isRecord } from './CanvasUtils'
 
 export function normalizePresentationSpec(
   input: JsonValue | undefined,
   options: NormalizationOptions = {},
 ): {
-  presentation?: NormalizedPresentation
+  presentation?: EditableCanvasPresentation
   issues: ValidationIssue[]
 } {
   const issues: ValidationIssue[] = []
@@ -23,7 +23,7 @@ export function normalizePresentationSpec(
   if (Array.isArray(input)) {
     const slides = input
       .map((entry, index) => normalizeSingleSlideLike(entry, issues, `slides[${index}]`, options))
-      .filter((slide): slide is NormalizedSlide => slide !== undefined)
+      .filter((slide): slide is EditableCanvasSlide => slide !== undefined)
 
     if (!slides.length) {
       issues.push({
@@ -73,7 +73,7 @@ function normalizeSingleSlideLike(
   issues: ValidationIssue[],
   pathLabel: string,
   options: NormalizationOptions,
-): NormalizedSlide | undefined {
+): EditableCanvasSlide | undefined {
   if (!isRecord(input)) {
     issues.push({
       level: 'warning',

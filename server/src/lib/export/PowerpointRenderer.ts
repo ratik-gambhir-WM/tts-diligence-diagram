@@ -10,7 +10,7 @@ import type {
   NormalizedPresentation,
   NormalizedTextRun,
 } from '../shared/PowerpointTypes'
-import { cleanHex } from '../shared/PowerpointUtils'
+import { cleanHex, normalizeElbowDirection } from '../shared/PowerpointUtils'
 import {
   PPTX_DEFAULT_BACKGROUND_COLOR,
   PPTX_DEFAULT_LINE_COLOR,
@@ -28,6 +28,9 @@ import {
 import { getConnectorAwareElementOrder } from '../shared/PowerpointLayering'
 
 const WEST_MONROE_LOGO_IMAGE_PATH = new URL('../../../assets/element-5.png', import.meta.url).pathname
+// PptxGenJS writes arbitrary OOXML preset names correctly, but its public enum omits connectors.
+const PPTX_ELBOW_CONNECTOR_SHAPE = 'bentConnector2' as PptxGenJS.ShapeType
+const PPTX_STRAIGHT_CONNECTOR_SHAPE = 'line' as PptxGenJS.ShapeType
 
 export function buildPptxPresentation(presentation: NormalizedPresentation) {
   const pptx = new PptxGenJS()
@@ -99,29 +102,27 @@ export function buildPptxPresentation(presentation: NormalizedPresentation) {
       : getConnectorAwareElementOrder(slideSpec)
     for (const element of elements) {
       if (element.kind === 'line') {
-        for (const segment of toPptxLineSegments(element)) {
-          const lineGeometry = toPptxLineGeometry(segment)
-          slide.addShape('line', {
-            x: pxToInches(lineGeometry.x),
-            y: pxToInches(lineGeometry.y),
-            w: pxToInches(lineGeometry.w),
-            h: pxToInches(lineGeometry.h),
-            flipH: lineGeometry.flipH,
-            flipV: lineGeometry.flipV,
-            rotate: element.rotate,
-            line: {
-              color: cleanHex(element.stroke, PPTX_DEFAULT_LINE_COLOR),
-              width: element.strokeWidth,
-              transparency: opacityToTransparency(
-                combinedOpacity(element.strokeOpacity, element.opacity),
-              ),
-              dashType:
-                element.dash === 'solid' ? 'solid' : element.dash === 'dot' ? 'sysDot' : 'dash',
-              beginArrowType: segment.hasBeginArrow ? element.beginArrow : 'none',
-              endArrowType: segment.hasEndArrow ? element.endArrow : 'none',
-            },
-          })
-        }
+        const lineShape = toPptxLineShape(element)
+        slide.addShape(lineShape.shape, {
+          x: pxToInches(lineShape.geometry.x),
+          y: pxToInches(lineShape.geometry.y),
+          w: pxToInches(lineShape.geometry.w),
+          h: pxToInches(lineShape.geometry.h),
+          flipH: lineShape.geometry.flipH,
+          flipV: lineShape.geometry.flipV,
+          rotate: element.rotate,
+          line: {
+            color: cleanHex(element.stroke, PPTX_DEFAULT_LINE_COLOR),
+            width: element.strokeWidth,
+            transparency: opacityToTransparency(
+              combinedOpacity(element.strokeOpacity, element.opacity),
+            ),
+            dashType:
+              element.dash === 'solid' ? 'solid' : element.dash === 'dot' ? 'sysDot' : 'dash',
+            beginArrowType: lineShape.beginArrow,
+            endArrowType: lineShape.endArrow,
+          },
+        })
         continue
       }
 
@@ -223,20 +224,30 @@ export function buildPptxPresentation(presentation: NormalizedPresentation) {
   return pptx
 }
 
-type PptxLineSegment = Pick<NormalizedLineElement, 'x1' | 'x2' | 'y1' | 'y2'> & {
-  hasBeginArrow: boolean
-  hasEndArrow: boolean
-}
+function toPptxLineShape(element: NormalizedLineElement) {
+  const deltaX = Math.abs(element.x2 - element.x1)
+  const deltaY = Math.abs(element.y2 - element.y1)
+  const isElbow = element.lineType === 'elbow' && deltaX > 0.5 && deltaY > 0.5
+  // bentConnector2 travels horizontally first. Reversing its endpoints and arrowheads
+  // produces the same visible connector as a vertical-first route.
+  const elbowDirection = normalizeElbowDirection(
+    element.elbowDirection,
+    element.x1,
+    element.y1,
+    element.x2,
+    element.y2,
+  )
+  const reverse = isElbow && elbowDirection === 'vertical-first'
+  const points = reverse
+    ? { x1: element.x2, y1: element.y2, x2: element.x1, y2: element.y1 }
+    : element
 
-function toPptxLineSegments(element: NormalizedLineElement): PptxLineSegment[] {
-  if (element.lineType !== 'elbow') {
-    return [{ x1: element.x1, x2: element.x2, y1: element.y1, y2: element.y2, hasBeginArrow: true, hasEndArrow: true }]
+  return {
+    beginArrow: reverse ? element.endArrow : element.beginArrow,
+    endArrow: reverse ? element.beginArrow : element.endArrow,
+    geometry: toPptxLineGeometry(points),
+    shape: isElbow ? PPTX_ELBOW_CONNECTOR_SHAPE : PPTX_STRAIGHT_CONNECTOR_SHAPE,
   }
-
-  return [
-    { x1: element.x1, x2: element.x2, y1: element.y1, y2: element.y1, hasBeginArrow: true, hasEndArrow: false },
-    { x1: element.x2, x2: element.x2, y1: element.y1, y2: element.y2, hasBeginArrow: false, hasEndArrow: true },
-  ].filter((segment) => segment.x1 !== segment.x2 || segment.y1 !== segment.y2)
 }
 
 function toPptxLineGeometry(element: Pick<NormalizedLineElement, 'x1' | 'x2' | 'y1' | 'y2'>) {

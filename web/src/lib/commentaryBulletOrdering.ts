@@ -106,4 +106,4 @@ function asNumber(value: JsonValue | undefined) {
 function asString(value: JsonValue | undefined) {
   return typeof value === 'string' ? value : ''
 }
-import type { JsonObject, JsonValue } from './shared/PowerpointTypes'
+import type { JsonObject, JsonValue } from './canvas-model/CanvasTypes'

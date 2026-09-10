@@ -3,11 +3,12 @@ import {
   GENERATED_SLIDE_PROMPT_OUTPUT_FORMAT,
   type GeneratedSlidePromptOutput,
 } from '../types/SlidePromptOutput'
-import { DIAGRAM_TEMPLATES, type DiagramTemplate } from './diagramTemplates'
+import type { CanvasTemplate } from './canvas-model/templates'
 import { createOpenAIResponse } from './OpenAI'
-import type { JsonValue } from './shared/PowerpointTypes'
+import type { JsonValue } from './canvas-model/CanvasTypes'
 
 type GenerateArchitectureDiagramParams = {
+  candidates: CanvasTemplate[]
   uploadedFiles: File[]
 }
 
@@ -19,11 +20,11 @@ type DiagramExampleForPrompt = {
   name: string
 }
 
-function getExampleAttachmentLabel(template: DiagramTemplate) {
+function getExampleAttachmentLabel(template: CanvasTemplate) {
   return `architecture-example__${template.id}.png`
 }
 
-async function buildExampleImageAttachment(template: DiagramTemplate) {
+async function buildExampleImageAttachment(template: CanvasTemplate) {
   const response = await fetch(template.image)
 
   if (!response.ok) {
@@ -37,8 +38,8 @@ async function buildExampleImageAttachment(template: DiagramTemplate) {
   })
 }
 
-function buildExampleListForPrompt(): DiagramExampleForPrompt[] {
-  return DIAGRAM_TEMPLATES.map((template) => ({
+function buildExampleListForPrompt(candidates: CanvasTemplate[]): DiagramExampleForPrompt[] {
+  return candidates.map((template) => ({
     id: template.id,
     name: template.name,
     description: template.description,
@@ -47,7 +48,7 @@ function buildExampleListForPrompt(): DiagramExampleForPrompt[] {
   }))
 }
 
-function buildGenerationPrompt(uploadedFiles: File[]) {
+function buildGenerationPrompt(uploadedFiles: File[], candidates: CanvasTemplate[]) {
   return [
     'Create a new architecture diagram JSON object from the uploaded source material.',
     'This should be a platform-level M&A due diligence architecture and data-flow view.',
@@ -69,18 +70,22 @@ function buildGenerationPrompt(uploadedFiles: File[]) {
     'Use the example JSON primarily as a library of reusable style patterns. Keep fill, stroke, fontFace, fontSize, textColor, bold, align, valign, padding, and other theme/style values consistent with the examples.',
     'Your main layout task is to manipulate x, y, w, and h so the whole platform is readable and the important applications are shown as peer boxes where appropriate.',
     'Architecture diagram JSON examples:',
-    JSON.stringify(buildExampleListForPrompt(), null, 2),
+    JSON.stringify(buildExampleListForPrompt(candidates), null, 2),
     'Generate one complete new architecture diagram JSON for the uploaded source material. Return the JSON object directly.',
   ].join('\n\n')
 }
 
 export async function generateArchitectureDiagramFromExamples({
+  candidates,
   uploadedFiles,
 }: GenerateArchitectureDiagramParams): Promise<GeneratedSlidePromptOutput> {
-  const exampleImageAttachments = await Promise.all(DIAGRAM_TEMPLATES.map(buildExampleImageAttachment))
+  if (candidates.length === 0) {
+    throw new Error('No diagram templates are available as generation examples.')
+  }
+  const exampleImageAttachments = await Promise.all(candidates.map(buildExampleImageAttachment))
   const response = await createOpenAIResponse({
     attachments: [...uploadedFiles, ...exampleImageAttachments],
-    prompt: buildGenerationPrompt(uploadedFiles),
+    prompt: buildGenerationPrompt(uploadedFiles, candidates),
     systemInstructions: slideDiagramGenerationInstructions,
     text: {
       format: {

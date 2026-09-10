@@ -3,13 +3,13 @@ import type { ChangeEvent } from 'react'
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom'
 
-import { getDefaultDiagramTemplate, type DiagramTemplate } from './lib/diagramTemplates'
+import type { CanvasTemplate } from './lib/canvas-model/templates'
+import { getTemplate, listTemplates, type PickerTemplateSummary } from './lib/api/templateApi'
 import {
   getSelectedArchitectureTemplate,
   selectArchitectureDiagramModel,
 } from './lib/modelSelector'
 import { generateSlidePromptOutput } from './lib/OpenAI'
-import { normalizeCommentaryTemplateSpec } from './lib/commentaryTemplates'
 import { ACCEPT_ATTR, useDiagramSession } from './hooks/useDiagramSession'
 import { JsonInputPage } from './pages/JsonInputPage'
 import { LoginPage } from './pages/LoginPage'
@@ -34,7 +34,7 @@ export default function App() {
   const navigate = useNavigate()
   const shouldReduceMotion = useReducedMotion()
   const [session, setSession] = useState(() => getStoredSession())
-  const [canvasTemplate, setCanvasTemplate] = useState<DiagramTemplate>(() => getDefaultDiagramTemplate())
+  const [canvasTemplate, setCanvasTemplate] = useState<CanvasTemplate | null>(null)
   const [canvasTemplateSource, setCanvasTemplateSource] = useState<CanvasTemplateSource>('diagram')
   const [templateStatusMessage, setTemplateStatusMessage] = useState('')
   const [templateError, setTemplateError] = useState('')
@@ -81,9 +81,16 @@ export default function App() {
     setIsModelSelecting(true)
 
     try {
+      const catalog = await listTemplates('diagram')
       if (isCreateMode) {
         const { generateArchitectureDiagramFromExamples } = await import('./lib/diagramGenerator')
+        const candidates = await Promise.all(
+          catalog.templates
+            .filter((template) => template.previewUrl !== null)
+            .map(async (template) => toCanvasTemplate(template, await getTemplate(template.templateId))),
+        )
         const createdDiagramJson = await generateArchitectureDiagramFromExamples({
+          candidates,
           uploadedFiles: uploadOnlyAttachments,
         })
 
@@ -107,20 +114,22 @@ export default function App() {
         return
       }
 
-      const selection = await selectArchitectureDiagramModel({ uploadedFiles: uploadOnlyAttachments })
-      console.log("SELECTION: ")
-      console.log(selection);
-      const selectedTemplate = getSelectedArchitectureTemplate(selection)
+      const selection = await selectArchitectureDiagramModel({
+        candidates: catalog.templates,
+        uploadedFiles: uploadOnlyAttachments,
+      })
+      const selectedTemplate = getSelectedArchitectureTemplate(selection, catalog.templates)
 
       if (!selectedTemplate) {
         throw new Error(`No template JSON found for selected diagram id: ${selection.selectedDiagramId}`)
       }
 
+      const selectedTemplateJson = await getTemplate(selectedTemplate.templateId)
       const generatedSlideJson = await generateSlidePromptOutput({
         attachments: uploadOnlyAttachments,
-        templateJson: selectedTemplate.jsonSpec,
+        templateJson: selectedTemplateJson,
         prompt: [
-          `Selected template: ${selectedTemplate.name}.`,
+          `Selected template: ${selectedTemplate.title}.`,
           'Use the attached technical context files to update the architecture diagram text.',
           'Keep the template layout and all non-text JSON values unchanged.',
         ].join(' '),
@@ -128,12 +137,12 @@ export default function App() {
 
       setModelSelection(selection)
       setCanvasTemplate({
-        ...selectedTemplate,
+        ...toCanvasTemplate(selectedTemplate, generatedSlideJson),
         jsonSpec: generatedSlideJson,
       })
       setCanvasTemplateSource('diagram')
       setTemplateStatusMessage(
-        `Generated ${selectedTemplate.name} from uploaded diligence material.`,
+        `Generated ${selectedTemplate.title} from uploaded diligence material.`,
       )
       setIsTemplateJsonOpenOnLoad(true)
       navigate(DIAGRAM_CANVAS_ROUTE)
@@ -150,29 +159,29 @@ export default function App() {
     }
   }
 
-  async function handleSubmitTemplate(template: DiagramTemplate) {
+  async function handleSubmitTemplate(template: PickerTemplateSummary, signal: AbortSignal) {
     setTemplateError('')
     setIsTemplateJsonOpenOnLoad(false)
     setIsTemplateSubmitting(true)
 
     try {
+      const templateJson = await getTemplate(template.templateId, signal)
       const generatedSlideJson = await generateSlidePromptOutput({
         attachments,
-        templateJson: template.jsonSpec,
+        templateJson,
         prompt: [
-          `Selected template: ${template.name}.`,
+          `Selected template: ${template.title}.`,
           'Use the attached technical context files to update the architecture diagram text.',
           'Keep the template layout and all non-text JSON values unchanged.',
         ].join(' '),
       })
 
       setCanvasTemplate({
-        ...template,
-        jsonSpec: generatedSlideJson,
+        ...toCanvasTemplate(template, generatedSlideJson),
       })
       setCanvasTemplateSource('diagram')
       setTemplateStatusMessage(
-        `Generated ${template.name} from ${
+        `Generated ${template.title} from ${
           attachments.length === 0
             ? 'the selected template.'
             : `${attachments.length} context file${attachments.length === 1 ? '' : 's'}.`
@@ -190,15 +199,25 @@ export default function App() {
     }
   }
 
-  function handleSelectCommentaryTemplate(template: DiagramTemplate) {
-    setCanvasTemplate({
-      ...template,
-      jsonSpec: normalizeCommentaryTemplateSpec(template.jsonSpec),
-    })
-    setCanvasTemplateSource('commentary')
-    setTemplateStatusMessage(`${template.name} is rendered from its commentary template JSON.`)
-    setIsTemplateJsonOpenOnLoad(false)
-    navigate(DIAGRAM_CANVAS_ROUTE)
+  async function handleSelectCommentaryTemplate(template: PickerTemplateSummary, signal: AbortSignal) {
+    setTemplateError('')
+    setIsTemplateSubmitting(true)
+    try {
+      const templateJson = await getTemplate(template.templateId, signal)
+      setCanvasTemplate(toCanvasTemplate(template, templateJson))
+      setCanvasTemplateSource('commentary')
+      setTemplateStatusMessage(`${template.title} is rendered from its stored template JSON.`)
+      setIsTemplateJsonOpenOnLoad(false)
+      navigate(DIAGRAM_CANVAS_ROUTE)
+    } catch (selectionError) {
+      const message = selectionError instanceof Error
+        ? selectionError.message
+        : 'Failed to load the commentary template.'
+      setTemplateError(message)
+      throw selectionError
+    } finally {
+      setIsTemplateSubmitting(false)
+    }
   }
 
   return (
@@ -283,6 +302,8 @@ export default function App() {
               element={
                 session ? (
                   <CommentaryPicker
+                    error={templateError}
+                    isSubmitting={isTemplateSubmitting}
                     onOpenInputPage={() => navigate(EXPORTER_ROUTE)}
                     onOpenJsonInput={() => navigate(JSON_INPUT_ROUTE)}
                     onSelectTemplate={handleSelectCommentaryTemplate}
@@ -311,18 +332,14 @@ export default function App() {
               path={DIAGRAM_CANVAS_ROUTE}
               element={
                 session ? (
-                  <TemplateCanvasPage
+                  canvasTemplate ? <TemplateCanvasPage
                     template={canvasTemplate}
                     statusMessage={templateStatusMessage}
                     showJsonByDefault={isTemplateJsonOpenOnLoad}
                     onTemplateJsonChange={(jsonSpec) =>
-                      setCanvasTemplate((currentTemplate) => ({
-                        ...currentTemplate,
-                        jsonSpec:
-                          canvasTemplateSource === 'commentary'
-                            ? normalizeCommentaryTemplateSpec(jsonSpec)
-                            : jsonSpec,
-                      }))
+                      setCanvasTemplate((currentTemplate) => currentTemplate
+                        ? { ...currentTemplate, jsonSpec }
+                        : currentTemplate)
                     }
                     onOpenPicker={() =>
                       navigate(
@@ -332,7 +349,7 @@ export default function App() {
                       )
                     }
                     onOpenInputPage={() => navigate(EXPORTER_ROUTE)}
-                  />
+                  /> : <Navigate replace to={DIAGRAM_PICKER_ROUTE} />
                 ) : (
                   <Navigate replace to={LOGIN_ROUTE} />
                 )
@@ -343,6 +360,20 @@ export default function App() {
       </AnimatePresence>
     </div>
   )
+}
+
+function toCanvasTemplate(
+  template: PickerTemplateSummary,
+  jsonSpec: CanvasTemplate['jsonSpec'],
+): CanvasTemplate {
+  return {
+    description: template.description,
+    id: template.templateId,
+    image: template.previewUrl ?? '',
+    jsonSpec,
+    name: template.title,
+    relatedAlt: `${template.title} template preview`,
+  }
 }
 
 function getStoredSession() {

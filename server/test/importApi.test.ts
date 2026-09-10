@@ -45,9 +45,10 @@ describe('import API', () => {
 
     expect(imported.headers).toMatchObject({
       location: '/templates/template-123',
-      'x-powerpoint-warning-count': '0',
+      'x-powerpoint-warning-count': '1',
       'x-request-id': expect.any(String),
       'x-template-id': 'template-123',
+      'x-template-preview-status': 'unavailable',
     })
     expect(Object.keys(imported.body)).toEqual(['presentation'])
     expect(imported.body).toMatchObject({
@@ -81,6 +82,9 @@ describe('import API', () => {
       templates: [{
         templateId: 'template-123',
         title: expect.any(String),
+        description: 'Imported PowerPoint template',
+        kind: 'diagram',
+        previewUrl: null,
         slideCount: 1,
         elementCount: 2,
       }],
@@ -157,6 +161,81 @@ describe('import API', () => {
     })
   })
 
+  it('stores and serves a preview while filtering the catalog by kind', async () => {
+    const previewBytes = Buffer.from(ONE_PIXEL_PNG.split(',')[1] ?? '', 'base64')
+    const importService = new ImportTemplateService(
+      new LibraryPowerPointConverter(),
+      templates,
+      () => 'commentary-template',
+      () => 'unused-asset',
+      {
+        generate: async () => ({
+          bytes: previewBytes,
+          contentType: 'image/png',
+          height: 1,
+          width: 1,
+        }),
+      },
+    )
+    const app = createTestApp(importService, 1024 * 1024)
+
+    const imported = await request(app)
+      .post('/import?kind=commentary')
+      .set('Content-Type', POWERPOINT_CONTENT_TYPE)
+      .send(await createPowerPoint())
+      .expect(201)
+
+    expect(imported.headers).toMatchObject({
+      link: '</templates/commentary-template/preview>; rel="preview"',
+      'x-powerpoint-warning-count': '0',
+      'x-template-preview-status': 'ready',
+    })
+    expect((await request(app).get('/templates?kind=diagram').expect(200)).body.templates).toEqual([])
+    expect((await request(app).get('/templates?kind=commentary').expect(200)).body).toEqual({
+      templates: [expect.objectContaining({
+        kind: 'commentary',
+        previewUrl: '/templates/commentary-template/preview',
+        templateId: 'commentary-template',
+      })],
+    })
+
+    const preview = await request(app)
+      .get('/templates/commentary-template/preview')
+      .buffer(true)
+      .parse((incoming, callback) => {
+        const chunks: Buffer[] = []
+        incoming.on('data', (chunk: Buffer) => chunks.push(chunk))
+        incoming.on('end', () => callback(null, Buffer.concat(chunks)))
+      })
+      .expect(200)
+    expect(preview.headers).toMatchObject({
+      'cache-control': 'private, no-store',
+      'content-length': String(previewBytes.length),
+      'content-type': 'image/png',
+      'x-content-type-options': 'nosniff',
+    })
+    expect(preview.body).toEqual(previewBytes)
+
+    await request(app).delete('/templates/commentary-template').expect(204)
+    expect(templates.findPreview('commentary-template')).toBeUndefined()
+  })
+
+  it('rejects invalid template kinds and distinguishes missing previews', async () => {
+    templates.insert({ templateId: 'without-preview', templateJson: createLegacyTemplate() }, [])
+    const app = createTestApp(
+      new ImportTemplateService(new LibraryPowerPointConverter(), templates),
+      1024,
+    )
+
+    expect((await request(app).get('/templates?kind=other').expect(400)).body.error.code)
+      .toBe('invalid_template_kind')
+    expect((await request(app).get('/templates/without-preview/preview').expect(404)).body.error.code)
+      .toBe('template_preview_not_found')
+    expect((await request(app).get('/templates/missing/preview').expect(404)).body.error.code)
+      .toBe('template_not_found')
+    await request(app).post('/templates/without-preview/preview').expect(405)
+  })
+
   it('returns a sanitized validation error for a malformed package', async () => {
     const importService = new ImportTemplateService(new LibraryPowerPointConverter(), templates)
     const app = createTestApp(importService, 1024)
@@ -185,6 +264,38 @@ describe('import API', () => {
       .expect(413)
 
     expect(response.body.error.code).toBe('payload_too_large')
+  })
+
+  it('cancels preview work and does not persist after a request timeout', async () => {
+    let previewWasAborted = false
+    const importService = new ImportTemplateService(
+      {
+        convertFile: async () => ({ templateJson: createLegacyTemplate(), warnings: [] }),
+      },
+      templates,
+      () => 'timed-out-template',
+      () => 'unused-asset',
+      {
+        generate: async (_request, signal) => new Promise((resolve) => {
+          const finish = () => {
+            previewWasAborted = true
+            resolve(undefined)
+          }
+          if (signal?.aborted) finish()
+          else signal?.addEventListener('abort', finish, { once: true })
+        }),
+      },
+    )
+    const app = createTestApp(importService, 1024, 10)
+
+    await request(app)
+      .post('/import')
+      .set('Content-Type', POWERPOINT_CONTENT_TYPE)
+      .send(Buffer.from('staged PowerPoint bytes'))
+      .expect(408)
+
+    expect(previewWasAborted).toBe(true)
+    expect(templates.findById('timed-out-template')).toBeUndefined()
   })
 
   it('returns a stable not-found error for an unknown template ID', async () => {
@@ -317,13 +428,19 @@ describe('import API', () => {
     expect(listed.body).toEqual({
       templates: [
         {
+          description: 'Imported PowerPoint template',
           templateId: 'template-second',
+          kind: 'diagram',
+          previewUrl: null,
           title: 'Second template',
           slideCount: 1,
           elementCount: 1,
         },
         {
+          description: 'Imported PowerPoint template',
           templateId: 'template-first',
+          kind: 'diagram',
+          previewUrl: null,
           title: 'First template',
           slideCount: 1,
           elementCount: 0,
@@ -342,12 +459,17 @@ describe('import API', () => {
   })
 })
 
-function createTestApp(importService: ImportTemplateService, maxUploadBytes: number) {
+function createTestApp(
+  importService: ImportTemplateService,
+  maxUploadBytes: number,
+  requestTimeoutMs?: number,
+) {
   return createApp({
     exportService: new ExportPowerPointService(templates),
     importService,
     maxExportJsonBytes: 1024,
     maxUploadBytes,
+    requestTimeoutMs,
   })
 }
 

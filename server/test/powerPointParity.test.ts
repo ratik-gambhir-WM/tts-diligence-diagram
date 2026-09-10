@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest'
 
 import type {
   PowerPointCanvasElement,
+  PowerPointCanvasLineElement,
   PowerPointCanvasShapeElement,
   PowerPointCanvasTextElement,
 } from '../src/lib/import/PowerpointImportTypes'
@@ -13,7 +14,7 @@ import { extractElementTransform, identityTransform } from '../src/lib/import/Po
 import type { ExtractedSlideRecord } from '../src/lib/import/PowerpointImportTypes'
 import { collectSupportParts } from '../src/lib/import/PowerpointOoxml'
 import { extractTableElements } from '../src/lib/import/PowerpointTableExtractor'
-import { applyExtractedTypography } from '../src/lib/import/PowerpointText'
+import { applyExtractedTypography, extractText } from '../src/lib/import/PowerpointText'
 import { findDescendant, parseXml } from '../src/lib/import/PowerpointXml'
 import { normalizeExtractedPresentation } from '../src/lib/shared/PowerpointExtractedNormalizer'
 import type { NormalizedElement, NormalizedShapeElement } from '../src/lib/shared/PowerpointTypes'
@@ -80,6 +81,47 @@ const TABLE_XML = `
 `
 
 describe('Rust PowerPoint parity', () => {
+  it('inherits master title typography without replacing explicit run properties', () => {
+    const slideTextBody = findDescendant(parseXml(`
+      <p:txBody>
+        <a:bodyPr/>
+        <a:lstStyle/>
+        <a:p>
+          <a:r><a:rPr sz="2000"/><a:t>Title</a:t></a:r>
+        </a:p>
+      </p:txBody>
+    `), 'p:txBody')
+    const masterTitleStyle = findDescendant(parseXml(`
+      <p:titleStyle>
+        <a:lvl1pPr algn="l">
+          <a:defRPr sz="2200" b="1">
+            <a:solidFill><a:schemeClr val="tx1"/></a:solidFill>
+            <a:latin typeface="+mj-lt"/>
+          </a:defRPr>
+        </a:lvl1pPr>
+      </p:titleStyle>
+    `), 'p:titleStyle')
+
+    expect(extractText(slideTextBody, [masterTitleStyle])).toMatchObject({
+      paragraphs: [
+        {
+          properties: { algn: 'l' },
+          runs: [
+            {
+              text: 'Title',
+              properties: {
+                sz: '2000',
+                b: '1',
+                fontSchemeColor: 'tx1',
+                fontFace: '+mj-lt',
+              },
+            },
+          ],
+        },
+      ],
+    })
+  })
+
   it('round trips styled text boxes without losing fill, geometry, or run typography', async () => {
     const source = new PptxGenJS()
     source.layout = 'LAYOUT_WIDE'
@@ -243,6 +285,135 @@ describe('Rust PowerPoint parity', () => {
     } finally {
       templates.close()
     }
+  })
+
+  it('imports and exports straight and elbow connectors without flattening their routing mode', async () => {
+    const source = new PptxGenJS()
+    source.layout = 'LAYOUT_WIDE'
+    const slide = source.addSlide()
+    slide.addShape(source.ShapeType.line, {
+      x: 1,
+      y: 1,
+      w: 2,
+      h: 0,
+      line: { color: '070154', endArrowType: 'triangle', width: 2 },
+    })
+    slide.addShape('bentConnector2' as PptxGenJS.ShapeType, {
+      x: 4,
+      y: 1,
+      w: 2.5,
+      h: 1,
+      line: { color: '0047FF', endArrowType: 'triangle', width: 2 },
+    })
+    const sourceBytes = await source.write({ outputType: 'nodebuffer' })
+    if (!Buffer.isBuffer(sourceBytes)) {
+      throw new Error('Expected PptxGenJS to return a Node.js buffer.')
+    }
+
+    const converter = new LibraryPowerPointConverter()
+    const imported = await converter.convert(sourceBytes)
+    expect(lineElements(imported.templateJson.presentation.slides[0]?.elements)).toEqual([
+      expect.objectContaining({ lineType: 'straight', endArrow: 'triangle' }),
+      expect.objectContaining({
+        lineType: 'elbow',
+        elbowDirection: 'horizontal-first',
+        endArrow: 'triangle',
+      }),
+    ])
+
+    const templates = new SqliteTemplateRepository(':memory:')
+    try {
+      const exported = await new ExportPowerPointService(templates).export(imported.templateJson)
+      const archive = await JSZip.loadAsync(exported.bytes)
+      const slideXml = await archive.file('ppt/slides/slide1.xml')?.async('text')
+      expect(slideXml).toContain('prst="bentConnector2"')
+
+      const roundTrip = await converter.convert(Buffer.from(exported.bytes))
+      expect(lineElements(roundTrip.templateJson.presentation.slides[0]?.elements)).toEqual([
+        expect.objectContaining({ lineType: 'straight' }),
+        expect.objectContaining({
+          lineType: 'elbow',
+          elbowDirection: 'horizontal-first',
+          endArrow: 'triangle',
+        }),
+      ])
+    } finally {
+      templates.close()
+    }
+  })
+
+  it('exports vertical-first elbows without moving either visible arrowhead', async () => {
+    const normalized = normalizePresentation({
+      presentation: {
+        showBranding: false,
+        slides: [{
+          elements: [{
+            type: 'line',
+            id: 'vertical-first',
+            lineType: 'elbow',
+            elbowDirection: 'vertical-first',
+            x1: 100,
+            y1: 100,
+            x2: 300,
+            y2: 180,
+            beginArrow: 'diamond',
+            endArrow: 'triangle',
+          }],
+        }],
+      },
+    })
+    const templates = new SqliteTemplateRepository(':memory:')
+
+    try {
+      const exported = await new ExportPowerPointService(templates).export(normalized.templateJson)
+      const converter = new LibraryPowerPointConverter()
+      const roundTrip = await converter.convert(Buffer.from(exported.bytes))
+
+      expect(lineElements(roundTrip.templateJson.presentation.slides[0]?.elements)[0]).toMatchObject({
+        lineType: 'elbow',
+        elbowDirection: 'horizontal-first',
+        x1: 300,
+        y1: 180,
+        x2: 100,
+        y2: 100,
+        beginArrow: 'triangle',
+        endArrow: 'diamond',
+      })
+    } finally {
+      templates.close()
+    }
+  })
+
+  it('infers legacy connector routing from arbitrary endpoint coordinates', () => {
+    const normalized = normalizePresentation({
+      presentation: {
+        showBranding: false,
+        slides: [{
+          elements: [
+            { type: 'line', id: 'horizontal', x1: 10, y1: 20, x2: 200, y2: 20 },
+            { type: 'line', id: 'vertical', x1: 10, y1: 20, x2: 10, y2: 200 },
+            { type: 'line', id: 'diagonal', x1: 10, y1: 20, x2: 200, y2: 80 },
+            {
+              type: 'line',
+              id: 'explicit-straight',
+              lineType: 'straight',
+              x1: 10,
+              y1: 20,
+              x2: 200,
+              y2: 80,
+            },
+          ],
+        }],
+      },
+    })
+
+    expect(lineElements(normalized.templateJson.presentation.slides[0]?.elements)
+      .map((line) => line.lineType)).toEqual([
+      'straight',
+      'straight',
+      'elbow',
+      'straight',
+    ])
   })
 
   it('preserves theme colors, fonts, and merged table cell assignments', () => {
@@ -448,4 +619,12 @@ function shapeElementWithText(
     throw new Error(`Missing shape element ${text}.`)
   }
   return element
+}
+
+function lineElements(
+  elements: PowerPointCanvasElement[] | undefined,
+): PowerPointCanvasLineElement[] {
+  return elements?.filter(
+    (element): element is PowerPointCanvasLineElement => element.type === 'line',
+  ) ?? []
 }

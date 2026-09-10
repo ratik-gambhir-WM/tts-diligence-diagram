@@ -58,4 +58,4 @@ function isPlainRecord(value: JsonValue | undefined): value is JsonObject {
 function asLowercaseString(value: JsonValue | undefined) {
   return typeof value === 'string' ? value.toLowerCase() : undefined
 }
-import type { JsonObject, JsonValue } from '../shared/PowerpointTypes'
+import type { JsonObject, JsonValue } from '../canvas-model/CanvasTypes'

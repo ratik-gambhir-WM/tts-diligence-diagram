@@ -10,7 +10,7 @@ import {
   type RefObject,
 } from 'react'
 
-import type { JsonValue, NormalizedElement } from '../shared/PowerpointTypes'
+import type { JsonValue, EditableCanvasElement } from '../canvas-model/CanvasTypes'
 import {
   applyElementEditsToInput,
   deleteElementsFromInput,
@@ -63,7 +63,7 @@ type ActiveInteraction = {
   pointerId: number
   primaryRef: SlideElementRef
   refs: SlideElementRef[]
-  startElements: ReadonlyMap<string, NormalizedElement>
+  startElements: ReadonlyMap<string, EditableCanvasElement>
   startPoint: { x: number; y: number }
 }
 
@@ -579,7 +579,7 @@ function clientPointToSlide(
 
 function getInteractionEdit(
   active: ActiveInteraction,
-  element: NormalizedElement,
+  element: EditableCanvasElement,
   dx: number,
   dy: number,
 ): ElementEdit {
@@ -610,7 +610,7 @@ function getInteractionEdit(
 }
 
 function getLinePointEdit(
-  element: Extract<NormalizedElement, { kind: 'line' }>,
+  element: Extract<EditableCanvasElement, { kind: 'line' }>,
   point: 'end' | 'start',
   dx: number,
   dy: number,
@@ -662,7 +662,7 @@ function rotatePoint(
 }
 
 function getResizeEdit(
-  element: Exclude<NormalizedElement, { kind: 'line' }>,
+  element: Exclude<EditableCanvasElement, { kind: 'line' }>,
   handle: ResizeHandle,
   dx: number,
   dy: number,
@@ -728,7 +728,7 @@ function getDirection(key: string) {
   return key.replace('Arrow', '').toLowerCase()
 }
 
-function getNudgeEdit(element: NormalizedElement, delta: { x: number; y: number }): ElementEdit {
+function getNudgeEdit(element: EditableCanvasElement, delta: { x: number; y: number }): ElementEdit {
   if (element.kind === 'line') {
     return {
       x1: roundCoordinate(element.x1 + delta.x),

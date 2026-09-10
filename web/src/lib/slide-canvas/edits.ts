@@ -1,15 +1,16 @@
 import type {
   JsonObject,
   JsonValue,
-  NormalizedElement,
-  NormalizedLineElement,
-} from '../shared/PowerpointTypes'
+  EditableCanvasElement,
+  EditableCanvasLineElement,
+} from '../canvas-model/CanvasTypes'
 import type { SlideElementRef } from './model'
 import { buildNormalizedTextRuns, buildRawTextRuns } from './textRuns'
 
 export type ElementEdit = {
+  elbowDirection?: EditableCanvasLineElement['elbowDirection']
   h?: number
-  lineType?: NormalizedLineElement['lineType']
+  lineType?: EditableCanvasLineElement['lineType']
   text?: string
   w?: number
   x?: number
@@ -21,7 +22,7 @@ export type ElementEdit = {
 }
 
 export type ElementMutationLocator = Pick<SlideElementRef, 'slideIndex' | 'sourcePath'> & {
-  element: Pick<NormalizedElement, 'id' | 'kind'>
+  element: Pick<EditableCanvasElement, 'id' | 'kind'>
 }
 
 export type ElementEditRequest = {
@@ -70,10 +71,11 @@ export function deleteElementsFromInput<TInput extends JsonValue>(
   return nextInput
 }
 
-export function applyElementEdit(element: NormalizedElement, edit: ElementEdit): NormalizedElement {
+export function applyElementEdit(element: EditableCanvasElement, edit: ElementEdit): EditableCanvasElement {
   if (element.kind === 'line') {
     return {
       ...element,
+      elbowDirection: edit.elbowDirection ?? element.elbowDirection,
       lineType: edit.lineType ?? element.lineType,
       x1: edit.x1 ?? element.x1,
       y1: edit.y1 ?? element.y1,
@@ -196,7 +198,7 @@ function getRawIds(rawElement: JsonObject) {
   return ids
 }
 
-function getRawKind(rawElement: JsonObject): NormalizedElement['kind'] | undefined {
+function getRawKind(rawElement: JsonObject): EditableCanvasElement['kind'] | undefined {
   const rawKind = String(
     rawElement.kind ?? rawElement.type ?? rawElement.elementType ?? rawElement.shape ?? '',
   ).toLowerCase()
@@ -261,7 +263,7 @@ function deleteRawElementObjects(value: JsonValue | undefined, targets: Set<Json
 }
 
 function applyRawElementEdit(element: JsonObject, edit: ElementEdit) {
-  for (const key of ['x1', 'y1', 'x2', 'y2', 'lineType'] as const) {
+  for (const key of ['x1', 'y1', 'x2', 'y2', 'lineType', 'elbowDirection'] as const) {
     if (edit[key] !== undefined) {
       element[key] = edit[key]
     }

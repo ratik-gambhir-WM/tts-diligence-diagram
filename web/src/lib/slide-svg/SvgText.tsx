@@ -1,16 +1,16 @@
 import { memo, useMemo } from 'react'
 
-import { DEFAULT_FONT_FACE } from '../shared/PowerpointConstants'
+import { DEFAULT_FONT_FACE } from '../canvas-model/CanvasConstants'
 import type {
-  NormalizedShapeElement,
-  NormalizedTextElement,
-} from '../shared/PowerpointTypes'
+  EditableCanvasShapeElement,
+  EditableCanvasTextElement,
+} from '../canvas-model/CanvasTypes'
 import { getSvgTextContent } from './svgTextLayout'
 import { toSvgColor } from './svgUtils'
 
 type SvgTextBlockProps = {
   clipId: string
-  element: NormalizedShapeElement | NormalizedTextElement
+  element: EditableCanvasShapeElement | EditableCanvasTextElement
   fontScale?: number
   hideText?: boolean
   paintBox?: boolean

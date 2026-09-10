@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
 
-import type { NormalizedTextRun } from '../shared/PowerpointTypes'
+import type { EditableCanvasTextRun } from '../canvas-model/CanvasTypes'
 import { layoutSvgText } from './textLayout'
 
-const baseRun: NormalizedTextRun = {
+const baseRun: EditableCanvasTextRun = {
   bold: false,
   color: '070154',
   fontFace: 'Arial',
@@ -13,7 +13,7 @@ const baseRun: NormalizedTextRun = {
   underline: false,
 }
 
-const measure = (text: string, _run: NormalizedTextRun, fontSize: number) =>
+const measure = (text: string, _run: EditableCanvasTextRun, fontSize: number) =>
   text.length * fontSize * 0.5
 
 describe('SVG text layout', () => {

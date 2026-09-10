@@ -1,6 +1,7 @@
 // @vitest-environment node
 
 import JSZip from 'jszip'
+import PptxGenJS from 'pptxgenjs'
 import request from 'supertest'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
@@ -161,6 +162,7 @@ describe('export API', () => {
           await new Promise((resolve) => setTimeout(resolve, 50))
           return { bytes: new Uint8Array(), fileName: 'late.pptx', warnings: [] }
         },
+        insert: async () => ({ bytes: new Uint8Array(), fileName: 'late.pptx', warnings: [] }),
       },
       importService: new ImportTemplateService(new LibraryPowerPointConverter(), templates),
       maxExportJsonBytes: 1024 * 1024,
@@ -193,6 +195,53 @@ describe('export API', () => {
     expect(response.headers['x-request-id']).toEqual(expect.any(String))
     expect(response.text).toBe('')
   })
+
+  it('inserts the generated slide into a bounded multipart target deck', async () => {
+    const target = await createTargetPowerPoint()
+    const response = await request(createTestApp(1024 * 1024))
+      .post('/export/insert')
+      .field('presentation', JSON.stringify(createCompactPresentation()))
+      .field('insertAfterSlide', '0')
+      .attach('target', target, {
+        contentType: POWERPOINT_CONTENT_TYPE,
+        filename: 'target.pptx',
+      })
+      .buffer(true)
+      .parse((incoming, callback) => {
+        const chunks: Buffer[] = []
+        incoming.on('data', (chunk: Buffer) => chunks.push(chunk))
+        incoming.on('end', () => callback(null, Buffer.concat(chunks)))
+      })
+      .expect(200)
+
+    expect(response.headers).toMatchObject({
+      'content-disposition': 'attachment; filename="target-with-slide.pptx"',
+      'content-type': POWERPOINT_CONTENT_TYPE,
+    })
+    const zip = await JSZip.loadAsync(response.body)
+    expect(Object.keys(zip.files).filter((name) => /^ppt\/slides\/slide\d+\.xml$/u.test(name)))
+      .toHaveLength(2)
+    expect(await zip.file('ppt/slides/slide2.xml')?.async('text')).toContain('Exported by the API')
+  })
+
+  it('rejects incomplete and invalid insert multipart requests', async () => {
+    const app = createTestApp(1024 * 1024)
+    expect((await request(app)
+      .post('/export/insert')
+      .field('presentation', JSON.stringify(createCompactPresentation()))
+      .field('insertAfterSlide', '-1')
+      .expect(400)).body.error.code).toBe('invalid_insert_position')
+
+    expect((await request(app)
+      .post('/export/insert')
+      .field('presentation', JSON.stringify(createCompactPresentation()))
+      .field('insertAfterSlide', '0')
+      .attach('target', Buffer.from('not a deck'), {
+        contentType: POWERPOINT_CONTENT_TYPE,
+        filename: 'target.pptx',
+      })
+      .expect(422)).body.error.code).toBe('invalid_powerpoint')
+  })
 })
 
 function createTestApp(maxExportJsonBytes: number) {
@@ -200,7 +249,7 @@ function createTestApp(maxExportJsonBytes: number) {
     exportService: new ExportPowerPointService(templates),
     importService: new ImportTemplateService(new LibraryPowerPointConverter(), templates),
     maxExportJsonBytes,
-    maxUploadBytes: 1024,
+    maxUploadBytes: Math.max(maxExportJsonBytes, 1024 * 1024),
   })
 }
 
@@ -259,4 +308,20 @@ function createCompactPresentation(imageSource?: string) {
       ],
     },
   }
+}
+
+async function createTargetPowerPoint() {
+  const presentation = new PptxGenJS()
+  presentation.layout = 'LAYOUT_WIDE'
+  presentation.addSlide().addText('Existing target slide', {
+    h: 1,
+    w: 4,
+    x: 1,
+    y: 1,
+  })
+  const output = await presentation.write({ outputType: 'nodebuffer' })
+  if (!Buffer.isBuffer(output)) {
+    throw new Error('Expected a PowerPoint buffer.')
+  }
+  return output
 }

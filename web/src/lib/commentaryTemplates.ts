@@ -6,8 +6,8 @@ import securitySsaSpec from './export/json-commentary-templates/slide-02-phase-1
 import sdlcSsaSpec from './export/json-commentary-templates/slide-03-phase-1.compact copy.json'
 import { ensureCommentaryBulletOrdering } from './commentaryBulletOrdering'
 import type { DiagramTemplate } from './diagramTemplates'
-import { normalizeBrandedSlideFrameImageIds } from './export/PowerpointBranding'
-import type { JsonValue } from './shared/PowerpointTypes'
+import { normalizeBrandedSlideFrameImageIds } from './canvas-model/branding'
+import type { JsonValue } from './canvas-model/CanvasTypes'
 
 export type CommentaryTemplate = DiagramTemplate
 

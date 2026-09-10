@@ -113,7 +113,7 @@ export interface ValidationIssue {
   message: string
 }
 
-export interface NormalizedTextRun {
+export interface EditableCanvasTextRun {
   text: string
   bold: boolean
   italic: boolean
@@ -134,7 +134,7 @@ export interface BaseElement {
   valign: VerticalAlign
 }
 
-export interface NormalizedTextElement extends BaseElement {
+export interface EditableCanvasTextElement extends BaseElement {
   kind: 'text'
   x: number
   y: number
@@ -154,10 +154,10 @@ export interface NormalizedTextElement extends BaseElement {
   fontFace: string
   bold: boolean
   italic: boolean
-  runs: NormalizedTextRun[]
+  runs: EditableCanvasTextRun[]
 }
 
-export interface NormalizedShapeElement extends BaseElement {
+export interface EditableCanvasShapeElement extends BaseElement {
   kind: 'shape'
   x: number
   y: number
@@ -177,12 +177,13 @@ export interface NormalizedShapeElement extends BaseElement {
   fontSize: number
   fontFace: string
   bold: boolean
-  textRuns: NormalizedTextRun[]
+  textRuns: EditableCanvasTextRun[]
 }
 
-export interface NormalizedLineElement extends BaseElement {
+export interface EditableCanvasLineElement extends BaseElement {
   kind: 'line'
   lineType: 'straight' | 'elbow'
+  elbowDirection?: 'horizontal-first' | 'vertical-first'
   x1: number
   y1: number
   x2: number
@@ -196,7 +197,7 @@ export interface NormalizedLineElement extends BaseElement {
   occlusionRects: LineOcclusionRect[]
 }
 
-export interface NormalizedImageElement extends BaseElement {
+export interface EditableCanvasImageElement extends BaseElement {
   kind: 'image'
   x: number
   y: number
@@ -214,11 +215,11 @@ export interface NormalizedImageElement extends BaseElement {
   altText: string
 }
 
-export type NormalizedElement =
-  | NormalizedTextElement
-  | NormalizedShapeElement
-  | NormalizedLineElement
-  | NormalizedImageElement
+export type EditableCanvasElement =
+  | EditableCanvasTextElement
+  | EditableCanvasShapeElement
+  | EditableCanvasLineElement
+  | EditableCanvasImageElement
 
 export interface LineOcclusionRect {
   x: number
@@ -227,17 +228,17 @@ export interface LineOcclusionRect {
   h: number
 }
 
-export interface NormalizedSlide {
+export interface EditableCanvasSlide {
   id: string
   name: string
   width: number
   height: number
   backgroundColor: string
   preserveElementOrder: boolean
-  elements: NormalizedElement[]
+  elements: EditableCanvasElement[]
 }
 
-export interface NormalizedPresentation {
+export interface EditableCanvasPresentation {
   meta: {
     title: string
     width: number
@@ -246,11 +247,11 @@ export interface NormalizedPresentation {
     showBranding: boolean
     sourceType: 'extracted-slide' | 'native-presentation'
   }
-  slides: NormalizedSlide[]
+  slides: EditableCanvasSlide[]
 }
 
 export interface NormalizationOptions {
   baseDir?: string
 }
 
-export type SlideForElementLayering = Pick<NormalizedSlide, 'elements' | 'height' | 'width'>
+export type SlideForElementLayering = Pick<EditableCanvasSlide, 'elements' | 'height' | 'width'>

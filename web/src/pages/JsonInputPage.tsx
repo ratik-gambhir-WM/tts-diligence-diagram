@@ -3,7 +3,9 @@ import { useState } from 'react'
 import { AppNav } from '../components/AppNav'
 import { Button } from '../components/Button'
 import { PageShell } from '../components/PageShell'
-import { generatePowerPointFromJson } from '../lib/export/exporter'
+import { downloadPowerPoint } from '../lib/api/download'
+import { exportPresentation } from '../lib/api/templateApi'
+import type { JsonValue } from '../lib/canvas-model/CanvasTypes'
 
 type JsonInputPageProps = {
   onOpenCommentaryPicker: () => void
@@ -35,7 +37,12 @@ export function JsonInputPage({
     setIsExporting(true)
 
     try {
-      const result = await generatePowerPointFromJson(jsonInput)
+      const parsed = JSON.parse(jsonInput) as unknown
+      if (!isJsonValue(parsed)) {
+        throw new Error('The input must be valid JSON without unsupported values.')
+      }
+      const result = await exportPresentation(parsed)
+      downloadPowerPoint(result)
       setStatus(`Created ${result.fileName}.`)
     } catch (exportError) {
       setError(
@@ -107,4 +114,12 @@ export function JsonInputPage({
       </section>
     </PageShell>
   )
+}
+
+function isJsonValue(value: unknown): value is JsonValue {
+  if (value === null || typeof value === 'string' || typeof value === 'boolean') return true
+  if (typeof value === 'number') return Number.isFinite(value)
+  if (Array.isArray(value)) return value.every(isJsonValue)
+  if (typeof value !== 'object') return false
+  return Object.values(value).every((entry) => entry === undefined || isJsonValue(entry))
 }

@@ -1,4 +1,5 @@
-import type { NormalizedElement, NormalizedLineElement } from '../shared/PowerpointTypes'
+import type { EditableCanvasElement, EditableCanvasLineElement } from '../canvas-model/CanvasTypes'
+import { normalizeElbowDirection } from '../canvas-model/CanvasUtils'
 
 export type BoxGeometry = {
   h: number
@@ -16,7 +17,7 @@ export type LineGeometry = {
 
 export type ElementGeometry = BoxGeometry | LineGeometry
 
-type Point = {
+export type LinePathPoint = {
   x: number
   y: number
 }
@@ -28,7 +29,7 @@ export type RenderedLinePoints = {
   y2: number
 }
 
-export function getRenderedLinePoints(element: NormalizedLineElement): RenderedLinePoints {
+export function getRenderedLinePoints(element: EditableCanvasLineElement): RenderedLinePoints {
   const points = getRenderedLinePathPoints(element)
   const start = points[0]
   const end = points[points.length - 1]
@@ -41,17 +42,32 @@ export function getRenderedLinePoints(element: NormalizedLineElement): RenderedL
   }
 }
 
-function getRenderedLinePathPoints(element: NormalizedLineElement): Point[] {
-  const points = element.lineType === 'elbow'
-    ? [
-        { x: element.x1, y: element.y1 },
-        { x: element.x2, y: element.y1 },
-        { x: element.x2, y: element.y2 },
-      ]
-    : [
-        { x: element.x1, y: element.y1 },
-        { x: element.x2, y: element.y2 },
-      ]
+export function getLinePathPoints(element: EditableCanvasLineElement): LinePathPoint[] {
+  const start = { x: element.x1, y: element.y1 }
+  const end = { x: element.x2, y: element.y2 }
+  const deltaX = Math.abs(element.x2 - element.x1)
+  const deltaY = Math.abs(element.y2 - element.y1)
+
+  if (element.lineType !== 'elbow' || deltaX <= 0.5 || deltaY <= 0.5) {
+    return [start, end]
+  }
+
+  const direction = normalizeElbowDirection(
+    element.elbowDirection,
+    element.x1,
+    element.y1,
+    element.x2,
+    element.y2,
+  )
+  const bend = direction === 'vertical-first'
+    ? { x: element.x1, y: element.y2 }
+    : { x: element.x2, y: element.y1 }
+
+  return [start, bend, end]
+}
+
+function getRenderedLinePathPoints(element: EditableCanvasLineElement): LinePathPoint[] {
+  const points = getLinePathPoints(element)
 
   if (!element.rotate) {
     return points
@@ -62,7 +78,7 @@ function getRenderedLinePathPoints(element: NormalizedLineElement): Point[] {
   return points.map((point) => rotatePoint(point.x, point.y, centerX, centerY, element.rotate))
 }
 
-export function getElementGeometry(element: NormalizedElement): BoxGeometry {
+export function getElementGeometry(element: EditableCanvasElement): BoxGeometry {
   if (element.kind !== 'line') {
     return {
       h: Math.max(element.h, 1),
@@ -93,7 +109,7 @@ function rotatePoint(
   centerX: number,
   centerY: number,
   degrees: number,
-): Point {
+): LinePathPoint {
   const radians = (degrees * Math.PI) / 180
   const cosine = Math.cos(radians)
   const sine = Math.sin(radians)
@@ -110,7 +126,7 @@ export function roundCoordinate(value: number) {
   return Math.round(value * 100) / 100
 }
 
-export function getElementAccessibleLabel(element: NormalizedElement) {
+export function getElementAccessibleLabel(element: EditableCanvasElement) {
   if (element.kind === 'text') {
     return element.text.trim() || 'Text element'
   }

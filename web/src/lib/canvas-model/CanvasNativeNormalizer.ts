@@ -1,18 +1,18 @@
-import { DEFAULT_FONT_FACE, DEFAULT_HEIGHT_PX, DEFAULT_WIDTH_PX } from './PowerpointConstants'
+import { DEFAULT_FONT_FACE, DEFAULT_HEIGHT_PX, DEFAULT_WIDTH_PX } from './CanvasConstants'
 import type {
   NormalizationOptions,
   JsonObject,
   JsonValue,
-  NormalizedElement,
-  NormalizedImageElement,
-  NormalizedLineElement,
-  NormalizedPresentation,
-  NormalizedShapeElement,
-  NormalizedSlide,
-  NormalizedTextElement,
+  EditableCanvasElement,
+  EditableCanvasImageElement,
+  EditableCanvasLineElement,
+  EditableCanvasPresentation,
+  EditableCanvasShapeElement,
+  EditableCanvasSlide,
+  EditableCanvasTextElement,
   ValidationIssue,
-} from './PowerpointTypes'
-import { addConnectorOcclusionRects } from './PowerpointLayering'
+} from './CanvasTypes'
+import { addConnectorOcclusionRects } from './CanvasLayering'
 import {
   asString,
   cleanHex,
@@ -25,19 +25,20 @@ import {
   normalizeAlign,
   normalizeArrow,
   normalizeDash,
+  normalizeElbowDirection,
   normalizeImageFit,
   normalizeLineType,
   normalizeNativeKind,
   normalizeShapeName,
   normalizeValign,
   resolveImageSource,
-} from './PowerpointUtils'
+} from './CanvasUtils'
 
 export function normalizeNativePresentation(
   input: JsonObject,
   issues: ValidationIssue[],
   options: NormalizationOptions,
-): NormalizedPresentation | undefined {
+): EditableCanvasPresentation | undefined {
   const presentationNode = isRecord(input.presentation) ? input.presentation : input
   const slidesSource = Array.isArray(presentationNode.slides)
     ? presentationNode.slides
@@ -76,7 +77,7 @@ export function normalizeNativePresentation(
     DEFAULT_HEIGHT_PX,
   )
 
-  const mappedSlides: Array<NormalizedSlide | undefined> = slidesSource
+  const mappedSlides: Array<EditableCanvasSlide | undefined> = slidesSource
     .map((slideSource, index) =>
       normalizeNativeSlide(
         slideSource,
@@ -120,7 +121,7 @@ export function normalizeNativeSlide(
   issues: ValidationIssue[],
   options: NormalizationOptions,
   preserveElementOrder = false,
-): NormalizedSlide | undefined {
+): EditableCanvasSlide | undefined {
   if (!isRecord(slideSource)) {
     issues.push({
       level: 'warning',
@@ -147,7 +148,7 @@ export function normalizeNativeSlide(
     defaultHeight,
   )
   const elementsSource = Array.isArray(slideSource.elements) ? slideSource.elements : []
-  const mappedElements: Array<NormalizedElement | undefined> = elementsSource
+  const mappedElements: Array<EditableCanvasElement | undefined> = elementsSource
     .map((item, elementIndex) =>
       normalizeNativeElement(item, width, height, issues, `slides[${index}].elements[${elementIndex}]`, options),
     )
@@ -174,7 +175,7 @@ function normalizeNativeElement(
   issues: ValidationIssue[],
   pathLabel: string,
   options: NormalizationOptions,
-): NormalizedElement | undefined {
+): EditableCanvasElement | undefined {
   if (!isRecord(input)) {
     issues.push({
       level: 'warning',
@@ -208,8 +209,9 @@ function normalizeNativeElement(
       input.y2 !== undefined
         ? resolvePosition(input.y2, height)
         : y1 + resolvePosition(input.h ?? input.height ?? 0, height)
+    const lineType = normalizeLineType(asString(input.lineType), x1, y1, x2, y2)
 
-    const element: NormalizedLineElement = {
+    const element: EditableCanvasLineElement = {
       kind: 'line',
       id: asString(input.id) || pathLabel,
       sourcePath: pathLabel,
@@ -218,7 +220,10 @@ function normalizeNativeElement(
       flipH: coerceBoolean(input.flipH) || undefined,
       flipV: coerceBoolean(input.flipV) || undefined,
       valign: 'middle',
-      lineType: normalizeLineType(asString(input.lineType)),
+      lineType,
+      elbowDirection: lineType === 'elbow'
+        ? normalizeElbowDirection(asString(input.elbowDirection), x1, y1, x2, y2)
+        : undefined,
       x1,
       y1,
       x2,
@@ -245,7 +250,7 @@ function normalizeNativeElement(
       return undefined
     }
 
-    const element: NormalizedImageElement = {
+    const element: EditableCanvasImageElement = {
       kind: 'image',
       id: asString(input.id) || pathLabel,
       sourcePath: pathLabel,
@@ -297,7 +302,7 @@ function normalizeNativeElement(
         : []
 
   if (kind === 'text') {
-    const element: NormalizedTextElement = {
+    const element: EditableCanvasTextElement = {
       kind: 'text',
       id: asString(input.id) || pathLabel,
       sourcePath: pathLabel,
@@ -329,7 +334,7 @@ function normalizeNativeElement(
     return element
   }
 
-  const element: NormalizedShapeElement = {
+  const element: EditableCanvasShapeElement = {
     kind: 'shape',
     id: asString(input.id) || pathLabel,
     sourcePath: pathLabel,
@@ -361,7 +366,7 @@ function normalizeNativeElement(
   return element
 }
 
-function normalizeImageCrop(input: JsonValue | undefined): NormalizedImageElement['crop'] {
+function normalizeImageCrop(input: JsonValue | undefined): EditableCanvasImageElement['crop'] {
   if (!isRecord(input)) {
     return undefined
   }

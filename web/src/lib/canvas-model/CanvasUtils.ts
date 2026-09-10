@@ -1,14 +1,14 @@
-import { EMU_PER_INCH, PX_PER_INCH, shapeAliases } from './PowerpointConstants'
+import { EMU_PER_INCH, PX_PER_INCH, shapeAliases } from './CanvasConstants'
 import type {
   JsonObject,
   DashStyle,
   HorizontalAlign,
   NormalizationOptions,
-  NormalizedImageElement,
-  NormalizedLineElement,
+  EditableCanvasImageElement,
+  EditableCanvasLineElement,
   VerticalAlign,
   XmlNode,
-} from './PowerpointTypes'
+} from './CanvasTypes'
 
 export function parseLineColor(lineNode: XmlNode | undefined, theme: Record<string, string>, fallback: string) {
   if (!lineNode || hasChild(lineNode, 'a:noFill')) {
@@ -182,7 +182,7 @@ export function normalizeDash(value: string | undefined): DashStyle {
   return 'solid'
 }
 
-export function normalizeArrow(value: string | undefined): NormalizedLineElement['endArrow'] {
+export function normalizeArrow(value: string | undefined): EditableCanvasLineElement['endArrow'] {
   if (
     value === 'triangle' ||
     value === 'arrow' ||
@@ -196,12 +196,75 @@ export function normalizeArrow(value: string | undefined): NormalizedLineElement
   return 'none'
 }
 
-export function normalizeLineType(value: string | undefined): NormalizedLineElement['lineType'] {
-  if (value === 'elbow' || value === 'angle' || value === 'angled' || value === 'angleBracket') {
+export function normalizeLineType(
+  value: string | undefined,
+  x1?: number,
+  y1?: number,
+  x2?: number,
+  y2?: number,
+): EditableCanvasLineElement['lineType'] {
+  const normalized = value?.toLowerCase()
+  if (
+    normalized === 'elbow'
+    || normalized === 'angle'
+    || normalized === 'angled'
+    || normalized === 'anglebracket'
+    || normalized?.startsWith('bentconnector')
+  ) {
+    return 'elbow'
+  }
+
+  if (
+    normalized === 'straight'
+    || normalized === 'line'
+    || normalized === 'lineinv'
+    || normalized?.startsWith('straightconnector')
+  ) {
+    return 'straight'
+  }
+
+  if (
+    x1 !== undefined
+    && y1 !== undefined
+    && x2 !== undefined
+    && y2 !== undefined
+    && Math.abs(x2 - x1) > 0.5
+    && Math.abs(y2 - y1) > 0.5
+  ) {
     return 'elbow'
   }
 
   return 'straight'
+}
+
+export function normalizeElbowDirection(
+  value: string | undefined,
+  x1: number,
+  y1: number,
+  x2: number,
+  y2: number,
+): NonNullable<EditableCanvasLineElement['elbowDirection']> {
+  const normalized = value?.toLowerCase().replaceAll(/[_\s-]/gu, '')
+  if (normalized === 'horizontal' || normalized === 'horizontalfirst' || normalized === 'xfirst') {
+    return 'horizontal-first'
+  }
+  if (normalized === 'vertical' || normalized === 'verticalfirst' || normalized === 'yfirst') {
+    return 'vertical-first'
+  }
+
+  // Legacy compact JSON did not retain which of the two possible bends was intended.
+  // Keep its established short-leg-first routing until the file is saved again.
+  return Math.abs(x2 - x1) >= Math.abs(y2 - y1)
+    ? 'vertical-first'
+    : 'horizontal-first'
+}
+
+export function isLinePreset(value: string | undefined) {
+  const normalized = value?.toLowerCase()
+  return normalized === 'line'
+    || normalized === 'lineinv'
+    || normalized?.startsWith('straightconnector') === true
+    || normalized?.startsWith('bentconnector') === true
 }
 
 export function parseDashStyle(lineNode: XmlNode | undefined): DashStyle {
@@ -209,12 +272,12 @@ export function parseDashStyle(lineNode: XmlNode | undefined): DashStyle {
   return normalizeDash(dashNode?.attributes?.val)
 }
 
-export function parseArrowType(lineNode: XmlNode | undefined): NormalizedLineElement['endArrow'] {
+export function parseArrowType(lineNode: XmlNode | undefined): EditableCanvasLineElement['endArrow'] {
   const tailEnd = findChild(lineNode, 'a:tailEnd')
   return normalizeArrow(tailEnd?.attributes?.type)
 }
 
-export function parseBeginArrowType(lineNode: XmlNode | undefined): NormalizedLineElement['beginArrow'] {
+export function parseBeginArrowType(lineNode: XmlNode | undefined): EditableCanvasLineElement['beginArrow'] {
   const headEnd = findChild(lineNode, 'a:headEnd')
   return normalizeArrow(headEnd?.attributes?.type)
 }
@@ -255,7 +318,7 @@ export function resolveImageSource(src: string | undefined, options: Normalizati
   return src
 }
 
-export function normalizeImageFit(value: string | undefined): NormalizedImageElement['fit'] {
+export function normalizeImageFit(value: string | undefined): EditableCanvasImageElement['fit'] {
   if (value === 'cover' || value === 'stretch') {
     return value
   }

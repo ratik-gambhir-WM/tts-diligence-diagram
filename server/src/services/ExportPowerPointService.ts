@@ -7,9 +7,11 @@ import type {
   NormalizedPresentation,
 } from '../lib/shared/PowerpointTypes'
 import { ApiError } from '../errors'
+import { insertPptxBytesIntoExistingDeck } from '../lib/export/PowerpointInsertion'
 import type { TemplateRepository } from '../repositories/TemplateRepository'
 import { decodeDataImage, hydrateTemplateAssetSources } from './TemplateAssets'
 import { normalizePresentation } from './NormalizePresentation'
+import { validatePowerPointPackage } from './PowerPointConverter'
 
 const MAX_JSON_DEPTH = 100
 const MAX_JSON_NODES = 100_000
@@ -23,6 +25,12 @@ export type ExportedPowerPoint = {
 
 export interface ExportPowerPointUseCase {
   export(input: unknown): Promise<ExportedPowerPoint>
+  insert(
+    input: unknown,
+    targetDeck: Buffer,
+    targetFileName: string,
+    insertAfterSlide: number,
+  ): Promise<ExportedPowerPoint>
 }
 
 export class ExportService implements ExportPowerPointUseCase {
@@ -50,6 +58,42 @@ export class ExportService implements ExportPowerPointUseCase {
       bytes,
       fileName: buildSuggestedFileName(hydratedPresentation),
       warnings: normalized.warnings,
+    }
+  }
+
+  async insert(
+    input: unknown,
+    targetDeck: Buffer,
+    targetFileName: string,
+    insertAfterSlide: number,
+  ): Promise<ExportedPowerPoint> {
+    if (!Number.isSafeInteger(insertAfterSlide) || insertAfterSlide < 0) {
+      throw new ApiError(
+        400,
+        'invalid_insert_position',
+        'insertAfterSlide must be a non-negative whole number.',
+      )
+    }
+    try {
+      validatePowerPointPackage(targetDeck)
+      const generated = await this.export(input)
+      const inserted = await insertPptxBytesIntoExistingDeck(
+        generated.bytes,
+        targetDeck,
+        targetFileName,
+        insertAfterSlide,
+      )
+      return { ...inserted, warnings: generated.warnings }
+    } catch (error) {
+      if (error instanceof ApiError) {
+        throw error
+      }
+      throw new ApiError(
+        422,
+        'invalid_target_powerpoint',
+        'The target file is not a supported PowerPoint presentation.',
+        { cause: error },
+      )
     }
   }
 }

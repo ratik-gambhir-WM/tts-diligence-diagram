@@ -5,6 +5,31 @@ export type StoredTemplate = {
   templateJson: PowerPointCanvasJson
 }
 
+export type TemplateKind = 'commentary' | 'diagram'
+export type TemplateSource = 'builtin' | 'import'
+
+export type StoredTemplateMetadata = {
+  checksum: string | null
+  createdAt: string
+  description: string
+  kind: TemplateKind
+  source: TemplateSource
+  templateId: string
+}
+
+export type StoredTemplatePreview = {
+  bytes: Buffer
+  contentType: 'image/png'
+  height: number
+  templateId: string
+  width: number
+}
+
+export type StoredTemplateSummary = StoredTemplate & {
+  metadata: StoredTemplateMetadata
+  previewAvailable: boolean
+}
+
 export type TemplateAsset = {
   assetId: string
   bytes: Buffer
@@ -21,7 +46,19 @@ export interface TemplateRepository {
   findAsset(templateId: string, assetId: string): TemplateAsset | undefined
   findById(templateId: string): StoredTemplate | undefined
   findByIdWithAssets(templateId: string): StoredTemplateWithAssets | undefined
-  insert(template: StoredTemplate, assets: readonly TemplateAsset[]): void
-  list(): StoredTemplate[]
+  findPreview(templateId: string): StoredTemplatePreview | undefined
+  insert(
+    template: StoredTemplate,
+    assets: readonly TemplateAsset[],
+    metadata?: StoredTemplateMetadata,
+    preview?: StoredTemplatePreview,
+  ): void
+  list(kind?: TemplateKind): StoredTemplateSummary[]
+  upsertBuiltin(
+    template: StoredTemplate,
+    assets: readonly TemplateAsset[],
+    metadata: StoredTemplateMetadata,
+    preview: StoredTemplatePreview,
+  ): void
   update(template: StoredTemplate, assets: readonly TemplateAsset[]): void
 }

@@ -14,11 +14,14 @@
     "pptx:to-json": "node --import tsx scripts/parse-pptx.ts"
   },
   "dependencies": {
+    "busboy": "^1.6.0",
     "express": "^5.2.1",
     "jszip": "^3.10.1",
+    "playwright": "^1.63.0",
     "pptxgenjs": "^4.0.1"
   },
   "devDependencies": {
+    "@types/busboy": "^1.5.4",
     "@types/express": "^5.0.6",
     "@types/node": "^25.3.5",
     "@types/supertest": "^7.2.1",

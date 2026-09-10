@@ -1,6 +1,6 @@
 import { memo, type PointerEvent as ReactPointerEvent } from 'react'
 
-import type { NormalizedSlide } from '../shared/PowerpointTypes'
+import type { EditableCanvasSlide } from '../canvas-model/CanvasTypes'
 import type { SlideElementRef } from '../slide-canvas'
 import { SvgBrandFrame } from './SvgBrandFrame'
 import { SvgElement } from './SvgElement'
@@ -30,7 +30,7 @@ export const SvgSlide = memo(function SvgSlide({
   onSlidePointerDown: (event: ReactPointerEvent<SVGRectElement>) => void
   selectedKeys: ReadonlySet<string>
   showBranding: boolean
-  slide: NormalizedSlide
+  slide: EditableCanvasSlide
   textFontScales?: ReadonlyMap<string, number>
 }) {
   return (

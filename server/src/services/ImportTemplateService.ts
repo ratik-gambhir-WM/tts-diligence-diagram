@@ -1,18 +1,29 @@
 import { randomUUID } from 'node:crypto'
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
+import { tmpdir } from 'node:os'
+import path from 'node:path'
 
+import { ApiError } from '../errors'
 import type {
   PowerPointCanvasElement,
   PowerPointCanvasJson,
 } from '../lib/import/PowerpointImportTypes'
-import type { TemplateRepository } from '../repositories/TemplateRepository'
+import type { TemplateKind, TemplateRepository } from '../repositories/TemplateRepository'
 import type { PowerPointConverter } from './PowerPointConverter'
+import {
+  DisabledTemplatePreviewGenerator,
+  type TemplatePreviewGenerator,
+} from './TemplatePreview'
 import {
   externalizeTemplateAssets,
   hydrateCanvasTemplateAssetSources,
 } from './TemplateAssets'
 
 export type TemplateListItem = {
+  description: string
   elementCount: number
+  kind: TemplateKind
+  previewUrl: string | null
   slideCount: number
   templateId: string
   title: string
@@ -28,30 +39,73 @@ export class ImportService {
     private readonly templates: TemplateRepository,
     private readonly createTemplateId: () => string = randomUUID,
     private readonly createAssetId: () => string = randomUUID,
+    private readonly previewGenerator: TemplatePreviewGenerator = new DisabledTemplatePreviewGenerator(),
   ) {}
 
-  async import(source: Buffer) {
-    const conversion = await this.converter.convert(source)
-    const { templateJson: repairedTemplateJson } = repairCanvasDimensions(conversion.templateJson)
-    const templateId = this.createTemplateId()
-    const externalized = externalizeTemplateAssets(
-      templateId,
-      repairedTemplateJson,
-      this.createAssetId,
-    )
-    const template = {
-      templateId,
-      templateJson: externalized.templateJson,
-    }
-    this.templates.insert(template, externalized.assets)
+  async import(source: Buffer, kind: TemplateKind = 'diagram', signal?: AbortSignal) {
+    const workingDirectory = await mkdtemp(path.join(tmpdir(), 'tts-mermaid-import-'))
+    const inputPath = path.join(workingDirectory, 'upload.pptx')
+    const outputPath = path.join(workingDirectory, 'upload.canvas.json')
+    const previewDirectory = path.join(workingDirectory, 'preview')
 
-    return {
-      templateId,
-      templateJson: hydrateCanvasTemplateAssetSources(
-        externalized.templateJson,
+    try {
+      await writeFile(inputPath, source)
+      await mkdir(previewDirectory)
+      const conversion = await this.converter.convertFile(inputPath, outputPath)
+      if (conversion.templateJson.presentation.slides.length !== 1) {
+        throw new ApiError(
+          422,
+          'template_must_have_one_slide',
+          'Template PowerPoint files must contain exactly one slide.',
+        )
+      }
+      const { templateJson: repairedTemplateJson } = repairCanvasDimensions(conversion.templateJson)
+      const preview = await this.previewGenerator.generate({
+        inputPath,
+        outputDirectory: previewDirectory,
+        templateJson: repairedTemplateJson,
+      }, signal)
+      if (signal?.aborted) {
+        throw new ApiError(499, 'request_cancelled', 'The template import was cancelled.')
+      }
+      const warnings = preview
+        ? conversion.warnings
+        : [...conversion.warnings, 'A preview image could not be generated for this template.']
+      const templateId = this.createTemplateId()
+      const externalized = externalizeTemplateAssets(
+        templateId,
+        repairedTemplateJson,
+        this.createAssetId,
+      )
+      const template = {
+        templateId,
+        templateJson: externalized.templateJson,
+      }
+      this.templates.insert(
+        template,
         externalized.assets,
-      ),
-      warnings: conversion.warnings,
+        {
+          checksum: null,
+          createdAt: new Date().toISOString(),
+          description: 'Imported PowerPoint template',
+          kind,
+          source: 'import',
+          templateId,
+        },
+        preview ? { ...preview, templateId } : undefined,
+      )
+
+      return {
+        previewAvailable: preview !== undefined,
+        templateId,
+        templateJson: hydrateCanvasTemplateAssetSources(
+          externalized.templateJson,
+          externalized.assets,
+        ),
+        warnings,
+      }
+    } finally {
+      await rm(workingDirectory, { force: true, recursive: true })
     }
   }
 
@@ -84,9 +138,16 @@ export class ImportService {
     return this.templates.findAsset(templateId, assetId)
   }
 
-  list(): TemplateListResponse {
+  findPreview(templateId: string) {
+    return this.templates.findPreview(templateId)
+  }
+
+  list(kind?: TemplateKind): TemplateListResponse {
     return {
-      templates: this.templates.list().map(({ templateId, templateJson }) => ({
+      templates: this.templates.list(kind).map(({ metadata, previewAvailable, templateId, templateJson }) => ({
+        description: metadata.description,
+        kind: metadata.kind,
+        previewUrl: previewAvailable ? `/templates/${templateId}/preview` : null,
         templateId,
         title: templateJson.presentation.title,
         slideCount: templateJson.presentation.slides.length,

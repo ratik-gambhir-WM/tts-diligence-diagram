@@ -324,6 +324,7 @@ async function extractInheritedSlideParts(
     placeholderSources: {
       layout: layout.placeholderNodes,
       master: master.placeholderNodes,
+      masterTextStyles: master.textStyles,
     },
   }
 }
@@ -382,6 +383,11 @@ async function extractRelatedDrawablePart(
     rawRelationships: relationships,
     backgroundColor: extractBackgroundColor(partAst),
     placeholderNodes,
+    textStyles: {
+      title: findDescendant(partAst, 'p:titleStyle'),
+      body: findDescendant(partAst, 'p:bodyStyle'),
+      other: findDescendant(partAst, 'p:otherStyle'),
+    },
     showMasterShapes: findDescendant(partAst, 'p:sldLayout')?.attributes?.showMasterSp !== '0',
   }
 }
@@ -438,6 +444,7 @@ function emptyDrawablePart() {
     rawRelationships: [] as ExtractedRelationship[],
     backgroundColor: undefined as string | undefined,
     placeholderNodes: [] as XmlNode[],
+    textStyles: {} as PlaceholderSourceIndex['masterTextStyles'],
     showMasterShapes: true,
   }
 }
@@ -503,10 +510,11 @@ function extractShapeTreeElements(
 ) {
   const elements: ExtractedElementRecord[] = []
 
-  for (const node of parent.children ?? []) {
+  for (const [nodeIndex, node] of (parent.children ?? []).entries()) {
     if (node.tag === 'p:grpSp') {
       const groupMatrix = composeTransform(matrix, groupTransform(node))
-      elements.push(...extractShapeTreeElements(node, groupMatrix, pathLabel, placeholderIndex))
+      const groupPath = `${pathLabel}#p:grpSp[${nodeIndex + 1}]`
+      elements.push(...extractShapeTreeElements(node, groupMatrix, groupPath, placeholderIndex))
       continue
     }
 
@@ -531,7 +539,13 @@ function extractShapeTreeElements(
     )
     const text = extractText(
       child(node, 'p:txBody'),
-      placeholderSources.map((source) => child(source, 'p:txBody')),
+      [
+        findPlaceholderTextStyle(nonVisual.placeholder, placeholderIndex),
+        ...placeholderSources
+          .slice()
+          .reverse()
+          .map((source) => child(source, 'p:txBody')),
+      ],
     )
     const preset = child(shapeProperties, 'a:prstGeom')?.attributes?.prst
     const relationshipIds = Array.from(new Set(collectRelationshipIds(node)))
@@ -563,6 +577,29 @@ function extractShapeTreeElements(
   }
 
   return elements
+}
+
+function findPlaceholderTextStyle(
+  placeholder: { type?: string; idx?: string } | undefined,
+  index: PlaceholderSourceIndex | undefined,
+) {
+  if (!placeholder || !index) {
+    return undefined
+  }
+
+  if (placeholder.type === 'title' || placeholder.type === 'ctrTitle') {
+    return index.masterTextStyles.title
+  }
+
+  if (
+    placeholder.type === 'body'
+    || placeholder.type === 'subTitle'
+    || placeholder.type === 'obj'
+  ) {
+    return index.masterTextStyles.body
+  }
+
+  return index.masterTextStyles.other
 }
 
 function findPlaceholderSources(

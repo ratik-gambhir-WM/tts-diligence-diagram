@@ -38,6 +38,7 @@ import {
   normalizeAlign,
   normalizeArrow,
   normalizeDash,
+  normalizeElbowDirection,
   normalizeImageFit,
   normalizeLineType,
   normalizeNativeKind,
@@ -221,6 +222,7 @@ function normalizeNativeElement(
       input.y2 !== undefined
         ? resolvePosition(input.y2, height)
         : y1 + resolvePosition(input.h ?? input.height ?? 0, height)
+    const lineType = normalizeLineType(asString(input.lineType), x1, y1, x2, y2)
 
     const element: NormalizedLineElement = {
       kind: 'line',
@@ -231,7 +233,10 @@ function normalizeNativeElement(
       flipH: coerceBoolean(input.flipH) || undefined,
       flipV: coerceBoolean(input.flipV) || undefined,
       valign: 'middle',
-      lineType: normalizeLineType(asString(input.lineType)),
+      lineType,
+      elbowDirection: lineType === 'elbow'
+        ? normalizeElbowDirection(asString(input.elbowDirection), x1, y1, x2, y2)
+        : undefined,
       x1,
       y1,
       x2,

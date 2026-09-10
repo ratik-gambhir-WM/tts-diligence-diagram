@@ -183,6 +183,7 @@ export interface NormalizedShapeElement extends BaseElement {
 export interface NormalizedLineElement extends BaseElement {
   kind: 'line'
   lineType: 'straight' | 'elbow'
+  elbowDirection?: 'horizontal-first' | 'vertical-first'
   x1: number
   y1: number
   x2: number

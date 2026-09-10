@@ -117,6 +117,11 @@ export type ThemeTypography = {
 export type PlaceholderSourceIndex = {
   layout: XmlNode[]
   master: XmlNode[]
+  masterTextStyles: {
+    body?: XmlNode
+    other?: XmlNode
+    title?: XmlNode
+  }
 }
 
 export type PowerPointCanvasTextRun = {
@@ -170,7 +175,9 @@ export type PowerPointCanvasTextElement = Omit<PowerPointCanvasShapeElement, 'sh
 export type PowerPointCanvasLineElement = PowerPointCanvasElementBase & {
   beginArrow?: 'arrow' | 'diamond' | 'oval' | 'stealth' | 'triangle'
   dash?: 'dash' | 'dot' | 'solid'
+  elbowDirection?: 'horizontal-first' | 'vertical-first'
   endArrow?: 'arrow' | 'diamond' | 'oval' | 'stealth' | 'triangle'
+  lineType: 'elbow' | 'straight'
   stroke: string
   strokeOpacity?: number
   strokeWidth: number

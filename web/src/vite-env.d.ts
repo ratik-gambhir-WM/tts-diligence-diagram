@@ -1,6 +1,10 @@
 /// <reference types="vite/client" />
 
 interface ImportMetaEnv {
+  readonly VITE_API_BASE_URL?: string
+}
+
+interface ImportMetaEnv {
   readonly VITE_OPENAI_API_KEY?: string
   readonly VITE_OPENAI_MODEL?: string
   readonly VITE_OPENAI_SECRET_KEY?: string
@@ -8,4 +12,8 @@ interface ImportMetaEnv {
 
 interface ImportMeta {
   readonly env: ImportMetaEnv
+}
+
+interface Window {
+  __TTS_MERMAID_TEMPLATE_PREVIEW_INPUT__?: import('./lib/canvas-model/CanvasTypes').JsonValue
 }
