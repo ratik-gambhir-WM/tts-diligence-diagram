@@ -37,6 +37,25 @@ export type TemplateListResponse = {
   templates: TemplateListItem[]
 }
 
+export type TemplatePreviewListResponse = {
+  pagination: {
+    hasNextPage: boolean
+    hasPreviousPage: boolean
+    page: number
+    pageSize: number
+    totalItems: number
+    totalPages: number
+  }
+  previews: Array<{
+    contentType: 'image/png'
+    dataUrl: string
+    height: number
+    previewUrl: string
+    templateId: string
+    width: number
+  }>
+}
+
 export type BatchImportResponse = {
   templates: Array<{
     previewAvailable: boolean
@@ -45,6 +64,8 @@ export type BatchImportResponse = {
   }>
   warnings: string[]
 }
+
+export const TEMPLATE_PREVIEW_PAGE_SIZE = 10
 
 export class ImportService {
   constructor(
@@ -56,7 +77,7 @@ export class ImportService {
   ) {}
 
   async import(source: Buffer, kind: TemplateKind = 'diagram', signal?: AbortSignal) {
-    const workingDirectory = await mkdtemp(path.join(tmpdir(), 'tts-mermaid-import-'))
+    const workingDirectory = await mkdtemp(path.join(tmpdir(), 'diligence-studio-import-'))
     const inputPath = path.join(workingDirectory, 'upload.pptx')
     const outputPath = path.join(workingDirectory, 'upload.canvas.json')
     const previewDirectory = path.join(workingDirectory, 'preview')
@@ -127,7 +148,7 @@ export class ImportService {
     kind: TemplateKind = 'diagram',
     signal?: AbortSignal,
   ): Promise<BatchImportResponse> {
-    const workingDirectory = await mkdtemp(path.join(tmpdir(), 'tts-mermaid-batch-import-'))
+    const workingDirectory = await mkdtemp(path.join(tmpdir(), 'diligence-studio-batch-import-'))
     const inputPath = path.join(workingDirectory, 'upload.pptx')
     const outputPath = path.join(workingDirectory, 'upload.canvas.json')
 
@@ -258,6 +279,30 @@ export class ImportService {
           (count, slide) => count + slide.elements.length,
           0,
         ),
+      })),
+    }
+  }
+
+  listPreviews(page: number): TemplatePreviewListResponse {
+    const offset = (page - 1) * TEMPLATE_PREVIEW_PAGE_SIZE
+    const { previews, total } = this.templates.listPreviews(TEMPLATE_PREVIEW_PAGE_SIZE, offset)
+
+    return {
+      pagination: {
+        hasNextPage: offset + previews.length < total,
+        hasPreviousPage: page > 1 && total > 0,
+        page,
+        pageSize: TEMPLATE_PREVIEW_PAGE_SIZE,
+        totalItems: total,
+        totalPages: Math.ceil(total / TEMPLATE_PREVIEW_PAGE_SIZE),
+      },
+      previews: previews.map(({ bytes, contentType, height, templateId, width }) => ({
+        contentType,
+        dataUrl: `data:${contentType};base64,${bytes.toString('base64')}`,
+        height,
+        previewUrl: `/templates/${templateId}/preview`,
+        templateId,
+        width,
       })),
     }
   }

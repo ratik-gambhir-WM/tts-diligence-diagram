@@ -1,8 +1,12 @@
 import type { Request, RequestHandler, Response } from 'express'
 
+import { API_V1_PATH } from '../apiPaths'
 import { ApiError } from '../errors'
-import type { ImportService } from '../services/ImportTemplateService'
 import type { TemplateKind } from '../repositories/TemplateRepository'
+import {
+  TEMPLATE_PREVIEW_PAGE_SIZE,
+  type ImportService,
+} from '../services/ImportTemplateService'
 
 export function createImportHandlers(service: ImportService) {
   const create: RequestHandler = async (request, response) => {
@@ -18,13 +22,13 @@ export function createImportHandlers(service: ImportService) {
       return
     }
     response.status(201).set({
-      Location: `/templates/${result.templateId}`,
+      Location: `${API_V1_PATH}/templates/${result.templateId}`,
       'X-PowerPoint-Warning-Count': String(result.warnings.length),
       'X-Template-Id': result.templateId,
       'X-Template-Preview-Status': result.previewAvailable ? 'ready' : 'unavailable',
     })
     if (result.previewAvailable) {
-      response.set('Link', `</templates/${result.templateId}/preview>; rel="preview"`)
+      response.set('Link', `<${API_V1_PATH}/templates/${result.templateId}/preview>; rel="preview"`)
     }
     response.json(result.templateJson)
   }
@@ -76,6 +80,12 @@ export function createImportHandlers(service: ImportService) {
     response.json(service.list(parseTemplateKind(_request.query.kind, false)))
   }
 
+  const listPreviews: RequestHandler = (request, response) => {
+    response
+      .set('Cache-Control', 'private, no-store')
+      .json(service.listPreviews(parsePreviewPage(request.query.page)))
+  }
+
   const findPreview: RequestHandler<{ templateId: string }> = (request, response) => {
     if (!service.find(request.params.templateId)) {
       throw new ApiError(404, 'template_not_found', 'The requested template does not exist.')
@@ -99,7 +109,7 @@ export function createImportHandlers(service: ImportService) {
     response.sendStatus(204)
   }
 
-  return { batchCreate, create, find, findAsset, findPreview, list, remove }
+  return { batchCreate, create, find, findAsset, findPreview, list, listPreviews, remove }
 }
 
 function validatePowerPointRequest(request: Request) {
@@ -149,4 +159,22 @@ function parseTemplateKind(value: unknown, useDefault: boolean): TemplateKind | 
     return value
   }
   throw new ApiError(400, 'invalid_template_kind', 'Template kind must be diagram or commentary.')
+}
+
+function parsePreviewPage(value: unknown) {
+  if (value === undefined) {
+    return 1
+  }
+  if (typeof value !== 'string' || !/^[1-9]\d*$/u.test(value)) {
+    throw new ApiError(400, 'invalid_preview_page', 'Preview page must be a positive integer.')
+  }
+
+  const page = Number(value)
+  if (
+    !Number.isSafeInteger(page)
+    || !Number.isSafeInteger((page - 1) * TEMPLATE_PREVIEW_PAGE_SIZE)
+  ) {
+    throw new ApiError(400, 'invalid_preview_page', 'Preview page must be a positive integer.')
+  }
+  return page
 }

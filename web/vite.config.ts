@@ -13,10 +13,9 @@ export default defineConfig(({ mode }) => {
     plugins: [tailwindcss(), react()],
     server: {
       proxy: {
-        '/api': {
-          target: env.VITE_API_PROXY_TARGET || 'http://127.0.0.1:3001',
+        '/api/v1': {
+          target: env.VITE_API_PROXY_TARGET || 'http://127.0.0.1:43127',
           changeOrigin: false,
-          rewrite: (path) => path.replace(/^\/api/u, ''),
         },
       },
     },

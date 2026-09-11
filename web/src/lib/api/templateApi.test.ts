@@ -1,9 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import {
+  batchImportTemplates,
   deleteTemplate,
+  exportPresentation,
   getTemplate,
   importTemplate,
+  insertPresentation,
   listTemplates,
   TemplateApiError,
 } from './templateApi'
@@ -29,11 +32,11 @@ describe('template API client', () => {
 
     await expect(listTemplates('diagram')).resolves.toEqual({
       templates: [expect.objectContaining({
-        previewUrl: '/api/templates/template-1/preview',
+        previewUrl: '/api/v1/templates/template-1/preview',
         templateId: 'template-1',
       })],
     })
-    expect(fetchMock).toHaveBeenCalledWith('/api/templates?kind=diagram', { signal: undefined })
+    expect(fetchMock).toHaveBeenCalledWith('/api/v1/templates?kind=diagram', { signal: undefined })
   })
 
   it('rejects malformed catalog and canvas responses', async () => {
@@ -43,10 +46,11 @@ describe('template API client', () => {
 
     await expect(listTemplates('diagram')).rejects.toBeInstanceOf(TemplateApiError)
     await expect(getTemplate('template-1')).rejects.toMatchObject({ code: 'invalid_api_response' })
+    expect(fetch).toHaveBeenNthCalledWith(2, '/api/v1/templates/template-1', { signal: undefined })
   })
 
   it('returns the imported template ID and preview status from headers', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => jsonResponse(
+    const fetchMock = vi.fn(async () => jsonResponse(
       { presentation: { slides: [{}] } },
       {
         status: 201,
@@ -55,7 +59,8 @@ describe('template API client', () => {
           'X-Template-Preview-Status': 'ready',
         },
       },
-    )))
+    ))
+    vi.stubGlobal('fetch', fetchMock)
     const file = new File(['pptx'], 'template.pptx', {
       type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
     })
@@ -63,6 +68,57 @@ describe('template API client', () => {
     await expect(importTemplate(file, 'commentary')).resolves.toMatchObject({
       previewStatus: 'ready',
       templateId: 'imported-template',
+    })
+    expect(fetchMock).toHaveBeenCalledWith('/api/v1/import?kind=commentary', {
+      body: file,
+      headers: { 'Content-Type': 'application/vnd.openxmlformats-officedocument.presentationml.presentation' },
+      method: 'POST',
+      signal: undefined,
+    })
+  })
+
+  it('validates batch-import results and sends the deck to the batch endpoint', async () => {
+    const fetchMock = vi.fn(async () => jsonResponse({
+      templates: [
+        {
+          previewAvailable: true,
+          templateId: 'batch-template-1',
+          templateJson: { presentation: { slides: [{}] } },
+        },
+        {
+          previewAvailable: false,
+          templateId: 'batch-template-2',
+          templateJson: { presentation: { slides: [{}] } },
+        },
+      ],
+      warnings: ['Slide 2 preview is unavailable.'],
+    }, { status: 201 }))
+    vi.stubGlobal('fetch', fetchMock)
+    const file = new File(['pptx'], 'templates.pptx', {
+      type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    })
+
+    await expect(batchImportTemplates(file, 'diagram')).resolves.toMatchObject({
+      templates: [
+        { previewStatus: 'ready', templateId: 'batch-template-1' },
+        { previewStatus: 'unavailable', templateId: 'batch-template-2' },
+      ],
+      warnings: ['Slide 2 preview is unavailable.'],
+    })
+    expect(fetchMock).toHaveBeenCalledWith('/api/v1/batchImport?kind=diagram', {
+      body: file,
+      headers: { 'Content-Type': 'application/vnd.openxmlformats-officedocument.presentationml.presentation' },
+      method: 'POST',
+      signal: undefined,
+    })
+  })
+
+  it('rejects malformed batch-import responses', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => jsonResponse({ templates: [], warnings: [] }, { status: 201 })))
+    const file = new File(['pptx'], 'templates.pptx')
+
+    await expect(batchImportTemplates(file, 'commentary')).rejects.toMatchObject({
+      code: 'invalid_api_response',
     })
   })
 
@@ -73,12 +129,36 @@ describe('template API client', () => {
     vi.stubGlobal('fetch', fetchMock)
 
     await expect(deleteTemplate('template/one')).resolves.toBeUndefined()
-    expect(fetchMock).toHaveBeenNthCalledWith(1, '/api/templates/template%2Fone', {
+    expect(fetchMock).toHaveBeenNthCalledWith(1, '/api/v1/templates/template%2Fone', {
       method: 'DELETE',
       signal: undefined,
     })
     await expect(deleteTemplate('template-two')).rejects.toMatchObject({
       code: 'invalid_api_response',
+    })
+  })
+
+  it('uses versioned URLs for PowerPoint export and insertion', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(powerPointResponse())
+      .mockResolvedValueOnce(powerPointResponse())
+    vi.stubGlobal('fetch', fetchMock)
+    const presentation = { presentation: { slides: [{}] } }
+    const target = new File(['pptx'], 'target.pptx')
+
+    await exportPresentation(presentation)
+    await insertPresentation(presentation, target, 2)
+
+    expect(fetchMock).toHaveBeenNthCalledWith(1, '/api/v1/export', {
+      body: JSON.stringify(presentation),
+      headers: { 'Content-Type': 'application/json' },
+      method: 'POST',
+      signal: undefined,
+    })
+    expect(fetchMock).toHaveBeenNthCalledWith(2, '/api/v1/export/insert', {
+      body: expect.any(FormData),
+      method: 'POST',
+      signal: undefined,
     })
   })
 })
@@ -87,4 +167,13 @@ function jsonResponse(body: unknown, init: ResponseInit = {}) {
   const headers = new Headers(init.headers)
   headers.set('Content-Type', 'application/json')
   return new Response(JSON.stringify(body), { ...init, headers })
+}
+
+function powerPointResponse() {
+  return new Response(new Uint8Array([0x50, 0x4b]), {
+    headers: {
+      'Content-Disposition': 'attachment; filename="presentation.pptx"',
+      'Content-Type': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    },
+  })
 }

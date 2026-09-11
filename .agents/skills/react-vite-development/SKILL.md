@@ -1,9 +1,9 @@
 ---
 name: react-vite-development
-description: Develop, refactor, debug, review, and verify tts-mermaid's React 19 and Vite 7 browser application, including routes, components, hooks, Tailwind/CSS, file workflows, the editable SVG canvas, and browser-side OpenAI and PowerPoint export behavior. Use for TSX or browser UI work; do not use as the primary guide for Node-only PowerPoint import scripts or a standalone Express server.
+description: Develop, refactor, debug, review, and verify diligence-studio's React 19 and Vite 7 browser application, including routes, components, hooks, Tailwind/CSS, file workflows, the editable SVG canvas, and browser-side OpenAI and PowerPoint export behavior. Use for TSX or browser UI work; do not use as the primary guide for Node-only PowerPoint import scripts or a standalone Express server.
 ---
 
-# tts-mermaid React + Vite development
+# diligence-studio React + Vite development
 
 Build the smallest coherent browser change while preserving the slide-data contract, accessible
 interaction behavior, and user-owned work.
@@ -106,7 +106,7 @@ interaction behavior, and user-owned work.
 Run from the repository root:
 
 ```sh
-npm run test --workspace @tts-mermaid/web -- src/path/to/affected.test.ts
+npm run test --workspace @diligence-studio/web -- src/path/to/affected.test.ts
 npm run typecheck
 npm test
 npm run build

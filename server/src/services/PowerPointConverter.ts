@@ -43,7 +43,7 @@ export class LibraryPowerPointConverter implements PowerPointConverter {
 
   async convert(source: Buffer): Promise<PowerPointConversion> {
     validatePowerPointPackage(source)
-    const workingDirectory = await mkdtemp(path.join(tmpdir(), 'tts-mermaid-import-'))
+    const workingDirectory = await mkdtemp(path.join(tmpdir(), 'diligence-studio-import-'))
     const inputPath = path.join(workingDirectory, 'upload.pptx')
     const outputPath = path.join(workingDirectory, 'upload.canvas.json')
 

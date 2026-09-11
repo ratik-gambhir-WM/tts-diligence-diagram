@@ -1,9 +1,9 @@
-# tts-mermaid
+# diligence-studio
 
 The repository is an npm workspace with two explicit runtime boundaries:
 
 ```text
-tts-mermaid/
+diligence-studio/
 ├── web/       React 19 and Vite browser application
 └── server/    Express API, SQLite persistence, and Node PowerPoint tooling
 ```
@@ -23,11 +23,12 @@ npm test
 npm run build
 ```
 
-`npm run dev` starts the web app at Vite's local URL and proxies `/api/*` requests to the API at
-`http://127.0.0.1:3001`. `npm run server:dev` starts that API. A production deployment must provide
-the same `/api` reverse-proxy boundary, or set the public `VITE_API_BASE_URL` at build time.
+`npm run dev` starts the web app at Vite's local URL and proxies `/api/v1/*` requests to the API at
+`http://127.0.0.1:43127`. `npm run server:dev` starts that API. A production deployment must provide
+the same `/api/v1` reverse-proxy boundary, or set the public `VITE_API_BASE_URL` (including the API
+version path) at build time.
 The API uses headless Chromium to render imported-template previews from the same SVG model as the
 canvas, so the web app must be reachable at `TEMPLATE_PREVIEW_RENDER_URL` while imports run.
 Package-specific commands
-can also be run with `npm run <command> --workspace @tts-mermaid/web` or
-`npm run <command> --workspace @tts-mermaid/server`.
+can also be run with `npm run <command> --workspace @diligence-studio/web` or
+`npm run <command> --workspace @diligence-studio/server`.

@@ -19,6 +19,7 @@ export type ServerConfig = {
 
 const DEFAULT_MAX_UPLOAD_BYTES = 25 * 1024 * 1024
 const DEFAULT_MAX_EXPORT_JSON_BYTES = 50 * 1024 * 1024
+const DEFAULT_PORT = 43127
 const DEFAULT_REQUEST_TIMEOUT_MS = 30_000
 const DEFAULT_PREVIEW_BYTES = 10 * 1024 * 1024
 const DEFAULT_PREVIEW_RENDER_SIZE = 1600
@@ -105,7 +106,7 @@ function parsePreviewRenderSize(value: string | undefined) {
 
 function parsePort(value: string | undefined) {
   if (value === undefined) {
-    return 3001
+    return DEFAULT_PORT
   }
   const port = parseUnsignedInteger(value)
   if (!Number.isSafeInteger(port) || port < 1 || port > 65_535) {

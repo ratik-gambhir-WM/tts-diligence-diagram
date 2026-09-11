@@ -26,7 +26,7 @@ const DIAGRAM_PICKER_ROUTE = '/diagram-picker'
 const DIAGRAM_CANVAS_ROUTE = '/diagram-template'
 const JSON_INPUT_ROUTE = '/json-input'
 const LOGIN_ROUTE = '/login'
-const EMAIL_SESSION_STORAGE_KEY = 'tts-mermaid-email'
+const EMAIL_SESSION_STORAGE_KEY = 'diligence-studio-email'
 type CanvasTemplateSource = 'commentary' | 'diagram'
 
 export default function App() {

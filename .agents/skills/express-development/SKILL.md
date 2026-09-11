@@ -1,9 +1,9 @@
 ---
 name: express-development
-description: Add, design, implement, review, secure, test, and troubleshoot the Express API in tts-mermaid, especially upload/JSON/PPTX endpoints and browser-to-server contracts.
+description: Add, design, implement, review, secure, test, and troubleshoot the Express API in diligence-studio, especially upload/JSON/PPTX endpoints and browser-to-server contracts.
 ---
 
-# tts-mermaid Express development
+# diligence-studio Express development
 
 Create a narrow, production-shaped server boundary without coupling Express to the React tree or
 moving slide-domain logic into handlers.

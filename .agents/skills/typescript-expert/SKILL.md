@@ -1,9 +1,9 @@
 ---
 name: typescript-expert
-description: Design, implement, refactor, debug, and verify TypeScript in tts-mermaid across strict browser code, shared slide contracts, PowerPoint normalization/import/export, and Node CLIs. Use for .ts/.tsx contract work, unsafe JSON or external-input boundaries, type errors, module/runtime separation, or complex discriminated unions; pair with the React skill for UI behavior and the Express skill for server APIs.
+description: Design, implement, refactor, debug, and verify TypeScript in diligence-studio across strict browser code, shared slide contracts, PowerPoint normalization/import/export, and Node CLIs. Use for .ts/.tsx contract work, unsafe JSON or external-input boundaries, type errors, module/runtime separation, or complex discriminated unions; pair with the React skill for UI behavior and the Express skill for server APIs.
 ---
 
-# tts-mermaid TypeScript expert
+# diligence-studio TypeScript expert
 
 Use TypeScript to make invalid slide, workflow, and runtime states difficult to represent while
 preserving the repository's existing architecture and naming conventions.
@@ -144,14 +144,14 @@ Test the narrowest invariant at the layer that owns it:
 Run from the repository root:
 
 ```sh
-npm run test --workspace @tts-mermaid/web -- path/to/affected.test.ts
+npm run test --workspace @diligence-studio/web -- path/to/affected.test.ts
 npm run typecheck
 npm test
 npm run build
 ```
 
 For PowerPoint work, include the relevant normalizer/canvas tests and
-`npm run test --workspace @tts-mermaid/server -- scripts/parse-pptx.test.ts`. Server scripts are
+`npm run test --workspace @diligence-studio/server -- scripts/parse-pptx.test.ts`. Server scripts are
 typechecked. Run a safe CLI smoke test with disposable files when the changed path is not fully
 exercised by Vitest.
 

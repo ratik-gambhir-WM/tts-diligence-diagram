@@ -29,7 +29,7 @@ describe('export API', () => {
   it('normalizes compact canvas JSON and returns PowerPoint bytes', async () => {
     const app = createTestApp(1024 * 1024)
     const response = await request(app)
-      .post('/export')
+      .post('/api/v1/export')
       .set('Content-Type', 'application/json')
       .send(createCompactPresentation())
       .buffer(true)
@@ -63,7 +63,7 @@ describe('export API', () => {
   it('rejects non-JSON request bodies', async () => {
     const app = createTestApp(1024)
     const response = await request(app)
-      .post('/export')
+      .post('/api/v1/export')
       .set('Content-Type', 'text/plain')
       .send('{}')
       .expect(415)
@@ -74,7 +74,7 @@ describe('export API', () => {
   it('rejects compressed bodies before checking their media type', async () => {
     const app = createTestApp(1024)
     const response = await request(app)
-      .post('/export')
+      .post('/api/v1/export')
       .set('Content-Type', 'text/plain')
       .set('Content-Encoding', 'gzip')
       .send('{}')
@@ -86,7 +86,7 @@ describe('export API', () => {
   it('rejects malformed JSON with a stable error', async () => {
     const app = createTestApp(1024)
     const response = await request(app)
-      .post('/export')
+      .post('/api/v1/export')
       .set('Content-Type', 'application/json')
       .send('{"presentation":')
       .expect(400)
@@ -100,7 +100,7 @@ describe('export API', () => {
   it('rejects an empty JSON body before presentation normalization', async () => {
     const app = createTestApp(1024)
     const response = await request(app)
-      .post('/export')
+      .post('/api/v1/export')
       .set('Content-Type', 'application/json')
       .send()
       .expect(400)
@@ -111,7 +111,7 @@ describe('export API', () => {
   it('rejects presentation JSON that cannot be normalized', async () => {
     const app = createTestApp(1024)
     const response = await request(app)
-      .post('/export')
+      .post('/api/v1/export')
       .set('Content-Type', 'application/json')
       .send({ unrelated: true })
       .expect(422)
@@ -122,7 +122,7 @@ describe('export API', () => {
   it('parses valid primitive JSON before rejecting its presentation shape', async () => {
     const app = createTestApp(1024)
     const response = await request(app)
-      .post('/export')
+      .post('/api/v1/export')
       .set('Content-Type', 'application/json')
       .send('true')
       .expect(422)
@@ -135,7 +135,7 @@ describe('export API', () => {
     const presentation = createCompactPresentation('/etc/passwd')
 
     const response = await request(app)
-      .post('/export')
+      .post('/api/v1/export')
       .set('Content-Type', 'application/json')
       .send(presentation)
       .expect(422)
@@ -147,7 +147,7 @@ describe('export API', () => {
   it('enforces the configured JSON body limit', async () => {
     const app = createTestApp(64)
     const response = await request(app)
-      .post('/export')
+      .post('/api/v1/export')
       .set('Content-Type', 'application/json')
       .send(createCompactPresentation())
       .expect(413)
@@ -171,7 +171,7 @@ describe('export API', () => {
     })
 
     const response = await request(app)
-      .post('/export')
+      .post('/api/v1/export')
       .set('Content-Type', 'application/json')
       .send(createCompactPresentation())
       .expect(408)
@@ -189,8 +189,15 @@ describe('export API', () => {
     })
   })
 
+  it('does not expose API routes without the versioned prefix', async () => {
+    const app = createTestApp(1024)
+
+    await request(app).post('/export').expect(404)
+    await request(app).post('/api/v2/export').expect(404)
+  })
+
   it('returns an empty 405 for a known path with the wrong HTTP method', async () => {
-    const response = await request(createTestApp(1024)).get('/export').expect(405)
+    const response = await request(createTestApp(1024)).get('/api/v1/export').expect(405)
 
     expect(response.headers['x-request-id']).toEqual(expect.any(String))
     expect(response.text).toBe('')
@@ -199,7 +206,7 @@ describe('export API', () => {
   it('inserts the generated slide into a bounded multipart target deck', async () => {
     const target = await createTargetPowerPoint()
     const response = await request(createTestApp(1024 * 1024))
-      .post('/export/insert')
+      .post('/api/v1/export/insert')
       .field('presentation', JSON.stringify(createCompactPresentation()))
       .field('insertAfterSlide', '0')
       .attach('target', target, {
@@ -227,13 +234,13 @@ describe('export API', () => {
   it('rejects incomplete and invalid insert multipart requests', async () => {
     const app = createTestApp(1024 * 1024)
     expect((await request(app)
-      .post('/export/insert')
+      .post('/api/v1/export/insert')
       .field('presentation', JSON.stringify(createCompactPresentation()))
       .field('insertAfterSlide', '-1')
       .expect(400)).body.error.code).toBe('invalid_insert_position')
 
     expect((await request(app)
-      .post('/export/insert')
+      .post('/api/v1/export/insert')
       .field('presentation', JSON.stringify(createCompactPresentation()))
       .field('insertAfterSlide', '0')
       .attach('target', Buffer.from('not a deck'), {

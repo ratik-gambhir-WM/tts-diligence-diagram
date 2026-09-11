@@ -25,6 +25,11 @@ export type StoredTemplatePreview = {
   width: number
 }
 
+export type StoredTemplatePreviewPage = {
+  previews: StoredTemplatePreview[]
+  total: number
+}
+
 export type StoredTemplateSummary = StoredTemplate & {
   metadata: StoredTemplateMetadata
   previewAvailable: boolean
@@ -62,6 +67,7 @@ export interface TemplateRepository {
   ): void
   insertMany(records: readonly TemplateInsert[]): void
   list(kind?: TemplateKind): StoredTemplateSummary[]
+  listPreviews(limit: number, offset: number): StoredTemplatePreviewPage
   upsertBuiltin(
     template: StoredTemplate,
     assets: readonly TemplateAsset[],

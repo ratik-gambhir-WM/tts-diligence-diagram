@@ -1,9 +1,9 @@
-# tts-mermaid agent guide
+# diligence-studio agent guide
 
 This file governs the entire repository. Read it before changing code, then read the
 project-local skill that matches the task.
 
-tts-mermaid is an npm workspace with a React/Vite browser application under `web/` and an Express
+diligence-studio is an npm workspace with a React/Vite browser application under `web/` and an Express
 API under `server/`. The server also owns the Node-only TypeScript CLIs for PowerPoint OOXML import
 and conversion. Preserve that runtime boundary and preserve any user-owned working-tree changes.
 
@@ -208,7 +208,7 @@ Read the real scripts before running commands. Start focused, then broaden in pr
 ### React, shared TypeScript, and browser export
 
 ```sh
-npm run test --workspace @tts-mermaid/web -- src/path/to/affected.test.ts
+npm run test --workspace @diligence-studio/web -- src/path/to/affected.test.ts
 npm run typecheck
 npm test
 npm run build
@@ -224,8 +224,8 @@ npm run build
 ### PowerPoint import/export and Node CLIs
 
 ```sh
-npm run test --workspace @tts-mermaid/server -- scripts/parse-pptx.test.ts
-npm run test --workspace @tts-mermaid/web -- src/lib/shared/PowerpointNormalizer.test.ts
+npm run test --workspace @diligence-studio/server -- scripts/parse-pptx.test.ts
+npm run test --workspace @diligence-studio/web -- src/lib/shared/PowerpointNormalizer.test.ts
 npm test
 npm run typecheck
 npm run build

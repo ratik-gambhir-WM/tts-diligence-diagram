@@ -24,6 +24,13 @@ export type ImportedTemplate = {
   templateId: string
 }
 
+export type BatchImportedTemplate = Omit<ImportedTemplate, 'document'>
+
+export type BatchImportedTemplates = {
+  templates: [BatchImportedTemplate, ...BatchImportedTemplate[]]
+  warnings: string[]
+}
+
 export type PowerPointDownload = {
   bytes: Uint8Array
   fileName: string
@@ -37,7 +44,7 @@ export class TemplateApiError extends Error {
 
 const POWERPOINT_CONTENT_TYPE =
   'application/vnd.openxmlformats-officedocument.presentationml.presentation'
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || '/api').replace(/\/$/u, '')
+const API_BASE = (import.meta.env.VITE_API_BASE_URL || '/api/v1').replace(/\/$/u, '')
 
 export async function listTemplates(
   kind: PickerTemplateKind,
@@ -72,9 +79,6 @@ export async function importTemplate(
   kind: PickerTemplateKind,
   signal?: AbortSignal,
 ): Promise<ImportedTemplate> {
-  if (!file.name.toLowerCase().endsWith('.pptx')) {
-    throw new TemplateApiError('invalid_file_type', 'Choose a .pptx PowerPoint file.')
-  }
   const response = await fetch(apiUrl(`/import?kind=${encodeURIComponent(kind)}`), {
     body: file,
     headers: { 'Content-Type': POWERPOINT_CONTENT_TYPE },
@@ -93,6 +97,22 @@ export async function importTemplate(
     previewStatus,
     templateId,
   }
+}
+
+export async function batchImportTemplates(
+  file: File,
+  kind: PickerTemplateKind,
+  signal?: AbortSignal,
+): Promise<BatchImportedTemplates> {
+  const response = await fetch(apiUrl(`/batchImport?kind=${encodeURIComponent(kind)}`), {
+    body: file,
+    headers: { 'Content-Type': POWERPOINT_CONTENT_TYPE },
+    method: 'POST',
+    signal,
+  })
+  await assertOk(response)
+  assertJsonContentType(response)
+  return parseBatchImport(await response.json())
 }
 
 export async function exportPresentation(input: JsonValue, signal?: AbortSignal) {
@@ -173,6 +193,42 @@ function parseCatalog(value: unknown): PickerTemplateCatalog {
     throw invalidResponse()
   }
   return { templates: value.templates.map(parseSummary) }
+}
+
+function parseBatchImport(value: unknown): BatchImportedTemplates {
+  if (
+    !isRecord(value)
+    || !Array.isArray(value.templates)
+    || value.templates.length === 0
+    || !Array.isArray(value.warnings)
+    || !value.warnings.every((warning) => typeof warning === 'string')
+  ) {
+    throw invalidResponse()
+  }
+
+  const templates = value.templates.map((template): BatchImportedTemplate => {
+    if (
+      !isRecord(template)
+      || !isNonEmptyString(template.templateId)
+      || typeof template.previewAvailable !== 'boolean'
+    ) {
+      throw invalidResponse()
+    }
+    parseCanvasDocument(template.templateJson)
+    return {
+      previewStatus: template.previewAvailable ? 'ready' : 'unavailable',
+      templateId: template.templateId,
+    }
+  })
+  const [firstTemplate, ...remainingTemplates] = templates
+  if (!firstTemplate) {
+    throw invalidResponse()
+  }
+
+  return {
+    templates: [firstTemplate, ...remainingTemplates],
+    warnings: [...value.warnings],
+  }
 }
 
 function parseSummary(value: unknown): PickerTemplateSummary {

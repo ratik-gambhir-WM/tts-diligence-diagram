@@ -1,5 +1,5 @@
 {
-  "name": "tts-mermaid",
+  "name": "diligence-studio",
   "private": true,
   "version": "0.0.1",
   "workspaces": [
@@ -7,15 +7,15 @@
     "server"
   ],
   "scripts": {
-    "dev": "npm run dev --workspace @tts-mermaid/web",
-    "web:dev": "npm run dev --workspace @tts-mermaid/web",
-    "server:dev": "npm run dev --workspace @tts-mermaid/server",
-    "server:start": "npm run start --workspace @tts-mermaid/server",
+    "dev": "npm run dev --workspace @diligence-studio/web",
+    "web:dev": "npm run dev --workspace @diligence-studio/web",
+    "server:dev": "npm run dev --workspace @diligence-studio/server",
+    "server:start": "npm run start --workspace @diligence-studio/server",
     "typecheck": "npm run typecheck --workspaces --if-present",
-    "server:typecheck": "npm run typecheck --workspace @tts-mermaid/server",
+    "server:typecheck": "npm run typecheck --workspace @diligence-studio/server",
     "test": "npm run test --workspaces --if-present",
-    "server:test": "npm run test --workspace @tts-mermaid/server",
-    "build": "npm run build --workspace @tts-mermaid/web",
-    "pptx:to-json": "npm run pptx:to-json --workspace @tts-mermaid/server --"
+    "server:test": "npm run test --workspace @diligence-studio/server",
+    "build": "npm run build --workspace @diligence-studio/web",
+    "pptx:to-json": "npm run pptx:to-json --workspace @diligence-studio/server --"
   }
 }

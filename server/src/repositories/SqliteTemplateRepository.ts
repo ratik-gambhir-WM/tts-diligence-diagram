@@ -7,6 +7,7 @@ import type {
   StoredTemplate,
   StoredTemplateMetadata,
   StoredTemplatePreview,
+  StoredTemplatePreviewPage,
   StoredTemplateSummary,
   StoredTemplateWithAssets,
   TemplateAsset,
@@ -380,6 +381,36 @@ export class SqliteTemplateRepository implements TemplateRepository {
       },
       previewAvailable: row.preview_available === 1,
     }))
+  }
+
+  listPreviews(limit: number, offset: number): StoredTemplatePreviewPage {
+    const { total } = this.#database
+      .prepare('SELECT COUNT(*) AS total FROM template_previews')
+      .get() as { total: number }
+    const rows = this.#database.prepare(`
+      SELECT
+        template_previews.template_id,
+        template_previews.content_type,
+        template_previews.preview_data,
+        template_previews.width,
+        template_previews.height
+      FROM template_previews
+      JOIN templates ON templates.template_id = template_previews.template_id
+      JOIN template_metadata ON template_metadata.template_id = template_previews.template_id
+      ORDER BY template_metadata.created_at DESC, templates.rowid DESC
+      LIMIT ? OFFSET ?
+    `).all(limit, offset) as TemplatePreviewRow[]
+
+    return {
+      previews: rows.map((row) => ({
+        bytes: Buffer.from(row.preview_data),
+        contentType: row.content_type,
+        height: row.height,
+        templateId: row.template_id,
+        width: row.width,
+      })),
+      total,
+    }
   }
 
   findPreview(templateId: string) {

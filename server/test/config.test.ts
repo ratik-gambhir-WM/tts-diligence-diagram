@@ -45,7 +45,7 @@ describe('server configuration', () => {
     expect(loadServerConfig({})).toMatchObject({
       databasePath: fileURLToPath(new URL('../data/templates.sqlite', import.meta.url)),
       host: '0.0.0.0',
-      port: 3001,
+      port: 43127,
       previewProvider: 'headless',
       previewRenderUrl: 'http://localhost:5173/_internal/template-preview',
       requestTimeoutMs: 30_000,

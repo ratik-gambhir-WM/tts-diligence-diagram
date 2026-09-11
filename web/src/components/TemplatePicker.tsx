@@ -2,6 +2,7 @@ import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 
 import {
+  batchImportTemplates,
   deleteTemplate,
   importTemplate,
   listTemplates,
@@ -28,8 +29,11 @@ type TemplatePickerProps = {
   selectLabel: string
 }
 
-const POWERPOINT_ACCEPT =
-  '.pptx,application/vnd.openxmlformats-officedocument.presentationml.presentation'
+type ImportMode = 'batch' | 'single'
+
+const POWERPOINT_CONTENT_TYPE =
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+const POWERPOINT_ACCEPT = `.pptx,${POWERPOINT_CONTENT_TYPE}`
 
 function getWheelItemClasses(distanceFromActive: number) {
   if (distanceFromActive === 0) {
@@ -55,12 +59,13 @@ export function TemplatePicker({
   const [catalog, setCatalog] = useState<CatalogState>({ status: 'loading' })
   const [activeTemplateId, setActiveTemplateId] = useState(defaultTemplateId)
   const [failedPreviews, setFailedPreviews] = useState<Set<string>>(() => new Set())
-  const [isImporting, setIsImporting] = useState(false)
+  const [importMode, setImportMode] = useState<ImportMode | null>(null)
   const [isSelecting, setIsSelecting] = useState(false)
   const [deletingTemplateId, setDeletingTemplateId] = useState<string | null>(null)
   const [importMessage, setImportMessage] = useState('')
   const [localError, setLocalError] = useState('')
-  const uploadInputId = useId()
+  const batchUploadInputId = useId()
+  const singleUploadInputId = useId()
   const mountedRef = useRef(true)
   const operationAbortRef = useRef<AbortController | null>(null)
 
@@ -109,7 +114,7 @@ export function TemplatePicker({
     () => templates.filter((template) => template.templateId !== activeTemplate?.templateId).slice(0, 3),
     [activeTemplate?.templateId, templates],
   )
-  const pending = isImporting || isSelecting || deletingTemplateId !== null || isActionPending
+  const pending = importMode !== null || isSelecting || deletingTemplateId !== null || isActionPending
 
   function moveSelection(direction: -1 | 1) {
     if (templates.length === 0) return
@@ -117,15 +122,43 @@ export function TemplatePicker({
     setActiveTemplateId(templates[nextIndex]?.templateId ?? '')
   }
 
-  async function handleImport(file: File | undefined) {
+  async function handleImport(file: File | undefined, mode: ImportMode) {
     if (!file) return
+    setImportMessage('')
+    if (
+      !file.name.toLowerCase().endsWith('.pptx')
+      || (file.type !== '' && file.type !== POWERPOINT_CONTENT_TYPE)
+    ) {
+      setLocalError('Choose a .pptx PowerPoint file.')
+      return
+    }
+    if (file.size === 0) {
+      setLocalError('Choose a non-empty PowerPoint file.')
+      return
+    }
+
     operationAbortRef.current?.abort()
     const controller = new AbortController()
     operationAbortRef.current = controller
-    setIsImporting(true)
-    setImportMessage('')
+    setImportMode(mode)
     setLocalError('')
     try {
+      if (mode === 'batch') {
+        const imported = await batchImportTemplates(file, kind, controller.signal)
+        if (!mountedRef.current || controller.signal.aborted) return
+        const firstImportedTemplate = imported.templates[0]
+        const warningCount = imported.warnings.length
+        setImportMessage(
+          `Imported ${imported.templates.length} templates and selected the first.${
+            warningCount === 0
+              ? ''
+              : ` The server reported ${warningCount} warning${warningCount === 1 ? '' : 's'}.`
+          }`,
+        )
+        await loadCatalog(firstImportedTemplate.templateId, controller.signal)
+        return
+      }
+
       const imported = await importTemplate(file, kind, controller.signal)
       if (!mountedRef.current || controller.signal.aborted) return
       setImportMessage(
@@ -139,7 +172,7 @@ export function TemplatePicker({
       setLocalError(importError instanceof Error ? importError.message : 'The template could not be imported.')
     } finally {
       if (operationAbortRef.current === controller) operationAbortRef.current = null
-      if (mountedRef.current && !controller.signal.aborted) setIsImporting(false)
+      if (mountedRef.current && !controller.signal.aborted) setImportMode(null)
     }
   }
 
@@ -226,7 +259,7 @@ export function TemplatePicker({
         {catalog.status === 'ready' && templates.length === 0 && (
           <div className="relative z-10 max-w-sm text-center">
             <p className="text-xl font-bold text-white">No {kind} templates yet</p>
-            <p className="mt-3 text-[#a8afc4]">Import a one-slide PowerPoint to start this catalog.</p>
+            <p className="mt-3 text-[#a8afc4]">Import one template or split a multi-slide deck into templates.</p>
           </div>
         )}
         {activeTemplate && (
@@ -350,23 +383,39 @@ export function TemplatePicker({
               <path d="M12 16V4m0 0L8 8m4-4 4 4M5 14v5h14v-5" />
             </svg>
             <div className="min-w-[12rem] flex-1">
-              <p className="font-bold text-white">Import a template</p>
-              <p className="mt-1 text-sm text-[#a8afc4]">Upload a one-slide .pptx file to add it to this catalog.</p>
+              <p className="font-bold text-white">Import templates</p>
+              <p className="mt-1 text-sm text-[#a8afc4]">Add one slide, or split every slide in a deck into separate templates.</p>
             </div>
-            <label htmlFor={uploadInputId} className="cursor-pointer rounded-md bg-[#eef3ff] px-4 py-2 text-sm font-bold text-[#070a1b] transition hover:bg-white focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[#f3c316] has-[:disabled]:cursor-wait has-[:disabled]:opacity-60">
-              {isImporting ? 'Importing…' : 'Choose PowerPoint'}
-              <input
-                id={uploadInputId}
-                type="file"
-                accept={POWERPOINT_ACCEPT}
-                disabled={pending}
-                className="sr-only"
-                onChange={(event) => {
-                  void handleImport(event.currentTarget.files?.[0])
-                  event.currentTarget.value = ''
-                }}
-              />
-            </label>
+            <div className="flex flex-wrap gap-3">
+              <label htmlFor={singleUploadInputId} className="cursor-pointer rounded-md bg-[#eef3ff] px-4 py-2 text-sm font-bold text-[#070a1b] transition hover:bg-white focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[#f3c316] has-[:disabled]:cursor-wait has-[:disabled]:opacity-60">
+                {importMode === 'single' ? 'Importing single…' : 'Import Single'}
+                <input
+                  id={singleUploadInputId}
+                  type="file"
+                  accept={POWERPOINT_ACCEPT}
+                  disabled={pending}
+                  className="sr-only"
+                  onChange={(event) => {
+                    void handleImport(event.currentTarget.files?.[0], 'single')
+                    event.currentTarget.value = ''
+                  }}
+                />
+              </label>
+              <label htmlFor={batchUploadInputId} className="cursor-pointer rounded-md bg-[#f3c316] px-4 py-2 text-sm font-bold text-[#070a1b] transition hover:bg-[#ffdb54] focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[#f3c316] has-[:disabled]:cursor-wait has-[:disabled]:opacity-60">
+                {importMode === 'batch' ? 'Importing batch…' : 'Import Batch'}
+                <input
+                  id={batchUploadInputId}
+                  type="file"
+                  accept={POWERPOINT_ACCEPT}
+                  disabled={pending}
+                  className="sr-only"
+                  onChange={(event) => {
+                    void handleImport(event.currentTarget.files?.[0], 'batch')
+                    event.currentTarget.value = ''
+                  }}
+                />
+              </label>
+            </div>
           </div>
 
           {actionContent}

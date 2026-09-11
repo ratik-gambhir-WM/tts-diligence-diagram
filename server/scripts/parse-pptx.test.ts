@@ -20,7 +20,7 @@ let testDir = ''
 let sourcePath = ''
 
 beforeAll(async () => {
-  testDir = await mkdtemp(path.join(tmpdir(), 'tts-mermaid-pptx-import-'))
+  testDir = await mkdtemp(path.join(tmpdir(), 'diligence-studio-pptx-import-'))
   sourcePath = path.join(testDir, 'source.pptx')
 
   const pptx = new PptxGenJS()

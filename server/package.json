@@ -1,5 +1,5 @@
 {
-  "name": "@tts-mermaid/server",
+  "name": "@diligence-studio/server",
   "private": true,
   "version": "0.0.1",
   "type": "module",

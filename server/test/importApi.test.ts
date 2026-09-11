@@ -54,7 +54,7 @@ describe('import API', () => {
     const app = createTestApp(importService, 1024 * 1024)
 
     const imported = await request(app)
-      .post('/batchImport?kind=commentary')
+      .post('/api/v1/batchImport?kind=commentary')
       .set('Content-Type', POWERPOINT_CONTENT_TYPE)
       .send(await createPowerPoint(['First batch slide', 'Second batch slide', 'Third batch slide']))
       .expect(201)
@@ -91,7 +91,7 @@ describe('import API', () => {
       expect(templates.findById(templateId)?.templateJson.presentation.slides).toHaveLength(1)
       expect(templates.findPreview(templateId)?.bytes).toEqual(previewBytes)
     }
-    const listed = await request(app).get('/templates?kind=commentary').expect(200)
+    const listed = await request(app).get('/api/v1/templates?kind=commentary').expect(200)
     expect(listed.body.templates).toHaveLength(3)
     expect(listed.body.templates).toEqual(expect.arrayContaining([
       expect.objectContaining({
@@ -123,7 +123,7 @@ describe('import API', () => {
     const app = createTestApp(importService, 1024)
 
     const response = await request(app)
-      .post('/batchImport')
+      .post('/api/v1/batchImport')
       .set('Content-Type', POWERPOINT_CONTENT_TYPE)
       .send(Buffer.from('staged PowerPoint bytes'))
       .expect(500)
@@ -140,7 +140,7 @@ describe('import API', () => {
     )
 
     const response = await request(app)
-      .post('/import')
+      .post('/api/v1/import')
       .set('Content-Type', POWERPOINT_CONTENT_TYPE)
       .send(await createPowerPoint(['First slide', 'Second slide']))
       .expect(422)
@@ -160,13 +160,13 @@ describe('import API', () => {
     const source = await createPowerPoint()
 
     const imported = await request(app)
-      .post('/import')
+      .post('/api/v1/import')
       .set('Content-Type', POWERPOINT_CONTENT_TYPE)
       .send(source)
       .expect(201)
 
     expect(imported.headers).toMatchObject({
-      location: '/templates/template-123',
+      location: '/api/v1/templates/template-123',
       'x-powerpoint-warning-count': '1',
       'x-request-id': expect.any(String),
       'x-template-id': 'template-123',
@@ -199,7 +199,7 @@ describe('import API', () => {
     expect(templates.findById('template-123')?.templateJson.presentation.slides[0]?.elements[1])
       .toMatchObject({ src: '/import/template-123/assets/asset-456' })
 
-    const listed = await request(app).get('/templates').expect(200)
+    const listed = await request(app).get('/api/v1/templates').expect(200)
     expect(listed.body).toEqual({
       templates: [{
         templateId: 'template-123',
@@ -212,7 +212,7 @@ describe('import API', () => {
       }],
     })
 
-    const retrieved = await request(app).get('/templates/template-123').expect(200)
+    const retrieved = await request(app).get('/api/v1/templates/template-123').expect(200)
     expect(Object.keys(retrieved.body)).toEqual(['presentation'])
     expect(retrieved.body).toMatchObject({
       presentation: {
@@ -231,11 +231,11 @@ describe('import API', () => {
     })
     expect(JSON.stringify(retrieved.body)).toContain('base64')
 
-    const legacyAlias = await request(app).get('/import/template-123').expect(200)
+    const legacyAlias = await request(app).get('/api/v1/import/template-123').expect(200)
     expect(legacyAlias.body).toEqual(retrieved.body)
 
     const image = await request(app)
-      .get('/import/template-123/assets/asset-456')
+      .get('/api/v1/import/template-123/assets/asset-456')
       .buffer(true)
       .parse((incoming, callback) => {
         const chunks: Buffer[] = []
@@ -252,7 +252,7 @@ describe('import API', () => {
     expect(image.body.subarray(1, 4).toString()).toBe('PNG')
 
     const exported = await request(app)
-      .post('/export')
+      .post('/api/v1/export')
       .set('Content-Type', 'application/json')
       .send(retrieved.body)
       .buffer(true)
@@ -270,7 +270,7 @@ describe('import API', () => {
     const importService = new ImportTemplateService(new LibraryPowerPointConverter(), templates)
     const app = createTestApp(importService, 1024)
 
-    for (const endpoint of ['/import', '/batchImport']) {
+    for (const endpoint of ['/api/v1/import', '/api/v1/batchImport']) {
       const response = await request(app)
         .post(endpoint)
         .set('Content-Type', 'application/xml')
@@ -304,18 +304,18 @@ describe('import API', () => {
     const app = createTestApp(importService, 1024 * 1024)
 
     const imported = await request(app)
-      .post('/import?kind=commentary')
+      .post('/api/v1/import?kind=commentary')
       .set('Content-Type', POWERPOINT_CONTENT_TYPE)
       .send(await createPowerPoint())
       .expect(201)
 
     expect(imported.headers).toMatchObject({
-      link: '</templates/commentary-template/preview>; rel="preview"',
+      link: '</api/v1/templates/commentary-template/preview>; rel="preview"',
       'x-powerpoint-warning-count': '0',
       'x-template-preview-status': 'ready',
     })
-    expect((await request(app).get('/templates?kind=diagram').expect(200)).body.templates).toEqual([])
-    expect((await request(app).get('/templates?kind=commentary').expect(200)).body).toEqual({
+    expect((await request(app).get('/api/v1/templates?kind=diagram').expect(200)).body.templates).toEqual([])
+    expect((await request(app).get('/api/v1/templates?kind=commentary').expect(200)).body).toEqual({
       templates: [expect.objectContaining({
         kind: 'commentary',
         previewUrl: '/templates/commentary-template/preview',
@@ -324,7 +324,7 @@ describe('import API', () => {
     })
 
     const preview = await request(app)
-      .get('/templates/commentary-template/preview')
+      .get('/api/v1/templates/commentary-template/preview')
       .buffer(true)
       .parse((incoming, callback) => {
         const chunks: Buffer[] = []
@@ -340,8 +340,117 @@ describe('import API', () => {
     })
     expect(preview.body).toEqual(previewBytes)
 
-    await request(app).delete('/templates/commentary-template').expect(204)
+    await request(app).delete('/api/v1/templates/commentary-template').expect(204)
     expect(templates.findPreview('commentary-template')).toBeUndefined()
+  })
+
+  it('returns PNG previews in fixed pages of 10', async () => {
+    const previewBytes = Buffer.from(ONE_PIXEL_PNG.split(',')[1] ?? '', 'base64')
+    for (let index = 1; index <= 12; index += 1) {
+      const templateId = `preview-template-${index}`
+      templates.insert(
+        { templateId, templateJson: createLegacyTemplate() },
+        [],
+        {
+          checksum: null,
+          createdAt: `2026-01-01T00:${String(index).padStart(2, '0')}:00.000Z`,
+          description: 'Preview pagination test',
+          kind: 'diagram',
+          source: 'import',
+          templateId,
+        },
+        {
+          bytes: previewBytes,
+          contentType: 'image/png',
+          height: 1,
+          templateId,
+          width: 1,
+        },
+      )
+    }
+    templates.insert(
+      { templateId: 'without-preview', templateJson: createLegacyTemplate() },
+      [],
+    )
+    const app = createTestApp(
+      new ImportTemplateService(new LibraryPowerPointConverter(), templates),
+      1024,
+    )
+
+    const firstPage = await request(app).get('/api/v1/templates/previews').expect(200)
+    expect(firstPage.headers['cache-control']).toBe('private, no-store')
+    expect(firstPage.body.pagination).toEqual({
+      hasNextPage: true,
+      hasPreviousPage: false,
+      page: 1,
+      pageSize: 10,
+      totalItems: 12,
+      totalPages: 2,
+    })
+    expect(firstPage.body.previews).toHaveLength(10)
+    expect(firstPage.body.previews.map((item: { templateId: string }) => item.templateId)).toEqual([
+      'preview-template-12',
+      'preview-template-11',
+      'preview-template-10',
+      'preview-template-9',
+      'preview-template-8',
+      'preview-template-7',
+      'preview-template-6',
+      'preview-template-5',
+      'preview-template-4',
+      'preview-template-3',
+    ])
+    expect(firstPage.body.previews[0]).toEqual({
+      contentType: 'image/png',
+      dataUrl: ONE_PIXEL_PNG,
+      height: 1,
+      previewUrl: '/templates/preview-template-12/preview',
+      templateId: 'preview-template-12',
+      width: 1,
+    })
+
+    const secondPage = await request(app).get('/api/v1/templates/previews?page=2').expect(200)
+    expect(secondPage.body.pagination).toEqual({
+      hasNextPage: false,
+      hasPreviousPage: true,
+      page: 2,
+      pageSize: 10,
+      totalItems: 12,
+      totalPages: 2,
+    })
+    expect(secondPage.body.previews.map((item: { templateId: string }) => item.templateId)).toEqual([
+      'preview-template-2',
+      'preview-template-1',
+    ])
+  })
+
+  it('rejects invalid preview pages and non-GET preview-list requests', async () => {
+    const app = createTestApp(
+      new ImportTemplateService(new LibraryPowerPointConverter(), templates),
+      1024,
+    )
+
+    expect((await request(app).get('/api/v1/templates/previews').expect(200)).body).toEqual({
+      pagination: {
+        hasNextPage: false,
+        hasPreviousPage: false,
+        page: 1,
+        pageSize: 10,
+        totalItems: 0,
+        totalPages: 0,
+      },
+      previews: [],
+    })
+    for (const page of ['0', '-1', '1.5', 'not-a-number', '9007199254740992']) {
+      const response = await request(app).get(`/api/v1/templates/previews?page=${page}`).expect(400)
+      expect(response.body.error).toMatchObject({
+        code: 'invalid_preview_page',
+        message: 'Preview page must be a positive integer.',
+        requestId: expect.any(String),
+      })
+    }
+    await request(app).get('/api/v1/templates/previews?page=1&page=2').expect(400)
+    await request(app).post('/api/v1/templates/previews').expect(405)
   })
 
   it('rejects invalid template kinds and distinguishes missing previews', async () => {
@@ -351,13 +460,13 @@ describe('import API', () => {
       1024,
     )
 
-    expect((await request(app).get('/templates?kind=other').expect(400)).body.error.code)
+    expect((await request(app).get('/api/v1/templates?kind=other').expect(400)).body.error.code)
       .toBe('invalid_template_kind')
-    expect((await request(app).get('/templates/without-preview/preview').expect(404)).body.error.code)
+    expect((await request(app).get('/api/v1/templates/without-preview/preview').expect(404)).body.error.code)
       .toBe('template_preview_not_found')
-    expect((await request(app).get('/templates/missing/preview').expect(404)).body.error.code)
+    expect((await request(app).get('/api/v1/templates/missing/preview').expect(404)).body.error.code)
       .toBe('template_not_found')
-    await request(app).post('/templates/without-preview/preview').expect(405)
+    await request(app).post('/api/v1/templates/without-preview/preview').expect(405)
   })
 
   it('returns a sanitized validation error for a malformed package', async () => {
@@ -365,7 +474,7 @@ describe('import API', () => {
     const app = createTestApp(importService, 1024)
 
     const response = await request(app)
-      .post('/import')
+      .post('/api/v1/import')
       .set('Content-Type', POWERPOINT_CONTENT_TYPE)
       .send(Buffer.from('not a zip'))
       .expect(422)
@@ -381,7 +490,7 @@ describe('import API', () => {
     const importService = new ImportTemplateService(new LibraryPowerPointConverter(), templates)
     const app = createTestApp(importService, 4)
 
-    for (const endpoint of ['/import', '/batchImport']) {
+    for (const endpoint of ['/api/v1/import', '/api/v1/batchImport']) {
       const response = await request(app)
         .post(endpoint)
         .set('Content-Type', POWERPOINT_CONTENT_TYPE)
@@ -415,7 +524,7 @@ describe('import API', () => {
     const app = createTestApp(importService, 1024, 10)
 
     await request(app)
-      .post('/import')
+      .post('/api/v1/import')
       .set('Content-Type', POWERPOINT_CONTENT_TYPE)
       .send(Buffer.from('staged PowerPoint bytes'))
       .expect(408)
@@ -428,7 +537,7 @@ describe('import API', () => {
     const importService = new ImportTemplateService(new LibraryPowerPointConverter(), templates)
     const app = createTestApp(importService, 1024)
 
-    const response = await request(app).get('/import/missing').expect(404)
+    const response = await request(app).get('/api/v1/import/missing').expect(404)
     expect(response.body.error.code).toBe('template_not_found')
   })
 
@@ -437,7 +546,7 @@ describe('import API', () => {
     const app = createTestApp(importService, 1024)
 
     const response = await request(app)
-      .get('/import/missing/assets/missing')
+      .get('/api/v1/import/missing/assets/missing')
       .expect(404)
     expect(response.body.error.code).toBe('template_asset_not_found')
   })
@@ -456,7 +565,7 @@ describe('import API', () => {
     const importService = new ImportTemplateService(new LibraryPowerPointConverter(), templates)
     const app = createTestApp(importService, 1024)
 
-    const response = await request(app).get('/import/orphan-template').expect(422)
+    const response = await request(app).get('/api/v1/import/orphan-template').expect(422)
     expect(response.body.error.code).toBe('template_asset_not_found')
   })
 
@@ -473,7 +582,7 @@ describe('import API', () => {
     )
     const app = createTestApp(importService, 1024)
 
-    const response = await request(app).get('/import/legacy-template').expect(200)
+    const response = await request(app).get('/api/v1/import/legacy-template').expect(200)
     expect(response.body.presentation.slides[0].elements[0]).toMatchObject({
       type: 'image',
       src: expect.stringMatching(/^data:image\/png;base64,/u),
@@ -486,7 +595,7 @@ describe('import API', () => {
       src: '/import/legacy-template/assets/migrated-asset',
     })
     await request(app)
-      .get('/import/legacy-template/assets/migrated-asset')
+      .get('/api/v1/import/legacy-template/assets/migrated-asset')
       .expect('Content-Type', 'image/png')
       .expect(200)
   })
@@ -513,7 +622,7 @@ describe('import API', () => {
       1024,
     )
 
-    const response = await request(app).get('/templates/zero-sized-template').expect(200)
+    const response = await request(app).get('/api/v1/templates/zero-sized-template').expect(200)
     expect(response.body.presentation.slides[0]).toMatchObject({ width: 1, height: 1 })
     expect(response.body.presentation.slides[0].elements[0]).toMatchObject({ w: 1, h: 1 })
     expect(templates.findById('zero-sized-template')?.templateJson.presentation.slides[0])
@@ -550,7 +659,7 @@ describe('import API', () => {
       1024,
     )
 
-    const listed = await request(app).get('/templates').expect(200)
+    const listed = await request(app).get('/api/v1/templates').expect(200)
     expect(listed.body).toEqual({
       templates: [
         {
@@ -574,13 +683,13 @@ describe('import API', () => {
       ],
     })
 
-    const deleted = await request(app).delete('/templates/template-second').expect(204)
+    const deleted = await request(app).delete('/api/v1/templates/template-second').expect(204)
     expect(deleted.headers['x-request-id']).toEqual(expect.any(String))
     expect(deleted.text).toBe('')
     expect(templates.findById('template-second')).toBeUndefined()
     expect(templates.findAsset('template-second', 'asset-second')).toBeUndefined()
 
-    const repeated = await request(app).delete('/templates/template-second').expect(404)
+    const repeated = await request(app).delete('/api/v1/templates/template-second').expect(404)
     expect(repeated.body.error.code).toBe('template_not_found')
   })
 })

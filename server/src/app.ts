@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 
 import express from 'express'
 
+import { API_V1_PATH } from './apiPaths'
 import { ApiError, errorHandler, notFoundHandler } from './errors'
 import { createExportRouter } from './routes/exportRoutes'
 import { createBatchImportRouter, createImportRouter } from './routes/importRoutes'
@@ -21,6 +22,7 @@ const DEFAULT_REQUEST_TIMEOUT_MS = 30_000
 
 export function createApp(dependencies: AppDependencies) {
   const app = express()
+  const apiV1 = express.Router()
   app.disable('x-powered-by')
 
   app.use((_request, response, next) => {
@@ -46,17 +48,21 @@ export function createApp(dependencies: AppDependencies) {
     })
     next()
   })
-  app.use('/export', createExportRouter(
+  apiV1.use('/export', createExportRouter(
     dependencies.exportService,
     dependencies.maxExportJsonBytes,
     dependencies.maxUploadBytes,
   ))
-  app.use('/import', createImportRouter(dependencies.importService, dependencies.maxUploadBytes))
-  app.use(
+  apiV1.use(
+    '/import',
+    createImportRouter(dependencies.importService, dependencies.maxUploadBytes),
+  )
+  apiV1.use(
     '/batchImport',
     createBatchImportRouter(dependencies.importService, dependencies.maxUploadBytes),
   )
-  app.use('/templates', createTemplateRouter(dependencies.importService))
+  apiV1.use('/templates', createTemplateRouter(dependencies.importService))
+  app.use(API_V1_PATH, apiV1)
   app.use(notFoundHandler)
   app.use(errorHandler)
 

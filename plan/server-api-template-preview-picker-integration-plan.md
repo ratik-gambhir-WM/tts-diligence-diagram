@@ -469,10 +469,10 @@ the network in CI.
 Run focused tests first, then the repository gates:
 
 ```sh
-npm run test --workspace @tts-mermaid/server -- test/importApi.test.ts
-npm run test --workspace @tts-mermaid/server -- test/exportApi.test.ts
-npm run test --workspace @tts-mermaid/server -- test/powerPointParity.test.ts
-npm run test --workspace @tts-mermaid/web -- src/path/to/picker-and-api-tests.test.tsx
+npm run test --workspace @diligence-studio/server -- test/importApi.test.ts
+npm run test --workspace @diligence-studio/server -- test/exportApi.test.ts
+npm run test --workspace @diligence-studio/server -- test/powerPointParity.test.ts
+npm run test --workspace @diligence-studio/web -- src/path/to/picker-and-api-tests.test.tsx
 npm run typecheck
 npm test
 npm run build
